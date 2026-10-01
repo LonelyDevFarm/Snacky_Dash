@@ -1,0 +1,305 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9116f0023bce17345a610130b50d9322, type: 3}
+  m_Name: SoundLibrary
+  m_EditorClassIdentifier: 
+  sounds:
+  - name: ShootToCrate
+    clip: {fileID: 8300000, guid: cfab3f6695297f84dab2f423fcc3f34b, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: HitTail
+    clip: {fileID: 8300000, guid: e4f5bc86e967bc741887e747eae821c4, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: GetPill1
+    clip: {fileID: 8300000, guid: 413b9cd70bd251943a36c8fb9abdc02d, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: GetPill2
+    clip: {fileID: 8300000, guid: 314387f367fcf164082c23a896d260f9, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: GetPill3
+    clip: {fileID: 8300000, guid: 43f2b58be230ff24cb31ee75f18c1c15, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Confetti
+    clip: {fileID: 8300000, guid: d87fce41f7912ba459e5b6dd6b105311, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Swipe
+    clip: {fileID: 8300000, guid: 66f053a35b855fa449ad9da6eafc524b, type: 3}
+    volume: 0.35
+    pitch: 1
+    looping: 0
+  - name: SpawnPill
+    clip: {fileID: 8300000, guid: 2dea67afbf4fa2b4e9bff6ef9ef0830d, type: 3}
+    volume: 0.841
+    pitch: 0.9
+    looping: 0
+  - name: BumpDefeat
+    clip: {fileID: 8300000, guid: e21115937337de447b3e373242be0806, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: OpenLock
+    clip: {fileID: 8300000, guid: 95184aa6c4f81d94fb24069bcbd2a5a7, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: CollectCoin
+    clip: {fileID: 8300000, guid: 91fe60fcdc893c449b3dca0b63cbb1cf, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: PopLot
+    clip: {fileID: 8300000, guid: cf97bef8cba19cf43ab4b876bfef88ec, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Coins
+    clip: {fileID: 8300000, guid: af2a0d03a85ce9049b534d721aaf9e23, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Open_Crate
+    clip: {fileID: 8300000, guid: d7ef17775ca555a45a7ef422c8d15a22, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Close_Crate
+    clip: {fileID: 8300000, guid: ff91a37ee2e0fcb418ef947374f14fd6, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Complete_Crate
+    clip: {fileID: 8300000, guid: ea9062d5ebde5704b813f481be36387e, type: 3}
+    volume: 0.486
+    pitch: 1
+    looping: 0
+  - name: CrateConfetti
+    clip: {fileID: 8300000, guid: fe82c596f46de914db6898a28356eea0, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Combo
+    clip: {fileID: 8300000, guid: ab6aa782cded3884082aee8fe1f31ca9, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Combo_GiveTotal
+    clip: {fileID: 8300000, guid: 9727340c46d6c1143ad46081b4bf5298, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: ReadyToFill
+    clip: {fileID: 8300000, guid: 0fb24dcaa3dee2543b9c1449acd9cb82, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: MagicWave
+    clip: {fileID: 8300000, guid: 4974e7a073ab8a54f8830c8293326ae4, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: WavePulse
+    clip: {fileID: 8300000, guid: 413b9cd70bd251943a36c8fb9abdc02d, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: ArrowSwitch
+    clip: {fileID: 8300000, guid: c0ea232aa1698f64a863834acc1e6eab, type: 3}
+    volume: 0.37
+    pitch: 1
+    looping: 0
+  - name: ArrowStop
+    clip: {fileID: 8300000, guid: 691ba34f742f07848832be12e91f48a9, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: LittleBump
+    clip: {fileID: 8300000, guid: 167991ac75ec7e640a856c9cc0f5b49d, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: OpenPasserelle
+    clip: {fileID: 8300000, guid: 39a418d58e4fad54182882699676c523, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: WallDamage
+    clip: {fileID: 8300000, guid: 81345fa09ddb00941ad075730e71eaf6, type: 3}
+    volume: 0.9
+    pitch: 1
+    looping: 0
+  - name: WallExplode
+    clip: {fileID: 8300000, guid: cd42555277c68f9448d92e71e4181449, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: TutorialDisplay
+    clip: {fileID: 8300000, guid: 051f6235a04f8f54a921ffb077d3f2c9, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: PressStart
+    clip: {fileID: 8300000, guid: 4e082aa247dfd524c8e24eb80e1cceaf, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Booster
+    clip: {fileID: 8300000, guid: 70a97cb49846d774db097c02fc8f8d45, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Booster_Shrink
+    clip: {fileID: 8300000, guid: 468f89440c3d6a9468512253d3bb649b, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Add_NewBooster
+    clip: {fileID: 8300000, guid: b261b677d3cea164b980f6daa04e1afe, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Open_NewBoosterUnlock
+    clip: {fileID: 8300000, guid: d546baf7979552f4181beafa2d39ee94, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Buy_Booster_Money
+    clip: {fileID: 8300000, guid: ccb3c40fa6c45664393fc425e589cf87, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: RoadStepExplode
+    clip: {fileID: 8300000, guid: 99a3ab4542d047446b3b222890fc9ce9, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: BoosterFocus
+    clip: {fileID: 8300000, guid: e4f5bc86e967bc741887e747eae821c4, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: BoosterActivate
+    clip: {fileID: 8300000, guid: e4ef41b86e9bfb242a35c0b4c7ce15e0, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: BoosterBuyPanel
+    clip: {fileID: 8300000, guid: 437b319b4cfdb2d488b28013b3ac7abf, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Revive
+    clip: {fileID: 8300000, guid: 2c6a561310af59e4f9ebc888892e4c47, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: NextLevel
+    clip: {fileID: 8300000, guid: ca4ed9841dccd614b978d821ed79a05e, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: NewIngredientPopUp
+    clip: {fileID: 8300000, guid: d546baf7979552f4181beafa2d39ee94, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: RisingBlockUp
+    clip: {fileID: 8300000, guid: 7091e6bd81d9a1646b54de4d5079cd95, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: RisingBlockDown
+    clip: {fileID: 8300000, guid: 7091e6bd81d9a1646b54de4d5079cd95, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: ShowPanelSwipe
+    clip: {fileID: 8300000, guid: 9727340c46d6c1143ad46081b4bf5298, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Click
+    clip: {fileID: 8300000, guid: 33cc00a0ab6588342a9bf14a9082fdf2, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: Switch
+    clip: {fileID: 8300000, guid: 9200451c3a332e143b94807cf4baf25a, type: 3}
+    volume: 0.6
+    pitch: 1
+    looping: 0
+  - name: FruitBump
+    clip: {fileID: 8300000, guid: 0d07950ad5ec2e04ebc099cd233dcfc1, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: TimerEnd
+    clip: {fileID: 8300000, guid: fe21f8ab10c2d4f47836281d6412fc20, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 1
+  - name: Timer30
+    clip: {fileID: 8300000, guid: 5ffb62b26e747b04da33c78191074ba0, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: TimerFinish
+    clip: {fileID: 8300000, guid: eedf39d9cdf12374397a92dc0f1bb494, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: FreezeBooster
+    clip: {fileID: 8300000, guid: 38dbdeba9202f194aaf6d6eb0932eb50, type: 3}
+    volume: 1
+    pitch: 1
+    looping: 0
+  - name: SwitchBridge
+    clip: {fileID: 8300000, guid: dba48c8529b15d2439a701a908e2df68, type: 3}
+    volume: 0.5
+    pitch: 1
+    looping: 0
+  - name: SwitchAiguillage
+    clip: {fileID: 8300000, guid: dba48c8529b15d2439a701a908e2df68, type: 3}
+    volume: 0.5
+    pitch: 1
+    looping: 0
+  - name: ArrowGateOpen
+    clip: {fileID: 8300000, guid: 0c10e3ad627c79d4d98477058a7eab01, type: 3}
+    volume: 0.572
+    pitch: 1
+    looping: 0
+  - name: ArrowGateClose
+    clip: {fileID: 8300000, guid: 362ba768517e3c441bad8ff0746acfc1, type: 3}
+    volume: 0.572
+    pitch: 1
+    looping: 0
+  - name: Music_Lobby
+    clip: {fileID: 8300000, guid: e8b3ebf33c0a8534cb7d200266efa27c, type: 3}
+    volume: 0.75
+    pitch: 1
+    looping: 1
+  - name: Music_Core
+    clip: {fileID: 8300000, guid: 226fdc82982fc3e4fa54f616180a2ee3, type: 3}
+    volume: 0.75
+    pitch: 1
+    looping: 1

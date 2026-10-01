@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d188f45ab629aa240bacf872faba8087, type: 3}
+  m_Name: FruitGraphicSet
+  m_EditorClassIdentifier: 
+  entries:
+  - kind: 0
+    sprite: {fileID: 21300000, guid: ce6799888eeeb1c46b5b997fd9766672, type: 2}
+    spriteNoOutline: {fileID: 21300000, guid: 7e5e41313f250fb47bcaaeb80b6b741e, type: 2}
+    crateMaterial: {fileID: 2100000, guid: e8de052dde332e747a1d8100dd9ef9c7, type: 2}
+    outlineColor: {r: 0.46274513, g: 0.08235294, b: 0.14901961, a: 1}
+  - kind: 1
+    sprite: {fileID: 21300000, guid: 08cdc730125a96845b714b5ae1360193, type: 2}
+    spriteNoOutline: {fileID: 21300000, guid: d1712ee03cd5d194a9f8263ab98d19aa, type: 2}
+    crateMaterial: {fileID: 2100000, guid: 68c0e0582806fe54da08bb3d685d00bc, type: 2}
+    outlineColor: {r: 0.121568635, g: 0.1764706, b: 0.5176471, a: 1}
+  - kind: 2
+    sprite: {fileID: 21300000, guid: a7ee0366706ae8f44913d38215982e35, type: 2}
+    spriteNoOutline: {fileID: 21300000, guid: 86e9b5d9d4dfd46429a58deec624f3a9, type: 2}
+    crateMaterial: {fileID: 2100000, guid: a9b8aff9fb7baee48bd33dca6b6cf931, type: 2}
+    outlineColor: {r: 0.6431373, g: 0.3254902, b: 0, a: 1}
+  - kind: 3
+    sprite: {fileID: 21300000, guid: ccb4ecd32ccdb194d97d7fe4beca06b6, type: 2}
+    spriteNoOutline: {fileID: 21300000, guid: b0b1bffba0585074b8bd36763e1f027f, type: 2}
+    crateMaterial: {fileID: 2100000, guid: 33cbd2db83f561b458d70f80837b81bc, type: 2}
+    outlineColor: {r: 0.5764706, g: 0.20392157, b: 0.5137255, a: 1}
+  - kind: 4
+    sprite: {fileID: 21300000, guid: 3e54492785f418c478ad62a947f8e5fc, type: 2}
+    spriteNoOutline: {fileID: 21300000, guid: 31849597db4b3a34ca9722505b466ec8, type: 2}
+    crateMaterial: {fileID: 2100000, guid: 418e26f6c7922f34d9b888c64c870b65, type: 2}
+    outlineColor: {r: 0.12941177, g: 0.39607847, b: 0.07450981, a: 1}
+  - kind: 5
+    sprite: {fileID: 21300000, guid: 7b3fd84b584c53a4182437e00ea33d63, type: 2}
+    spriteNoOutline: {fileID: 21300000, guid: 5071d20ef67064e4a9007c37df1e5279, type: 2}
+    crateMaterial: {fileID: 2100000, guid: 914a9cf3e00d8e648b4609679bfe81aa, type: 2}
+    outlineColor: {r: 0.7254902, g: 0.21960786, b: 0.078431375, a: 1}
+  - kind: 6
+    sprite: {fileID: 21300000, guid: 2da9237cf408d0f45bfefb48d0c5e13c, type: 2}
+    spriteNoOutline: {fileID: 21300000, guid: f10f7cace16c56d4fb66250c35559140, type: 2}
+    crateMaterial: {fileID: 2100000, guid: 8d195375b05af4d4a8cc1435beb52048, type: 2}
+    outlineColor: {r: 0.33619526, g: 0.043137256, b: 0.37254903, a: 1}

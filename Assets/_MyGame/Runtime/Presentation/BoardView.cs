@@ -27,6 +27,7 @@ namespace SnackDash.Presentation
         private const float GroundDepth = 0.1f;
 
         private readonly List<GameObject> _spawned = new List<GameObject>();
+        private readonly Dictionary<Vector2Int, GameObject> _mapCovers = new Dictionary<Vector2Int, GameObject>();
 
         public Bounds BoardBounds { get; private set; }
 
@@ -59,6 +60,7 @@ namespace SnackDash.Presentation
                     cover.transform.localPosition = CellToWorld(cell);
                     cover.transform.localRotation = Quaternion.Euler(0f, 0f, definition.coverZRotation);
                     _spawned.Add(cover);
+                    if (layer == "map") _mapCovers[cell] = cover;
                 }
             }
 
@@ -107,8 +109,12 @@ namespace SnackDash.Presentation
             return new Bounds(new Vector3(center.x, center.y, 0f), new Vector3(size.x, size.y, 0f));
         }
 
+        /// <summary>Cover spawned for a cell of the "map" layer, or null.</summary>
+        public GameObject GetCover(Vector2Int cell) => _mapCovers.TryGetValue(cell, out var cover) ? cover : null;
+
         public void Clear()
         {
+            _mapCovers.Clear();
             foreach (var go in _spawned)
             {
                 if (go == null) continue;
