@@ -1,0 +1,1317 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6964f8ef7f6c7445bab6ecd62ee2c8c, type: 3}
+  m_Name: TileDefinitionDatabase
+  m_EditorClassIdentifier: 
+  entries:
+  - name: not_pills_spawn_tile
+    tiledId: 276
+    tileType: 54
+    category: 0
+    coverPrefab: {fileID: 0}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: pill_spawn_point
+    tiledId: 277
+    tileType: 21
+    category: 11
+    coverPrefab: {fileID: 0}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Left_A
+    tiledId: 278
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 69068ee7d59481d489eb348cab18297f, type: 3}
+    coverZRotation: 270
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 2
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Up_A
+    tiledId: 279
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 69068ee7d59481d489eb348cab18297f, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Right_A
+    tiledId: 280
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 69068ee7d59481d489eb348cab18297f, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 3
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Down_A
+    tiledId: 281
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 69068ee7d59481d489eb348cab18297f, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 1
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: destructible_walls_H
+    tiledId: 283
+    tileType: 17
+    category: 8
+    coverPrefab: {fileID: 1709254077376921, guid: 56f579f58e334d948bb71ee7d3779e66, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: rising_block
+    tiledId: 285
+    tileType: 16
+    category: 15
+    coverPrefab: {fileID: 1709254077376921, guid: 747e738b99cf63542a1369deac632c04, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: destructible_walls_MIDDLE
+    tiledId: 286
+    tileType: 17
+    category: 12
+    coverPrefab: {fileID: 1709254077376921, guid: 826853efdf166ad429182ccfc2cbd85b, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: player_start_position
+    tiledId: 287
+    tileType: 53
+    category: 0
+    coverPrefab: {fileID: 0}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: switch_universal
+    tiledId: 290
+    tileType: 0
+    category: 10
+    coverPrefab: {fileID: 1709254077376921, guid: 0ec569acb87745146a11410c11b0608a, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: destructible_walls_V
+    tiledId: 291
+    tileType: 17
+    category: 8
+    coverPrefab: {fileID: 1709254077376921, guid: 56f579f58e334d948bb71ee7d3779e66, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: switch_arc
+    tiledId: 292
+    tileType: 0
+    category: 6
+    coverPrefab: {fileID: 1709254077376921, guid: 880c34336d89b7b4483e9499bf330bdd, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: Stop
+    tiledId: 294
+    tileType: 20
+    category: 0
+    coverPrefab: {fileID: 1709254077376921, guid: 16276e0259bed8d4996870d8ab03f8eb, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Cross_CRATEDELIVER_0
+    tiledId: 295
+    tileType: 24
+    category: 5
+    coverPrefab: {fileID: 1709254077376921, guid: 2ba48bfa82a3c4842aefbf3e261eb155, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Cross_CRATEDELIVER_1
+    tiledId: 296
+    tileType: 25
+    category: 5
+    coverPrefab: {fileID: 1709254077376921, guid: 2ba48bfa82a3c4842aefbf3e261eb155, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 1
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Cross_CRATEDELIVER_2
+    tiledId: 297
+    tileType: 26
+    category: 5
+    coverPrefab: {fileID: 1709254077376921, guid: 2ba48bfa82a3c4842aefbf3e261eb155, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 2
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_UD_straight_Arrow_Down_1
+    tiledId: 298
+    tileType: 14
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: f22f5dbef7ced36458c64f4c0ddfc4c9, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 1
+    arrowDirection: 1
+  - name: path_UD_straight_Arrow_Down_Unique
+    tiledId: 299
+    tileType: 31
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: 3e100bc6cfac25c47a4f970e3d2adad7, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 1
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 1
+  - name: path_UD_straight_Arrow_Down
+    tiledId: 300
+    tileType: 14
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: f22f5dbef7ced36458c64f4c0ddfc4c9, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 1
+  - name: path_RL_straight_Arrow_Left_1
+    tiledId: 301
+    tileType: 12
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: f22f5dbef7ced36458c64f4c0ddfc4c9, type: 3}
+    coverZRotation: 270
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 1
+    arrowDirection: 3
+  - name: path_RL_straight_Arrow_Left_Unique
+    tiledId: 302
+    tileType: 29
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: 3e100bc6cfac25c47a4f970e3d2adad7, type: 3}
+    coverZRotation: 270
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 1
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 3
+  - name: path_RL_straight_Arrow_Left
+    tiledId: 303
+    tileType: 12
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: f22f5dbef7ced36458c64f4c0ddfc4c9, type: 3}
+    coverZRotation: 270
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 3
+  - name: path_RL_straight_Arrow_Right_1
+    tiledId: 304
+    tileType: 13
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: f22f5dbef7ced36458c64f4c0ddfc4c9, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 1
+    arrowDirection: 2
+  - name: path_RL_straight_Arrow_Right_Unique
+    tiledId: 305
+    tileType: 30
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: 3e100bc6cfac25c47a4f970e3d2adad7, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 1
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 2
+  - name: path_RL_straight_Arrow_Right
+    tiledId: 306
+    tileType: 13
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: f22f5dbef7ced36458c64f4c0ddfc4c9, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 2
+  - name: path_UD_straight_Arrow_Up_1
+    tiledId: 307
+    tileType: 15
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: f22f5dbef7ced36458c64f4c0ddfc4c9, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 1
+    arrowDirection: 0
+  - name: path_UD_straight_Arrow_Up_Unique
+    tiledId: 308
+    tileType: 32
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: 3e100bc6cfac25c47a4f970e3d2adad7, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 1
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_UD_straight_Arrow_Up
+    tiledId: 309
+    tileType: 15
+    category: 4
+    coverPrefab: {fileID: 1709254077376921, guid: f22f5dbef7ced36458c64f4c0ddfc4c9, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Aiguillage_DOWN_Right_L
+    tiledId: 311
+    tileType: 48
+    category: 7
+    coverPrefab: {fileID: 1709254077376921, guid: 89b89ceb16ebc654caa810fb2dc96e9a, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Aiguillage_DOWN_R_Left
+    tiledId: 312
+    tileType: 48
+    category: 7
+    coverPrefab: {fileID: 1709254077376921, guid: de6d15f073a8b0f4ea5b77fe160ac704, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Aiguillage_LEFT_U_Down
+    tiledId: 314
+    tileType: 46
+    category: 7
+    coverPrefab: {fileID: 1709254077376921, guid: 5e64940ba54d909489c19146c27ffdbd, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Aiguillage_RIGHT_Up_Down
+    tiledId: 316
+    tileType: 45
+    category: 7
+    coverPrefab: {fileID: 1709254077376921, guid: edcc14c8a8b21b94f9ae7ab9e4de9170, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Aiguillage_UP_R_Left
+    tiledId: 317
+    tileType: 47
+    category: 7
+    coverPrefab: {fileID: 1709254077376921, guid: 79599320b1e82f3419ff3dc325dd49ff, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Aiguillage_UP_Right_L
+    tiledId: 318
+    tileType: 47
+    category: 7
+    coverPrefab: {fileID: 1709254077376921, guid: 44d8d1b945263364f8210198268e61cf, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_ConnectionBoat
+    tiledId: 319
+    tileType: 33
+    category: 0
+    coverPrefab: {fileID: 1709254077376921, guid: 2dbc7629c4bc74149aaf1410f935cece, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Aiguillage_Up_L
+    tiledId: 320
+    tileType: 41
+    category: 7
+    coverPrefab: {fileID: 1709254077376921, guid: d6aada0d0bf35054b94239bf9d650276, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Aiguillage_Up_R
+    tiledId: 321
+    tileType: 43
+    category: 7
+    coverPrefab: {fileID: 1709254077376921, guid: 8722c1f7c801bb547baa4ef03aeb2f31, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Border_D
+    tiledId: 322
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 5ae2eb0db967c7244b6d694d8d433b17, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Border_L
+    tiledId: 323
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 5ae2eb0db967c7244b6d694d8d433b17, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Border_R
+    tiledId: 324
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 5ae2eb0db967c7244b6d694d8d433b17, type: 3}
+    coverZRotation: 270
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Border_U
+    tiledId: 325
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 5ae2eb0db967c7244b6d694d8d433b17, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerExt_LD
+    tiledId: 326
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 0868960b701ddd648ac198df49241c37, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerExt_LU
+    tiledId: 327
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 0868960b701ddd648ac198df49241c37, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerExt_RD
+    tiledId: 328
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 0868960b701ddd648ac198df49241c37, type: 3}
+    coverZRotation: 270
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerExt_RU
+    tiledId: 329
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 0868960b701ddd648ac198df49241c37, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerInt_LD_noPath
+    tiledId: 330
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 9a3724e7cc9dfde47aa4499983e6fdcb, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerInt_LD
+    tiledId: 331
+    tileType: 4
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: a7e62c07a2481454e8cc537b6ae0f53f, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerInt_LU_noPath
+    tiledId: 332
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 3c9e73317b9656d489b1c16f9130ef0f, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerInt_LU
+    tiledId: 333
+    tileType: 3
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: a7e62c07a2481454e8cc537b6ae0f53f, type: 3}
+    coverZRotation: 270
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerInt_RD_noPath
+    tiledId: 334
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 38cb87019bd71644296352d12dd0dc2f, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerInt_RD
+    tiledId: 335
+    tileType: 2
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: a7e62c07a2481454e8cc537b6ae0f53f, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerInt_RU_noPath
+    tiledId: 336
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 28f62aaa71d82a44ba39fef9cdac57e5, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_CornerInt_RU
+    tiledId: 337
+    tileType: 1
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: a7e62c07a2481454e8cc537b6ae0f53f, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Island_End_D
+    tiledId: 338
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: d6285d1fbfcaa614b9aba84e1f1fd83e, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Island_End_L
+    tiledId: 339
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 4b4059133d9629d4fa5b34d68e56741d, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Island_End_R
+    tiledId: 340
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 09015a9eba5634445a0cd4da9e461f57, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Island_End_U
+    tiledId: 341
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 02f0085a5355d0b45bfe85055cd33cf6, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Island_Mid_LR
+    tiledId: 343
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: d1290a9e062c1494c9ef198e9f084b1f, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Island_Mid_UD
+    tiledId: 344
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 7f60bb57f4b94ab4cb3190f6bbe34e51, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: grass_Island_Single
+    tiledId: 345
+    tileType: 0
+    category: 1
+    coverPrefab: {fileID: 1709254077376921, guid: 56231b5a66266f34e876be61e058ea42, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Cross_Toggle
+    tiledId: 346
+    tileType: 39
+    category: 0
+    coverPrefab: {fileID: 1709254077376921, guid: a96cc8052de93aa4889a267278f58e4b, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Cross
+    tiledId: 347
+    tileType: 20
+    category: 2
+    coverPrefab: {fileID: 1709254077376921, guid: a438b94f3f8410442a55c1792ac394c6, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 1
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_RL_straight_NoPill
+    tiledId: 349
+    tileType: 7
+    category: 2
+    coverPrefab: {fileID: 1709254077376921, guid: 291c07f2c53412949a73e428f14e6263, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_RL_straight
+    tiledId: 350
+    tileType: 5
+    category: 2
+    coverPrefab: {fileID: 1709254077376921, guid: e86a3eaeb8c86d14998f1214a6e5d8ca, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_UD_straight_noPill
+    tiledId: 351
+    tileType: 8
+    category: 2
+    coverPrefab: {fileID: 1709254077376921, guid: 72915653bc838df47b8e245624d4a477, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_UD_straight
+    tiledId: 352
+    tileType: 6
+    category: 2
+    coverPrefab: {fileID: 1709254077376921, guid: e86a3eaeb8c86d14998f1214a6e5d8ca, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_CrossR
+    tiledId: 353
+    tileType: 20
+    category: 2
+    coverPrefab: {fileID: 1709254077376921, guid: a438b94f3f8410442a55c1792ac394c6, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 1
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_CrossU
+    tiledId: 354
+    tileType: 20
+    category: 2
+    coverPrefab: {fileID: 1709254077376921, guid: a438b94f3f8410442a55c1792ac394c6, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 1
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_CrossD
+    tiledId: 355
+    tileType: 20
+    category: 2
+    coverPrefab: {fileID: 1709254077376921, guid: a438b94f3f8410442a55c1792ac394c6, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 1
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_CrossL
+    tiledId: 356
+    tileType: 20
+    category: 2
+    coverPrefab: {fileID: 1709254077376921, guid: a438b94f3f8410442a55c1792ac394c6, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 1
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_BridgeRLSwitchable
+    tiledId: 358
+    tileType: 36
+    category: 9
+    coverPrefab: {fileID: 1709254077376921, guid: 858eee4ee9f065e45b9881dbfeaea99b, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_BridgeRL
+    tiledId: 359
+    tileType: 11
+    category: 13
+    coverPrefab: {fileID: 1709254077376921, guid: 12e98bbd2f55c4247b746ac9685d28c1, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Down_B
+    tiledId: 360
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 130fb9a90346d8e4791e7c29cbfa4839, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 1
+    tunnelIndex: 1
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Left_B
+    tiledId: 361
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 130fb9a90346d8e4791e7c29cbfa4839, type: 3}
+    coverZRotation: 270
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 2
+    tunnelIndex: 1
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Right_B
+    tiledId: 362
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 130fb9a90346d8e4791e7c29cbfa4839, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 3
+    tunnelIndex: 1
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Up_B
+    tiledId: 363
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 130fb9a90346d8e4791e7c29cbfa4839, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 1
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Up_D
+    tiledId: 378
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 600b6c5f745d7e042bea2b2d8e9632d9, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 3
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Left_D
+    tiledId: 379
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 600b6c5f745d7e042bea2b2d8e9632d9, type: 3}
+    coverZRotation: 270
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 2
+    tunnelIndex: 3
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Down_D
+    tiledId: 380
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 600b6c5f745d7e042bea2b2d8e9632d9, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 1
+    tunnelIndex: 3
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Right_D
+    tiledId: 381
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 600b6c5f745d7e042bea2b2d8e9632d9, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 3
+    tunnelIndex: 3
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Up_C
+    tiledId: 382
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 043dabd730168d94dbd55f2d44800d19, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 2
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Down_C
+    tiledId: 384
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 043dabd730168d94dbd55f2d44800d19, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 1
+    tunnelIndex: 2
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Left_C
+    tiledId: 385
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 043dabd730168d94dbd55f2d44800d19, type: 3}
+    coverZRotation: 270
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 2
+    tunnelIndex: 2
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Tunnel_Right_C
+    tiledId: 386
+    tileType: 23
+    category: 3
+    coverPrefab: {fileID: 1709254077376921, guid: 043dabd730168d94dbd55f2d44800d19, type: 3}
+    coverZRotation: 90
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 3
+    tunnelIndex: 2
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: delivery_end_point
+    tiledId: 387
+    tileType: 0
+    category: 14
+    coverPrefab: {fileID: 1709254077376921, guid: e86a3eaeb8c86d14998f1214a6e5d8ca, type: 3}
+    coverZRotation: 180
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: SecretCollectible
+    tiledId: 389
+    tileType: 55
+    category: 0
+    coverPrefab: {fileID: 0}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Cross_CRATEDELIVER_3
+    tiledId: 394
+    tileType: 56
+    category: 5
+    coverPrefab: {fileID: 1709254077376921, guid: 2ba48bfa82a3c4842aefbf3e261eb155, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 3
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Cross_CRATEDELIVER_4
+    tiledId: 395
+    tileType: 57
+    category: 5
+    coverPrefab: {fileID: 1709254077376921, guid: 2ba48bfa82a3c4842aefbf3e261eb155, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 4
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Cross_CRATEDELIVER_5
+    tiledId: 396
+    tileType: 58
+    category: 5
+    coverPrefab: {fileID: 1709254077376921, guid: 2ba48bfa82a3c4842aefbf3e261eb155, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 5
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: path_Cross_CRATEDELIVER_6
+    tiledId: 397
+    tileType: 59
+    category: 5
+    coverPrefab: {fileID: 1709254077376921, guid: 2ba48bfa82a3c4842aefbf3e261eb155, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 6
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: curtain
+    tiledId: 398
+    tileType: 0
+    category: 16
+    coverPrefab: {fileID: 1709254077376921, guid: 5c6dd79a6e995b74db648470fd306c0d, type: 3}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 0
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
+  - name: snake_tail_start_position
+    tiledId: 403
+    tileType: 61
+    category: 0
+    coverPrefab: {fileID: 0}
+    coverZRotation: 0
+    spawnOverlayTunnelBoosterTile: 0
+    deliverPointIndex: 0
+    tunnelDirection: 4
+    tunnelIndex: 0
+    arrowIsFixed: 0
+    arrowIsUnique: 0
+    arrowGroupId: 0
+    arrowDirection: 0
