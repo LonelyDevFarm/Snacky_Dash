@@ -50,7 +50,85 @@ namespace SnackDash.Gameplay
             foreach (var stop in _crateStops)
             foreach (var end in endPoints)
                 if ((end - stop.Value).sqrMagnitude == 1) _crateAnchors[stop.Key] = end;
+
+            PillSlotGroups = BuildPillSlotGroups(map, database);
         }
+
+        /// <summary>
+        /// Cells fruit may spawn on in levels without fixed spawn1..N layers (RespawnScheduler
+        /// "map pill" respawn): the PillSpawnPoint cells of the spawn layer when the level has any,
+        /// otherwise every road except stops, NoPill roads, NonPillSpawnPlace cells and the start.
+        /// Grouped by flood fill like FloodFillGroupBuilder; each group is in path order from one end.
+        /// </summary>
+        public IReadOnlyList<IReadOnlyList<Vector2Int>> PillSlotGroups { get; }
+
+        private List<IReadOnlyList<Vector2Int>> BuildPillSlotGroups(TiledMap map, TileDefinitionDatabase database)
+        {
+            var spawnPoints = new HashSet<Vector2Int>();
+            var excluded = new HashSet<Vector2Int> { PlayerStart };
+            foreach (var cell in _cells.Keys)
+            {
+                if (map.GetLocalTileId("spawn", cell) is int id && id >= 0 && database.TryGet(id, out var definition))
+                {
+                    if (definition.tileType == TileType.PillSpawnPoint) spawnPoints.Add(cell);
+                    if (definition.tileType == TileType.NonPillSpawnPlace) excluded.Add(cell);
+                }
+            }
+
+            var slots = new HashSet<Vector2Int>(spawnPoints);
+            if (slots.Count == 0)
+                foreach (var pair in _cells)
+                    if (!excluded.Contains(pair.Key) && IsPillRoad(pair.Value.type)) slots.Add(pair.Key);
+
+            var ordered = new List<Vector2Int>(slots);
+            ordered.Sort((a, b) => a.y != b.y ? b.y.CompareTo(a.y) : a.x.CompareTo(b.x)); // top-left first
+            var groups = new List<IReadOnlyList<Vector2Int>>();
+            var assigned = new HashSet<Vector2Int>();
+            foreach (var start in ordered)
+            {
+                if (assigned.Contains(start)) continue;
+                var region = Flood(start, slots);
+                // Seed at a run end (fewest neighbours in the group) so the order follows the road.
+                var seed = region[0];
+                foreach (var cell in region)
+                    if (SlotNeighbours(cell, slots) < SlotNeighbours(seed, slots)) seed = cell;
+                var group = Flood(seed, slots);
+                assigned.UnionWith(group);
+                groups.Add(group);
+            }
+            return groups;
+        }
+
+        private static List<Vector2Int> Flood(Vector2Int seed, HashSet<Vector2Int> slots)
+        {
+            var result = new List<Vector2Int>();
+            var seen = new HashSet<Vector2Int> { seed };
+            var queue = new Queue<Vector2Int>();
+            queue.Enqueue(seed);
+            while (queue.Count > 0)
+            {
+                var cell = queue.Dequeue();
+                result.Add(cell);
+                foreach (var direction in DirectionExtensions.All)
+                {
+                    var next = cell + direction.ToCell();
+                    if (slots.Contains(next) && seen.Add(next)) queue.Enqueue(next);
+                }
+            }
+            return result;
+        }
+
+        private static int SlotNeighbours(Vector2Int cell, HashSet<Vector2Int> slots)
+        {
+            int count = 0;
+            foreach (var direction in DirectionExtensions.All)
+                if (slots.Contains(cell + direction.ToCell())) count++;
+            return count;
+        }
+
+        private static bool IsPillRoad(TileType type) =>
+            type != TileType.Stop && !IsCrateStop(type)
+            && type != TileType.RoadRightLeftNoPill && type != TileType.RoadUpDownNoPill;
 
         public bool IsWalkable(Vector2Int cell) => _cells.ContainsKey(cell);
 

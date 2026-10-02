@@ -54,8 +54,6 @@ namespace SnackDash.Editor.Setup
 
             var crates = Child<CratesView>(level, "Crates");
             Set(crates, "crate9Prefab", Prefab("GameObject/Box_Crate_9_VO"));
-            Set(crates, "crate18Prefab", Prefab("GameObject/Box_Crate_18"));
-            Set(crates, "crate27Prefab", Prefab("GameObject/Box_Crate_27"));
             Set(crates, "pillPrefab", Prefab("GameObject/PillMaster_VO"));
             Set(crates, "fruits", AssetDatabase.LoadAssetAtPath<FruitGraphicSet>("Assets/_MyGame/Data/FruitGraphicSet.asset"));
             Set(crates, "board", board);
@@ -81,9 +79,65 @@ namespace SnackDash.Editor.Setup
             Set(bootstrap, "input", input);
             Set(bootstrap, "gameAudio", audio);
 
+            var ui = new GameObject("UI");
+            var loseFlow = ui.AddComponent<SnackDash.UI.LoseFlowView>();
+            FillSkin(loseFlow);
+            Set(bootstrap, "loseFlow", loseFlow);
+            var eventSystem = new GameObject("EventSystem");
+            eventSystem.AddComponent<UnityEngine.EventSystems.EventSystem>();
+            eventSystem.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             Debug.Log($"[Setup] Built {ScenePath}");
+        }
+
+        /// <summary>Original popup sprites, font and TMP materials, found by their original names.</summary>
+        private static void FillSkin(Object target)
+        {
+            var so = new SerializedObject(target);
+            var skin = so.FindProperty("skin");
+            void Ref(string field, Object value)
+            {
+                skin.FindPropertyRelative(field).objectReferenceValue = value;
+                if (value == null) Debug.LogWarning($"[Setup] UI skin: nothing found for {field}");
+            }
+            void Sprites(string field, params string[] names)
+            {
+                var array = skin.FindPropertyRelative(field);
+                array.arraySize = names.Length;
+                for (int i = 0; i < names.Length; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = Find<Sprite>(names[i]);
+            }
+
+            // Font + presets rebuilt for TMP 3.0.7 (SnackDash/Restore/Rebuild TMP Font): the exported
+            // Unity 6 font asset crashes the editor when drawn.
+            Material Preset(string original) => Find<Material>(Restore.OriginalAssetImporter.RebuiltFontName + " (" + original + ")");
+            Ref("font", Find<TMPro.TMP_FontAsset>(Restore.OriginalAssetImporter.RebuiltFontName));
+            Ref("titleBackMaterial", Preset("LuckiestGuy-Regular Combo - BG"));
+            Ref("titleFrontMaterial", Preset("LuckiestGuy-Regular Combo - Base"));
+            Ref("greenOutlineMaterial", Preset("LuckiestGuy-Regular SDF Green Outline"));
+            Ref("darkRedMaterial", Preset("LuckiestGuy-Regular SDF Dark Red"));
+            Ref("blueUnderlayMaterial", Preset("LuckiestGuy-Regular SDF Blue Underlay"));
+            Ref("greenCartoonMaterial", Preset("LuckiestGuy-Regular SDF Green Cartoon"));
+            Ref("plainMaterial", Preset("LuckiestGuy-Regular Atlas Material"));
+            Sprites("bigButton", "S_Button_Sheet_3", "S_Button_Sheet_2", "S_Button_Sheet_1", "S_Button_Sheet_0");
+            Sprites("smallButton", "S_Button_Small_Sheet_3", "S_Button_Small_Sheet_2", "S_Button_Small_Sheet_1", "S_Button_Small_Sheet_0");
+            Ref("buttonUnderlay", Find<Sprite>("S_Button_Underlay_Sheet_1"));
+            Ref("bottomGradient", Find<Sprite>("gradient01"));
+            Ref("topGradient", Find<Sprite>("VerticalGradient"));
+            Ref("bannerFrame", Find<Sprite>("BannerFrame00_04~06_Bg"));
+            Ref("titleBanner", Find<Sprite>("S_BG_Title (1)_0"));
+            Ref("brokenHeart", Find<Sprite>("S_Icon_BrokenHeart_Large_0"));
+            Ref("greenButton", Find<Sprite>("S_Button_Green"));
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static T Find<T>(string assetName) where T : Object
+        {
+            foreach (var guid in AssetDatabase.FindAssets(assetName + " t:" + typeof(T).Name, new[] { "Assets/_MyGame" }))
+                foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GUIDToAssetPath(guid)))
+                    if (asset is T typed && asset.name == assetName) return typed;
+            return null;
         }
 
         private static T Child<T>(Transform parent, string name) where T : Component

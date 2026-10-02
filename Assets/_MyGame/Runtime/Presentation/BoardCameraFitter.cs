@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace SnackDash.Presentation
@@ -7,6 +8,7 @@ namespace SnackDash.Presentation
     /// LevelCameraFitter in Game.unity: bounds expanded by (3, 4) cells, camera pulled back 13 units
     /// along its view axis, fit area = canvas (1080x1920 reference, match height) inset by 10 x 287.78
     /// and shifted up by 30. The fitting maths itself is reconstructed (the original body is stripped).
+    /// While the lose buttons are shown the board is refitted between them and the HUD (FitBetween).
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class BoardCameraFitter : MonoBehaviour
@@ -22,11 +24,34 @@ namespace SnackDash.Presentation
         [SerializeField] private float fitAreaOffsetY = 30.041992f;
 
         private Camera _camera;
+        private Bounds _board;
+        private Coroutine _zoom;
 
         public void Fit(Bounds board)
         {
+            _board = board;
+            Compute(referenceHeight - fitAreaHeightInset, fitAreaOffsetY, out var size, out var position);
+            Apply(size, position);
+        }
+
+        /// <summary>Tween the board into the area between <paramref name="bottom"/> and <paramref name="top"/> canvas units.</summary>
+        public void FitBetween(float bottom, float top, float duration)
+        {
+            Compute(top - bottom, (bottom + top) * 0.5f - referenceHeight * 0.5f, out var size, out var position);
+            TweenTo(size, position, duration);
+        }
+
+        /// <summary>Tween back to the normal play framing.</summary>
+        public void FitDefault(float duration)
+        {
+            Compute(referenceHeight - fitAreaHeightInset, fitAreaOffsetY, out var size, out var position);
+            TweenTo(size, position, duration);
+        }
+
+        private void Compute(float areaHeight, float areaOffsetY, out float size, out Vector3 position)
+        {
             if (_camera == null) _camera = GetComponent<Camera>();
-            var bounds = board;
+            var bounds = _board;
             bounds.Expand(new Vector3(expandBoundsX, expandBoundsY, 0f));
 
             // Extent of the bounds in camera space (the camera is tilted, so project the corners).
@@ -45,16 +70,37 @@ namespace SnackDash.Presentation
 
             float canvasWidth = referenceHeight * _camera.aspect;
             float fitWidthFraction = (canvasWidth - fitAreaWidthInset) / canvasWidth;
-            float fitHeightFraction = (referenceHeight - fitAreaHeightInset) / referenceHeight;
+            float fitHeightFraction = areaHeight / referenceHeight;
 
             float sizeForHeight = (maxY - minY) * 0.5f / fitHeightFraction;
             float sizeForWidth = (maxX - minX) * 0.5f / (fitWidthFraction * _camera.aspect);
-            _camera.orthographic = true;
-            _camera.orthographicSize = Mathf.Max(sizeForHeight, sizeForWidth);
+            size = Mathf.Max(sizeForHeight, sizeForWidth);
 
-            // Board centre should land on the fit-area centre, which sits fitAreaOffsetY above screen centre.
-            float offsetWorld = fitAreaOffsetY / referenceHeight * 2f * _camera.orthographicSize;
-            transform.position = bounds.center - forward * distance - up * offsetWorld;
+            // Board centre should land on the fit-area centre, which sits areaOffsetY above screen centre.
+            float offsetWorld = areaOffsetY / referenceHeight * 2f * size;
+            position = bounds.center - forward * distance - up * offsetWorld;
+        }
+
+        private void Apply(float size, Vector3 position)
+        {
+            _camera.orthographic = true;
+            _camera.orthographicSize = size;
+            transform.position = position;
+        }
+
+        private void TweenTo(float size, Vector3 position, float duration)
+        {
+            if (_zoom != null) StopCoroutine(_zoom);
+            _zoom = StartCoroutine(Zoom(size, position, duration));
+        }
+
+        private IEnumerator Zoom(float size, Vector3 position, float duration)
+        {
+            float fromSize = _camera.orthographicSize;
+            var fromPosition = transform.position;
+            yield return Tween.Run(duration, Tween.OutQuad, t =>
+                Apply(Mathf.LerpUnclamped(fromSize, size, t), Vector3.LerpUnclamped(fromPosition, position, t)));
+            _zoom = null;
         }
     }
 }

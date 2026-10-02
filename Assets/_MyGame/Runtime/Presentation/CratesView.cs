@@ -28,8 +28,6 @@ namespace SnackDash.Presentation
         public static readonly Vector3 CrateSize = new Vector3(2.8f, 2f, 0f);
 
         [SerializeField] private GameObject crate9Prefab;
-        [SerializeField] private GameObject crate18Prefab;
-        [SerializeField] private GameObject crate27Prefab;
         [SerializeField] private GameObject pillPrefab;
         [SerializeField] private FruitGraphicSet fruits;
         [Tooltip("Board whose crate-stop covers (TileCov_Crate_Delivery) get their idle/highlight state.")]
@@ -56,6 +54,7 @@ namespace SnackDash.Presentation
         private readonly Dictionary<int, List<GameObject>> _columns = new Dictionary<int, List<GameObject>>();
         private readonly Dictionary<int, (GameObject idle, GameObject highlight)> _stopStates = new Dictionary<int, (GameObject, GameObject)>();
         private GameSession _session;
+        private int _snipOrder;
 
         /// <summary>Centre of the current (top) crate of a column.</summary>
         public static Vector3 CratePosition(Vector2Int endPoint) =>
@@ -66,6 +65,8 @@ namespace SnackDash.Presentation
             _session = session;
             for (int column = 0; column < session.Columns.Count; column++) Rebuild(column, false);
             session.SegmentDelivered += OnDelivered;
+            session.SegmentSnipped += OnSnipped;
+            session.TailSnipped += keep => _snipOrder = 0;
             session.CrateCompleted += OnCrateCompleted;
 
             // Original CrateDeliverPoint: idleRoot / highlightRoot, highlighted whenever the snake
@@ -95,14 +96,33 @@ namespace SnackDash.Presentation
             var points = crates[0].transform.Find("AllDestinationPoints/DestinationPoints");
             int slot = _session.Columns[columnIndex].Filled - 1;
             if (points == null || slot < 0 || slot >= points.childCount) return;
-            StartCoroutine(Fly(kind, points.GetChild(slot)));
+            StartCoroutine(Fly(kind, points.GetChild(slot), snake != null ? snake.HeadWorldPosition : points.position, 0f));
         }
 
-        private IEnumerator Fly(PillKind kind, Transform slot)
+        /// <summary>
+        /// Video Man_Lose: after a snip the cut fruit streams out of the tail into the crates of its
+        /// kind, also crates further down the stack. Staggered like a delivery (inferred spacing).
+        /// </summary>
+        private void OnSnipped(int segmentIndex, PillKind kind, int columnIndex, int crateIndex)
         {
+            if (!_columns.TryGetValue(columnIndex, out var crates) || crates.Count == 0) return;
+            var start = snake != null ? snake.SegmentWorldPosition(segmentIndex) : transform.position;
+            float delay = _snipOrder++ * GameSession.DeliveryInterval;
+            int depth = crateIndex - _session.Columns[columnIndex].CurrentIndex;
+            int slot = _session.Columns[columnIndex].FilledIn(crateIndex) - 1;
+            var points = depth < crates.Count ? crates[depth].transform.Find("AllDestinationPoints/DestinationPoints") : null;
+            if (points != null && slot >= 0 && slot < points.childCount)
+                StartCoroutine(Fly(kind, points.GetChild(slot), start, delay));
+            else // deeper than the visible stack: into the bottom crate, shown once it comes up
+                StartCoroutine(Fly(kind, crates[crates.Count - 1].transform, start, delay, vanish: true));
+        }
+
+        private IEnumerator Fly(PillKind kind, Transform slot, Vector3 start, float delay, bool vanish = false)
+        {
+            if (delay > 0f) yield return new WaitForSeconds(delay);
+            if (slot == null) yield break;
             var fruit = Instantiate(pillPrefab, transform);
             PillVisual.SetKind(fruit, kind);
-            var start = snake != null ? snake.HeadWorldPosition : slot.position;
             yield return Tween.Run(flightDuration, Tween.Linear, t =>
             {
                 if (fruit == null || slot == null) return;
@@ -110,7 +130,7 @@ namespace SnackDash.Presentation
                 position.z -= 4f * t * (1f - t) * flightArcHeight;
                 fruit.transform.position = position;
             });
-            if (slot == null) { Destroy(fruit); yield break; }
+            if (slot == null || vanish) { Destroy(fruit); yield break; }
             fruit.transform.SetParent(slot, false);
             fruit.transform.localPosition = Vector3.zero;
 
@@ -170,10 +190,11 @@ namespace SnackDash.Presentation
                 int crateIndex = column.CurrentIndex + k;
                 if (crateIndex >= column.Crates.Count) break;
                 var definition = column.Crates[crateIndex];
-                var crate = Instantiate(PrefabFor(definition.requiredCount), transform);
+                var crate = Instantiate(crate9Prefab, transform); // every crate holds 9 (see GameSession.CrateCapacity)
                 crate.name = $"Crate c{columnIndex} #{crateIndex} {definition.kind} x{definition.requiredCount}";
                 Paint(crate, definition.kind);
                 crates.Add(crate);
+                ShowFilled(crate, definition.kind, column.FilledIn(crateIndex));
 
                 var target = basePosition + new Vector3(0f, 0f, StackDepth * k);
                 crate.transform.localPosition = target;
@@ -192,6 +213,19 @@ namespace SnackDash.Presentation
             }
         }
 
+        /// <summary>Fruit already in a crate (put there by a snip before it reached the top).</summary>
+        private void ShowFilled(GameObject crate, PillKind kind, int count)
+        {
+            var points = crate.transform.Find("AllDestinationPoints/DestinationPoints");
+            if (points == null) return;
+            for (int slot = 0; slot < count && slot < points.childCount; slot++)
+            {
+                var fruit = Instantiate(pillPrefab, points.GetChild(slot), false);
+                PillVisual.SetKind(fruit, kind);
+                fruit.transform.localPosition = Vector3.zero;
+            }
+        }
+
         private void Paint(GameObject crate, PillKind kind)
         {
             var entry = fruits != null ? fruits.Get(kind) : null;
@@ -206,13 +240,6 @@ namespace SnackDash.Presentation
             // The empty crate in the footage shows no icon; the original toggles it from code.
             var icon = crate.transform.Find("BoxVisual_VO/BoxFloor_VO/Mesh_Crate/Fruit_Icon");
             if (icon != null) icon.gameObject.SetActive(false);
-        }
-
-        private GameObject PrefabFor(int requiredCount)
-        {
-            if (requiredCount >= 27 && crate27Prefab != null) return crate27Prefab;
-            if (requiredCount >= 18 && crate18Prefab != null) return crate18Prefab;
-            return crate9Prefab;
         }
     }
 }

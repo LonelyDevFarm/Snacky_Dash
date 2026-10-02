@@ -1,8 +1,10 @@
 ﻿AnimationClip\AN_DepositiPoint_Opening.anim
 AnimationClip\AN_DepositiPoint_Opening_VO.anim
+AnimationClip\AN_LoadingAnimation.anim
 AnimationClip\An_MegaStar_Idle.anim
 AnimationClip\AN_ShutterCrateClosing.anim
 AnimationClip\AN_ShutterCrateOpening.anim
+AnimationClip\Anim_No_Way_Out.anim
 AnimationClip\ArrowClose.anim
 AnimationClip\OpenArrow.anim
 AnimationClip\SnakeHead_DeliveryEnd.anim
@@ -23,14 +25,19 @@ GameObject\Particle_Sandy_Trail.prefab
 GameObject\Particle_Snake_Bump.prefab
 GameObject\PillMaster_VO.prefab
 GameObject\PositionCrates_01_TopCenter.prefab
+GameObject\RewardContainer.prefab
 GameObject\ShutterCrateVisual.prefab
 GameObject\SnakeHead_VO.prefab
 GameObject\TailSegment_VO.prefab
 GameObject\View_Secret_Collectible.prefab
+GameObject\WaveComplete_HUD.prefab
+GameObject\WavePending_HUD.prefab
 Material\MAT_Snake_BlackEye.mat
 Material\MAT_SnakeVO.mat
 Mesh\polySurface11.asset
 Mesh\Snake_HeadBottom.asset
+MonoBehaviour\Color_Combo_Title_2.asset
+MonoBehaviour\Font_Sprites_JuicedUp.asset
 MonoBehaviour\GladlyAcceptRegular-Wyjov SDF.asset
 MonoBehaviour\LuckiestGuy-Regular SDF.asset
 MonoBehaviour\NotoSans-Regular SDF.asset
@@ -63,6 +70,9 @@ Resources\ldfs\visualoverhaul\DestructibleWall.prefab
 Resources\ldfs\visualoverhaul\RisingBlock.prefab
 Resources\ldfs\visualoverhaul\RoadBlock.prefab
 Resources\ldfs\visualoverhaul\SwitchUniversal.prefab
+Resources\popups\LoseInBoardPopup.prefab
+Resources\popups\LoseScreenFailedPopup.prefab
+Resources\popups\VictoryPopup.prefab
 Resources\tilescovers\curtain\View_Curtain_Base.prefab
 Resources\tilescovers\curtain\View_Curtain_Corner.prefab
 Resources\tilescovers\curtain\View_Curtain_Inner.prefab

@@ -11,6 +11,8 @@ namespace SnackDash.Input
     /// stays down can flick again and again; each time it travels the threshold within the last
     /// 0.2 s a new direction fires. Direction snaps to the dominant axis (SwipeController
     /// _maxSnapAngle = 45). Arrow keys / WASD work too, for testing in the Editor.
+    /// Each swipe says whether it is a further flick of a finger that stayed down: the game only
+    /// buffers the first flick of a touch (see GameSession.RequestMove).
     /// Uses the legacy Input Manager (the project's active input handling).
     /// </summary>
     public class SwipeInput : MonoBehaviour
@@ -19,10 +21,12 @@ namespace SnackDash.Input
         [SerializeField] private float referenceDpi = 200f;
         [SerializeField] private float flickWindowSeconds = 0.2f;
 
-        public event Action<Direction> Swiped;
+        /// <summary>Direction, and true when the finger has not been lifted since its previous flick.</summary>
+        public event Action<Direction, bool> Swiped;
 
         private readonly List<(float time, Vector2 position)> _samples = new List<(float, Vector2)>();
         private bool _pressed;
+        private int _flicksThisPress;
 
         private void Update()
         {
@@ -35,9 +39,10 @@ namespace SnackDash.Input
             if (UnityEngine.Input.GetMouseButtonDown(0))
             {
                 _pressed = true;
+                _flicksThisPress = 0;
                 _samples.Clear();
             }
-            if (UnityEngine.Input.GetMouseButtonUp(0)) _pressed = false;
+            if (UnityEngine.Input.GetMouseButtonUp(0) || !UnityEngine.Input.GetMouseButton(0)) _pressed = false;
             if (!_pressed) return;
 
             float now = Time.unscaledTime;
@@ -46,12 +51,15 @@ namespace SnackDash.Input
             while (_samples.Count > 1 && now - _samples[0].time > flickWindowSeconds) _samples.RemoveAt(0);
 
             var delta = position - _samples[0].position;
-            float scale = Screen.dpi > 0f ? Screen.dpi / referenceDpi : 1f;
+            // LeanTouch scales by dpi / 200; on a ~96 dpi desktop that halves the threshold to ~9 px
+            // and the mouse flicks again on the slightest move, so never go below the reference.
+            float scale = Screen.dpi > 0f ? Mathf.Max(1f, Screen.dpi / referenceDpi) : 1f;
             if (delta.magnitude < swipeThresholdPixels * scale) return;
 
-            Swiped?.Invoke(Mathf.Abs(delta.x) > Mathf.Abs(delta.y)
+            var direction = Mathf.Abs(delta.x) > Mathf.Abs(delta.y)
                 ? (delta.x > 0f ? Direction.Right : Direction.Left)
-                : (delta.y > 0f ? Direction.Up : Direction.Down));
+                : (delta.y > 0f ? Direction.Up : Direction.Down);
+            Swiped?.Invoke(direction, _flicksThisPress++ > 0);
 
             // Re-arm: the next flick has to be a fresh movement from here.
             _samples.Clear();
@@ -60,10 +68,11 @@ namespace SnackDash.Input
 
         private void ReadKeyboard()
         {
-            if (UnityEngine.Input.GetKeyDown(KeyCode.UpArrow) || UnityEngine.Input.GetKeyDown(KeyCode.W)) Swiped?.Invoke(Direction.Up);
-            if (UnityEngine.Input.GetKeyDown(KeyCode.DownArrow) || UnityEngine.Input.GetKeyDown(KeyCode.S)) Swiped?.Invoke(Direction.Down);
-            if (UnityEngine.Input.GetKeyDown(KeyCode.LeftArrow) || UnityEngine.Input.GetKeyDown(KeyCode.A)) Swiped?.Invoke(Direction.Left);
-            if (UnityEngine.Input.GetKeyDown(KeyCode.RightArrow) || UnityEngine.Input.GetKeyDown(KeyCode.D)) Swiped?.Invoke(Direction.Right);
+            // Every key press counts as a fresh touch.
+            if (UnityEngine.Input.GetKeyDown(KeyCode.UpArrow) || UnityEngine.Input.GetKeyDown(KeyCode.W)) Swiped?.Invoke(Direction.Up, false);
+            if (UnityEngine.Input.GetKeyDown(KeyCode.DownArrow) || UnityEngine.Input.GetKeyDown(KeyCode.S)) Swiped?.Invoke(Direction.Down, false);
+            if (UnityEngine.Input.GetKeyDown(KeyCode.LeftArrow) || UnityEngine.Input.GetKeyDown(KeyCode.A)) Swiped?.Invoke(Direction.Left, false);
+            if (UnityEngine.Input.GetKeyDown(KeyCode.RightArrow) || UnityEngine.Input.GetKeyDown(KeyCode.D)) Swiped?.Invoke(Direction.Right, false);
         }
     }
 }

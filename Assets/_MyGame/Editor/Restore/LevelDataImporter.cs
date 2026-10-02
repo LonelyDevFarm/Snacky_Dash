@@ -22,8 +22,14 @@ namespace SnackDash.Editor.Restore
         private const string OutputFolder = "Assets/_MyGame/Data/Levels/Definitions/";
         private const string GraphicSetOutput = "Assets/_MyGame/Data/FruitGraphicSet.asset";
 
-        // Default cohort ab-vo-co, levels 1-2. Extend this list as more levels are brought in.
-        private static readonly string[] Levels = { "5126_v4_nt_VO", "11002_v3_nt_VO" };
+        // Default cohort ab-vo-co (Resources/cohorts/ab-vo-co.asset), levels 1-13 in order.
+        // Maps come from Resources/levelmaps/<name>.json.
+        public static readonly string[] Levels =
+        {
+            "5126_v4_nt_VO", "11002_v3_nt_VO", "11003_v4_nt_VO", "11014_v4_nt_VO", "6069_v4_nt_VO",
+            "6111_v2_nt_VO", "11019_v4_nt_VO", "6112_v2_nt_VO", "6070_v4_nt_VO", "5025_v3_nt_VO",
+            "6114_v2_nt_VO", "11012_v5_nt_VO", "3001_v3_nt_VO",
+        };
 
         [MenuItem("SnackDash/Restore/Import Level Data")]
         public static void ImportLevels()

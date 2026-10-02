@@ -50,7 +50,10 @@ namespace SnackDash.Presentation
         private Vector3 _headScale;
         private float _bump;      // forward offset along the heading
         private float _dropHeight; // spawn drop, towards the camera (-Z)
-        private Coroutine _scaleRoutine, _bumpRoutine;
+        private Coroutine _scaleRoutine, _bumpRoutine, _blinkRoutine;
+        private bool _mouthOpen;
+        private static readonly int FlashStrength = Shader.PropertyToID("_FlashStrength");
+        private MaterialPropertyBlock _flashBlock;
 
         public Vector3 HeadWorldPosition => _head != null ? _head.position : transform.position;
 
@@ -66,8 +69,14 @@ namespace SnackDash.Presentation
             session.SegmentDelivered += OnSegmentDelivered;
             session.MoveStarted += direction => PlayScale(startStretch);
             session.Stopped += cell => OnStopped();
-            session.DeliveryStarted += column => PlayHeadState(DeliveryStartState);
-            session.DeliveryEnded += column => PlayHeadState(DeliveryEndState);
+            // Mouth open while fruit leaves, closed while waiting: a full crate's pause closes it,
+            // the next delivered fruit opens it again [user, observed on the original].
+            session.DeliveryStarted += column => SetMouth(true);
+            session.DeliveryEnded += column => SetMouth(false);
+            session.CrateCompleted += (column, crate) => SetMouth(false);
+            session.SegmentDelivered += (index, kind, column) => SetMouth(true);
+            session.TailBitten += count => _blinkRoutine = StartCoroutine(BlinkSnipped(count));
+            session.TailSnipped += OnTailSnipped;
 
             // Spawn: the head drops onto the board [PlayerView._spawnDropHeight / _spawnDuration].
             // Ease is inferred (falling, then the landing squash).
@@ -102,6 +111,13 @@ namespace SnackDash.Presentation
             _scaleRoutine = StartCoroutine(Tween.Punch(scaleDuration, t => _headScale = Vector3.LerpUnclamped(defaultScale, target, t)));
         }
 
+        private void SetMouth(bool open)
+        {
+            if (_mouthOpen == open) return;
+            _mouthOpen = open;
+            PlayHeadState(open ? DeliveryStartState : DeliveryEndState);
+        }
+
         private void PlayHeadState(string state)
         {
             if (_headAnimator != null && _headAnimator.isActiveAndEnabled) _headAnimator.Play(state, 0, 0f);
@@ -125,6 +141,51 @@ namespace SnackDash.Presentation
                 var ease = Tween.OutBack(segmentPopOvershoot);
                 StartCoroutine(Tween.Run(segmentPopDuration, ease, t => { if (visual != null) visual.localScale = Vector3.one * t; }));
             }
+        }
+
+        /// <summary>
+        /// Video Man_Lose: the part of the tail a snip would remove blinks white. The FakeUnlit shaders
+        /// carry _FlashStrength / _FlashColor (pale yellow-white) for exactly this kind of flash.
+        /// </summary>
+        private IEnumerator BlinkSnipped(int keep)
+        {
+            if (_flashBlock == null) _flashBlock = new MaterialPropertyBlock();
+            for (bool on = true; ; on = !on)
+            {
+                for (int i = keep; i < _segments.Count; i++) SetFlash(_segments[i].root, on ? 1f : 0f);
+                yield return new WaitForSeconds(0.15f);
+            }
+        }
+
+        /// <summary>World position of tail segment <paramref name="index"/> (0 = right behind the head).</summary>
+        public Vector3 SegmentWorldPosition(int index) =>
+            index >= 0 && index < _segments.Count ? _segments[index].root.transform.position : HeadWorldPosition;
+
+        private void SetFlash(GameObject segment, float strength)
+        {
+            foreach (var renderer in segment.GetComponentsInChildren<Renderer>())
+            {
+                renderer.GetPropertyBlock(_flashBlock);
+                _flashBlock.SetFloat(FlashStrength, strength);
+                renderer.SetPropertyBlock(_flashBlock);
+            }
+        }
+
+        /// <summary>
+        /// Raised after every snipped segment was handed to the crates (SegmentSnipped, whose
+        /// handlers read the positions first): drop everything from <paramref name="keep"/> on.
+        /// </summary>
+        private void OnTailSnipped(int keep)
+        {
+            if (_blinkRoutine != null) StopCoroutine(_blinkRoutine);
+            _blinkRoutine = null;
+            while (_segments.Count > keep)
+            {
+                Destroy(_segments[_segments.Count - 1].root);
+                _segments.RemoveAt(_segments.Count - 1);
+            }
+            if (_flashBlock != null)
+                foreach (var segment in _segments) SetFlash(segment.root, 0f);
         }
 
         private void OnSegmentDelivered(int index, PillKind kind, int column)

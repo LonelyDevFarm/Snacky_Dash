@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using SnackDash.Gameplay;
 using SnackDash.LevelSystem;
@@ -85,6 +86,48 @@ namespace SnackDash.Tests
             Assert.IsTrue(session.RequestMove(Direction.Left), "head-only snake may turn back");
         }
 
+        // "P" board, 3 wide x 12 high: a 3x3 loop on top whose bottom-middle Stop (1,9) joins a stem
+        // down to the start Stop (1,0). Strawberries on the stem (1,1..8) and at (0,9).
+        private const string LoopMap =
+            "{\"width\":3,\"height\":12,\"tilesets\":[{\"firstgid\":1}],\"layers\":[" +
+            "{\"name\":\"map\",\"data\":[332,351,332, 353,343,353, 332,295,332," +
+            " 343,353,343, 343,353,343, 343,353,343, 343,353,343, 343,353,343, 343,353,343, 343,353,343, 343,353,343," +
+            " 343,295,343]}," +
+            "{\"name\":\"spawn\",\"data\":[0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,288,0]}," +
+            "{\"name\":\"spawn1\",\"data\":[0,0,0, 0,0,0, 372,0,0, 0,372,0, 0,372,0, 0,372,0, 0,372,0, 0,372,0, 0,372,0, 0,372,0, 0,372,0, 0,0,0]}]}";
+
+        [Test]
+        public void LoopBoard_BiteThenSnipAndPlayOn()
+        {
+            var map = TiledMap.Parse(LoopMap);
+            var level = Level((PillKind.Strawberry, 9), (PillKind.Banana, 9), (PillKind.Strawberry, 9)); // top crate refuses strawberries
+            var session = new GameSession(new BoardGraph(map, _database), map, level);
+            session.Begin();
+
+            Assert.IsTrue(session.RequestMove(Direction.Up));
+            session.Tick(1f);
+            Assert.AreEqual(new Vector2Int(1, 9), session.CurrentCell);
+            Assert.AreEqual(8, session.Segments.Count);
+
+            // Round the loop (eating the 9th fruit) and back into the junction the tail still covers.
+            Assert.IsTrue(session.RequestMove(Direction.Left));
+            session.Tick(1f);
+            Assert.IsTrue(session.IsStuck, "NO WAY OUT");
+            Assert.AreEqual(new Vector2Int(1, 9), session.CurrentCell);
+            Assert.AreEqual(1, session.SnipKeep, "keeps 9 / 5 = 1 segment from the head");
+            Assert.AreEqual(8, session.SnipCount);
+            Assert.IsFalse(session.RequestMove(Direction.Down), "no moves while stuck");
+
+            // Snip: the cut fruit goes into the strawberry crate below the banana one, not the board.
+            Assert.IsTrue(session.Snip());
+            Assert.IsFalse(session.IsStuck);
+            Assert.AreEqual(1, session.Segments.Count);
+            Assert.AreEqual(0, session.Pills.Count);
+            Assert.AreEqual(0, session.Columns[0].CurrentIndex, "a crate filled below the top waits its turn");
+            Assert.AreEqual(8, session.Columns[0].FilledIn(1));
+            Assert.IsTrue(session.RequestMove(Direction.Down));
+        }
+
         [Test]
         public void Level2_MatchesFootage()
         {
@@ -106,7 +149,7 @@ namespace SnackDash.Tests
             }
 
             // Video LV2-3: swipe right -> along the bottom, up the right side (auto-turn) -> top crate stop.
-            // Extra swipes on the way: only the latest one (Left) is applied there.
+            // Extra swipes on the way: only the latest fresh one (Left) is applied there.
             var session = new GameSession(new BoardGraph(map, _database), map, level);
             session.Begin();
             Assert.AreEqual(new Vector2Int(7, 1), session.CurrentCell);
@@ -115,6 +158,7 @@ namespace SnackDash.Tests
             Assert.AreEqual(Direction.Up, session.Heading, "turned at the bottom-right corner");
             session.RequestMove(Direction.Down);
             session.RequestMove(Direction.Left);
+            session.RequestMove(Direction.Right, fingerHeld: true); // further flick of a held finger: ignored
             for (int i = 0; i < 180 && session.CurrentCell != new Vector2Int(7, 16); i++) session.Tick(1f / 60f);
             Assert.AreEqual(9, session.Segments.Count, "all nine bananas on the right side eaten");
             Assert.IsTrue(session.IsMoving);
@@ -128,22 +172,34 @@ namespace SnackDash.Tests
             Assert.IsTrue(session.RequestMove(Direction.Up));
         }
 
-        [TestCase("5126_v4_nt_VO")]
-        [TestCase("11002_v3_nt_VO")]
+        /// <summary>Every imported level (cohort ab-vo-co, Levels 1-13).</summary>
+        private static IEnumerable<string> ImportedLevels() =>
+            System.IO.Directory.GetFiles(LevelFolder, "*.asset").Select(System.IO.Path.GetFileNameWithoutExtension);
+
+        [TestCaseSource(nameof(ImportedLevels))]
         public void Level_IsWinnable(string name)
         {
+            // 11019 (Level 7): the crate sits on an inner loop that no road joins to the outer one.
+            // Needs evidence from the real Level 7 before guessing a mechanic (see ROADMAP M4).
+            if (name == "11019_v4_nt_VO") Assert.Ignore("inner crate loop unreachable, unverified mechanic");
             var level = Load(name);
             var map = TiledMap.Parse(level.map.text);
             var session = new GameSession(new BoardGraph(map, _database), map, level);
             session.Begin();
             var random = new System.Random(1);
+            int snips = 0;
             for (int move = 0; move < 3000 && !session.IsWon; move++)
             {
+                // Biting the tail: snip and play on; the snipped fruit must stay winnable.
+                if (session.IsStuck && session.Snip()) snips++;
+                // Crates a snip filled complete before the snake may move again.
+                for (int i = 0; i < 3600 && session.IsDelivering; i++) session.Tick(1f / 60f);
                 if (!session.RequestMove((Direction)random.Next(4))) continue;
                 // Long crate combos (1 s pause per filled crate) can take several seconds.
                 for (int i = 0; i < 3600 && (session.IsMoving || session.IsDelivering); i++) session.Tick(1f / 60f);
             }
-            Assert.IsTrue(session.IsWon);
+            Assert.IsTrue(session.IsWon, $"not won after {snips} snips");
+            TestContext.WriteLine($"{name}: won, {snips} tail bites");
         }
 
         private static LevelDefinition Load(string name) => AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelFolder + name + ".asset");

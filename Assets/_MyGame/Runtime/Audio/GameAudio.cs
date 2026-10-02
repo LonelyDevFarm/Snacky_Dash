@@ -38,6 +38,7 @@ namespace SnackDash.Audio
             crates.CompletionEffectStarted += column => { Play("Complete_Crate"); Play("CrateConfetti"); };
             session.PillSpawned += (cell, kind) => PlayOncePerFrame("SpawnPill");
             session.Won += () => Play("Confetti");
+            session.TailBitten += count => Play("HitTail");
         }
 
         private int _lastSpawnSoundFrame = -1;

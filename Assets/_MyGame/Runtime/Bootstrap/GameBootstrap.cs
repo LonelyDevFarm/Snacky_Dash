@@ -24,21 +24,32 @@ namespace SnackDash.Bootstrap
         [SerializeField] private CratesView crates;
         [SerializeField] private SwipeInput input;
         [SerializeField] private GameAudio gameAudio;
+        [SerializeField] private SnackDash.UI.LoseFlowView loseFlow;
 
+        [Tooltip("Seconds after a stop during which a finger still held down cannot start a new move (a fresh touch can).")]
+        [SerializeField] private float heldSwipeGraceAfterStop = 0.15f;
         public GameSession Session { get; private set; }
+
+        /// <summary>Coins; persistence and earning arrive with the coin economy (Snip is free for now).</summary>
+        public Wallet Wallet { get; } = new Wallet();
+
+        public void RestartLevel() =>
+            UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.buildIndex >= 0
+                ? gameObject.scene.buildIndex : 0);
 
         private void Start()
         {
             var map = TiledMap.Parse(level.map.text);
             var graph = new BoardGraph(map, database);
-            Session = new GameSession(graph, map, level);
+            Session = new GameSession(graph, map, level) { HeldSwipeGraceAfterStop = heldSwipeGraceAfterStop };
 
             board.Build(map);
             snake.Bind(Session);
             pills.Bind(Session);
             crates.Bind(Session);
             if (gameAudio != null) gameAudio.Bind(Session, crates);
-            input.Swiped += direction => Session.RequestMove(direction);
+            if (loseFlow != null) loseFlow.Bind(Session, Wallet, RestartLevel, cameraFitter);
+            input.Swiped += (direction, fingerHeld) => Session.RequestMove(direction, fingerHeld);
             Session.Won += () => Debug.Log($"[Game] {level.name} won");
 
             // The original frames the crates together with the board (see FINDINGS: camera bounds).

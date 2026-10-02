@@ -59,7 +59,7 @@ namespace SnackDash.Editor.Restore
             var entries = File.ReadAllLines(ManifestPath).Select(l => l.Trim().Trim('﻿').Replace('\\', '/')).Where(l => l.Length > 0).ToList();
             var copiedPrefabs = new List<string>();
             var report = new StringBuilder();
-            int remappedScripts = 0, unmappedDllScripts = 0;
+            int remappedScripts = 0, unmappedDllScripts = 0, strippedComponents = 0;
 
             // A destination that already exists with a different GUID is either an identical copy
             // (alias the original GUID to it) or a locally edited version (import the original beside it).
@@ -106,6 +106,7 @@ namespace SnackDash.Editor.Restore
                         unmappedDllScripts++;
                         return m.Value;
                     });
+                    text = StripUnknownScripts(text, ref strippedComponents);
                     File.WriteAllText(destination, text);
                 }
                 else
@@ -119,19 +120,164 @@ namespace SnackDash.Editor.Restore
 
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
-            int strippedComponents = 0;
-            foreach (var prefabPath in copiedPrefabs)
-            {
-                var root = PrefabUtility.LoadPrefabContents(prefabPath);
-                foreach (var t in root.GetComponentsInChildren<Transform>(true))
-                    strippedComponents += GameObjectUtility.RemoveMonoBehavioursWithMissingScript(t.gameObject);
-                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
-                PrefabUtility.UnloadPrefabContents(root);
-            }
-
             Debug.Log($"[Restore] Copied {entries.Count} entries ({copiedPrefabs.Count} prefabs). " +
                       $"Remapped {remappedScripts} TMP/uGUI script refs, {unmappedDllScripts} unmapped, " +
                       $"stripped {strippedComponents} original components.\n{report}");
+        }
+
+        public const string RebuiltFontFolder = "Assets/_MyGame/Art/Fonts/Rebuilt/";
+        public const string RebuiltFontName = "LuckiestGuy SDF";
+
+        // Original TMP material presets used by the popups (LoseInBoardPopup / LoseScreenFailedPopup).
+        public static readonly string[] FontPresets =
+        {
+            "LuckiestGuy-Regular Combo - BG", "LuckiestGuy-Regular Combo - Base", "LuckiestGuy-Regular SDF Green Outline",
+            "LuckiestGuy-Regular SDF Dark Red", "LuckiestGuy-Regular SDF Blue Underlay", "LuckiestGuy-Regular SDF Green Cartoon",
+            "LuckiestGuy-Regular Atlas Material",
+        };
+
+        /// <summary>
+        /// The exported "LuckiestGuy-Regular SDF" font asset comes from Unity 6's TextMeshPro and
+        /// crashes this editor (TMP 3.0.7) when its text is drawn. Builds a fresh dynamic font asset from
+        /// the TTF and recreates each original material preset on it, copying colours, outline,
+        /// underlay values and keywords.
+        /// </summary>
+        [MenuItem("SnackDash/Restore/Rebuild TMP Font")]
+        public static void RebuildFont()
+        {
+            var ttf = AssetDatabase.LoadAssetAtPath<Font>("Assets/_MyGame/Art/Fonts/LuckiestGuy-Regular.ttf");
+            if (ttf == null) { Debug.LogError("[Restore] LuckiestGuy-Regular.ttf not found"); return; }
+            Directory.CreateDirectory(RebuiltFontFolder);
+
+            var fontPath = RebuiltFontFolder + RebuiltFontName + ".asset";
+            AssetDatabase.DeleteAsset(fontPath);
+            var font = TMPro.TMP_FontAsset.CreateFontAsset(ttf, 90, 9, UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA, 1024, 1024,
+                TMPro.AtlasPopulationMode.Dynamic, true);
+            font.name = RebuiltFontName;
+            AssetDatabase.CreateAsset(font, fontPath);
+            font.atlasTextures[0].name = RebuiltFontName + " Atlas";
+            AssetDatabase.AddObjectToAsset(font.atlasTextures[0], font);
+            font.material.name = RebuiltFontName + " Material";
+            AssetDatabase.AddObjectToAsset(font.material, font);
+
+            int made = 0;
+            foreach (var preset in FontPresets)
+            {
+                var original = FindByName<Material>(preset);
+                var material = new Material(original != null ? original.shader : font.material.shader);
+                material.CopyPropertiesFromMaterial(font.material);
+                if (original != null)
+                {
+                    var shader = original.shader;
+                    for (int i = 0; i < shader.GetPropertyCount(); i++)
+                    {
+                        var id = shader.GetPropertyName(i);
+                        if (id == "_MainTex" || id == "_TextureWidth" || id == "_TextureHeight" || id == "_GradientScale") continue;
+                        switch (shader.GetPropertyType(i))
+                        {
+                            case UnityEngine.Rendering.ShaderPropertyType.Color: material.SetColor(id, original.GetColor(id)); break;
+                            case UnityEngine.Rendering.ShaderPropertyType.Vector: material.SetVector(id, original.GetVector(id)); break;
+                            case UnityEngine.Rendering.ShaderPropertyType.Float:
+                            case UnityEngine.Rendering.ShaderPropertyType.Range: material.SetFloat(id, original.GetFloat(id)); break;
+                        }
+                    }
+                    material.shaderKeywords = original.shaderKeywords;
+                }
+                material.SetTexture("_MainTex", font.atlasTextures[0]);
+                material.name = RebuiltFontName + " (" + preset + ")";
+                AssetDatabase.CreateAsset(material, RebuiltFontFolder + material.name + ".mat");
+                made++;
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Restore] Rebuilt {fontPath} and {made} material presets in {RebuiltFontFolder}");
+        }
+
+        private static T FindByName<T>(string assetName) where T : UnityEngine.Object
+        {
+            foreach (var guid in AssetDatabase.FindAssets(assetName + " t:" + typeof(T).Name, new[] { "Assets/_MyGame" }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (path.StartsWith(RebuiltFontFolder)) continue;
+                foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
+                    if (asset is T typed && asset.name == assetName) return typed;
+            }
+            return null;
+        }
+
+        private const string ReferenceScenePath = "Assets/_MyGame/Scenes/Reference/Game_Original.unity";
+
+        /// <summary>
+        /// Copies the original Game.unity as a read-only reference scene, with package shader and
+        /// TextMeshPro/uGUI script references remapped so its UI shows up. References to original data
+        /// assets that are not imported simply stay empty.
+        /// </summary>
+        [MenuItem("SnackDash/Restore/Import Original Game Scene (reference)")]
+        public static void ImportReferenceScene()
+        {
+            var scriptMap = BuildDllScriptMap();
+            var text = File.ReadAllText(Path.Combine(SourceRoot, "Scenes/Game.unity"));
+            text = AnyGuid.Replace(text, m => ShaderGuidMap.TryGetValue(m.Groups[1].Value, out var g) ? "guid: " + g : m.Value);
+            text = ScriptRef.Replace(text, m =>
+                DllGuidToAssembly.ContainsKey(m.Groups[2].Value) && scriptMap.TryGetValue(m.Groups[2].Value + ":" + m.Groups[1].Value, out var guid)
+                    ? $"m_Script: {{fileID: 11500000, guid: {guid}, type: 3}}"
+                    : m.Value);
+            int stripped = 0;
+            text = StripUnknownScripts(text, ref stripped);
+            Directory.CreateDirectory(Path.GetDirectoryName(ReferenceScenePath));
+            File.WriteAllText(ReferenceScenePath, text);
+            AssetDatabase.ImportAsset(ReferenceScenePath, ImportAssetOptions.ForceUpdate);
+            Debug.Log($"[Restore] Reference scene written to {ReferenceScenePath}");
+        }
+
+        private static readonly Regex DocumentHeader = new Regex(@"^--- !u!(\d+) &(-?\d+)");
+        private static readonly Regex ComponentLine = new Regex(@"^\s*- component: \{fileID: (-?\d+)\}");
+
+        /// <summary>
+        /// Drops MonoBehaviour documents whose script does not exist in this project, plus their
+        /// entries in GameObject component lists, directly in the YAML. Letting Unity remove them
+        /// instead (GameObjectUtility.RemoveMonoBehavioursWithMissingScript) crashes the editor on
+        /// the original Feel feedbacks, which hold [SerializeReference] data.
+        /// </summary>
+        private static string StripUnknownScripts(string yaml, ref int stripped)
+        {
+            var lines = yaml.Replace("\r\n", "\n").Split('\n');
+            var dropped = new HashSet<string>();
+
+            // Pass 1: find MonoBehaviour documents with an unknown script.
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var header = DocumentHeader.Match(lines[i]);
+                if (!header.Success || header.Groups[1].Value != "114") continue;
+                for (int j = i + 1; j < lines.Length && !lines[j].StartsWith("--- "); j++)
+                {
+                    var script = ScriptRef.Match(lines[j]);
+                    if (!script.Success) continue;
+                    if (!IsKnownScript(script.Groups[2].Value)) dropped.Add(header.Groups[2].Value);
+                    break;
+                }
+            }
+            if (dropped.Count == 0) return yaml;
+            stripped += dropped.Count;
+
+            // Pass 2: copy everything except the dropped documents and component entries pointing at them.
+            var result = new StringBuilder(yaml.Length);
+            bool skipping = false;
+            foreach (var line in lines)
+            {
+                var header = DocumentHeader.Match(line);
+                if (header.Success) skipping = dropped.Contains(header.Groups[2].Value);
+                if (skipping) continue;
+                var component = ComponentLine.Match(line);
+                if (component.Success && dropped.Contains(component.Groups[1].Value)) continue;
+                result.Append(line).Append('\n');
+            }
+            return result.ToString();
+        }
+
+        private static bool IsKnownScript(string guid)
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            return !string.IsNullOrEmpty(path) && AssetDatabase.LoadAssetAtPath<MonoScript>(path) != null;
         }
 
         private static string ReadGuid(string metaPath)
