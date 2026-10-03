@@ -12,6 +12,7 @@ namespace SnackDash.Presentation
     {
         public static float Linear(float t) => t;
         public static float OutSine(float t) => Mathf.Sin(t * Mathf.PI * 0.5f);
+        public static float InOutSine(float t) => -(Mathf.Cos(Mathf.PI * t) - 1f) * 0.5f;
         public static float InQuad(float t) => t * t;
         public static float OutQuad(float t) => 1f - (1f - t) * (1f - t);
 

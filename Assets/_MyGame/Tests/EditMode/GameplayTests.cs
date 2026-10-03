@@ -179,13 +179,15 @@ namespace SnackDash.Tests
         [TestCaseSource(nameof(ImportedLevels))]
         public void Level_IsWinnable(string name)
         {
-            // 11019 (Level 7): the crate sits on an inner loop that no road joins to the outer one.
-            // Needs evidence from the real Level 7 before guessing a mechanic (see ROADMAP M4).
-            if (name == "11019_v4_nt_VO") Assert.Ignore("inner crate loop unreachable, unverified mechanic");
+            // 11019 (Level 7) introduces a booster (likely Boomerang: BoosterData tutorial threshold 36 =
+            // its 36 fruit): the crate loop is unreachable without it [user]. Re-enable with boosters.
+            if (name == "11019_v4_nt_VO") Assert.Ignore("booster tutorial level: needs the booster");
             var level = Load(name);
             var map = TiledMap.Parse(level.map.text);
             var session = new GameSession(new BoardGraph(map, _database), map, level);
+            session.SetSeed(1);
             session.Begin();
+            if (!map.HasLayer("spawn1")) AssertRandomLayout(session, level.batches[0]);
             var random = new System.Random(1);
             int snips = 0;
             for (int move = 0; move < 3000 && !session.IsWon; move++)
@@ -200,6 +202,40 @@ namespace SnackDash.Tests
             }
             Assert.IsTrue(session.IsWon, $"not won after {snips} snips");
             TestContext.WriteLine($"{name}: won, {snips} tail bites");
+        }
+
+        /// <summary>
+        /// Random layout rules [user, Level 12 footage]: the whole wave is placed; segments are filled
+        /// whole (at most one part way), each from one end without gaps; each kind is one block per segment.
+        /// </summary>
+        private static void AssertRandomLayout(GameSession session, SpawnBatchDefinition wave)
+        {
+            int expected = 0;
+            foreach (var pill in wave.pills) expected += pill.count;
+            Assert.AreEqual(expected, session.Pills.Count, "whole first wave placed");
+            var slots = new HashSet<Vector2Int>(session.Board.PillSlotGroups.SelectMany(segment => segment));
+            Assert.IsTrue(session.Pills.Keys.All(slots.Contains), "every fruit on a slot (none dumped next to the snake)");
+
+            int partial = 0;
+            foreach (var segment in session.Board.PillSlotGroups)
+            {
+                var filled = segment.Select(cell => session.Pills.ContainsKey(cell)).ToList();
+                int first = filled.IndexOf(true), last = filled.LastIndexOf(true);
+                if (first < 0) continue;
+                Assert.IsTrue(first == 0 || last == segment.Count - 1, "filled from one end of the segment");
+                Assert.IsTrue(filled.Skip(first).Take(last - first + 1).All(f => f), "no gap inside a segment");
+                if (last - first + 1 < segment.Count) partial++;
+
+                var seen = new HashSet<PillKind>();
+                PillKind? previous = null;
+                for (int i = first; i <= last; i++)
+                {
+                    var kind = session.Pills[segment[i]];
+                    if (kind != previous) Assert.IsTrue(seen.Add(kind), $"{kind} comes back within a segment");
+                    previous = kind;
+                }
+            }
+            Assert.LessOrEqual(partial, 1, "segments are filled whole, at most one part way");
         }
 
         private static LevelDefinition Load(string name) => AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelFolder + name + ".asset");

@@ -125,6 +125,10 @@ namespace SnackDash.Gameplay
         /// </summary>
         public float HeldSwipeGraceAfterStop { get; set; } = 0.15f;
 
+        /// <summary>Random fruit layout of levels without fixed spawn layers; set a seed for repeatable tests.</summary>
+        private System.Random _random = new System.Random();
+        public void SetSeed(int seed) => _random = new System.Random(seed);
+
         private Vector2Int _target;
         private Direction? _bufferedSwipe;
         private float _bufferedAge;
@@ -215,6 +219,23 @@ namespace SnackDash.Gameplay
 
         /// <summary>Point on the head's recent path, <paramref name="distance"/> cells behind the head.</summary>
         public Vector2 PathPoint(float distance) => SampleTrail(distance);
+
+        /// <summary>Fruit spawned by waves 0..<paramref name="lastWave"/> together.</summary>
+        public int FruitInWaves(int lastWave)
+        {
+            int total = 0;
+            for (int b = 0; b <= lastWave && b < _level.batches.Count; b++)
+                foreach (var pill in _level.batches[b].pills) total += pill.count;
+            return total;
+        }
+
+        /// <summary>Fruit of every wave of the level.</summary>
+        public int TotalFruit => FruitInWaves(_level.batches.Count - 1);
+
+        /// <summary>Fruit eaten so far: everything spawned minus what still lies on the board.</summary>
+        public int FruitEaten => BatchIndex < 0 ? 0 : FruitInWaves(BatchIndex) - _pills.Count;
+
+        public int WaveCount => _level.batches.Count;
 
         /// <summary>True when the snake carries fruit the column's current crate accepts.</summary>
         public bool CanDeliverTo(int column)
@@ -370,25 +391,46 @@ namespace SnackDash.Gameplay
 
         private bool ContinueFrom(Vector2Int cell)
         {
-            if (_board.IsStop(cell)) return false;
-            if (_board.CanMove(cell, Heading))
-            {
-                _target = cell + Heading.ToCell();
-                return true;
-            }
+            if (!NextStep(cell, Heading, out var heading)) return false;
+            Heading = heading;
+            _target = cell + Heading.ToCell();
+            return true;
+        }
 
-            // Corner: the only way on that is not straight back.
+        /// <summary>
+        /// Where a snake running with <paramref name="heading"/> goes from <paramref name="cell"/>:
+        /// straight on, or round a corner (the only way on that is not straight back). False at a
+        /// stop, a dead end or a junction.
+        /// </summary>
+        private bool NextStep(Vector2Int cell, Direction heading, out Direction next)
+        {
+            next = heading;
+            if (_board.IsStop(cell)) return false;
+            if (_board.CanMove(cell, heading)) return true;
+
             Direction? turn = null;
             foreach (var exit in _board.Exits(cell))
             {
-                if (exit == Heading.Opposite()) continue;
+                if (exit == heading.Opposite()) continue;
                 if (turn.HasValue) return false;
                 turn = exit;
             }
             if (!turn.HasValue) return false;
-            Heading = turn.Value;
-            _target = cell + Heading.ToCell();
+            next = turn.Value;
             return true;
+        }
+
+        /// <summary>Cells the head still runs over before its next stop (the current cell included).</summary>
+        private HashSet<Vector2Int> PathToNextStop()
+        {
+            var path = new HashSet<Vector2Int> { CurrentCell };
+            if (!IsMoving) return path;
+            var cell = CurrentCell;
+            var heading = Heading;
+            if (cell != _target) { cell = _target; path.Add(cell); } // already on its way to the next cell
+            while (NextStep(cell, heading, out heading) && path.Add(cell + heading.ToCell()))
+                cell += heading.ToCell();
+            return path;
         }
 
         private void Stop()
@@ -447,30 +489,86 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// Levels without fixed spawn layers: the batch's fruit, kind by kind, laid along the slot
-        /// groups in path order, skipping cells under the snake (RespawnScheduler blockedCells).
-        /// Reconstruction from the original's names and data; the exact slot choice is unverified.
-        /// When the slots run out, the rest goes to the nearest free road cell.
+        /// Levels without fixed spawn layers, as observed on the original [user, videos]:
+        /// - the level has a fixed set of slots split into segments (BoardGraph.PillSlotGroups);
+        /// - every wave picks again at random, even the first one, so each play differs;
+        /// - segments holding priority slots (PillSpawnPoint) come first;
+        /// - segments are taken whole, in random order, each from a random end; only the last one may
+        ///   stop part way, the others stay empty (Level 12 footage: every run fills its whole segment);
+        /// - within a segment each kind is one block and never comes back (no red-blue-red), so long
+        ///   runs of one kind are common: the kinds are shuffled and laid out as one block each.
+        /// Cells the head will still run over before its next stop are left out, or the snake would
+        /// eat the new fruit straight away. Fruit may land under the body (it waits beside it).
+        /// If the slots run out, the rest goes to the nearest free road cell.
         /// </summary>
         private void SpawnOnMapSlots(SpawnBatchDefinition batch)
         {
-            var blocked = new HashSet<Vector2Int> { CurrentCell };
-            for (int i = 0; i < _segments.Count; i++) blocked.Add(Vector2Int.RoundToInt(SegmentPosition(i)));
+            var blocked = PathToNextStop();
 
-            var free = new List<Vector2Int>();
-            foreach (var group in _board.PillSlotGroups)
-            foreach (var cell in group)
-                if (!blocked.Contains(cell) && !_pills.ContainsKey(cell)) free.Add(cell);
-
-            int next = 0;
-            foreach (var pill in batch.pills)
-            for (int n = 0; n < pill.count; n++)
+            // Usable runs: segments cut at blocked or occupied cells.
+            var runs = new List<List<Vector2Int>>();
+            foreach (var segment in _board.PillSlotGroups)
             {
-                Vector2Int? cell = next < free.Count ? free[next++] : FreeCellNear(CurrentCell);
-                if (!cell.HasValue) return;
-                _pills[cell.Value] = pill.kind;
-                PillSpawned?.Invoke(cell.Value, pill.kind);
+                var run = new List<Vector2Int>();
+                foreach (var cell in segment)
+                {
+                    if (blocked.Contains(cell) || _pills.ContainsKey(cell))
+                    {
+                        if (run.Count > 0) runs.Add(run);
+                        run = new List<Vector2Int>();
+                        continue;
+                    }
+                    run.Add(cell);
+                }
+                if (run.Count > 0) runs.Add(run);
             }
+
+            // Random order, each run from a random end.
+            for (int i = runs.Count - 1; i > 0; i--)
+            {
+                int j = _random.Next(i + 1);
+                (runs[i], runs[j]) = (runs[j], runs[i]);
+            }
+            foreach (var run in runs)
+                if (_random.Next(2) == 1) run.Reverse();
+
+            // Runs holding priority slots (PillSpawnPoint) go first, still in random order.
+            var priority = _board.PrioritySlots;
+            if (priority.Count > 0)
+            {
+                var first = runs.FindAll(run => run.Exists(cell => ((ICollection<Vector2Int>)priority).Contains(cell)));
+                runs.RemoveAll(first.Contains);
+                runs.InsertRange(0, first);
+            }
+
+            // Kinds in random order, one block each.
+            var kinds = new List<PillKind>();
+            var order = new List<PillCount>(batch.pills);
+            for (int i = order.Count - 1; i > 0; i--)
+            {
+                int j = _random.Next(i + 1);
+                (order[i], order[j]) = (order[j], order[i]);
+            }
+            foreach (var pill in order)
+                for (int n = 0; n < pill.count; n++) kinds.Add(pill.kind);
+
+            // Whole runs in turn; only the last one may stop part way.
+            int next = 0;
+            for (int i = 0; i < runs.Count && next < kinds.Count; i++)
+                for (int k = 0; k < runs[i].Count && next < kinds.Count; k++)
+                    Place(runs[i][k], kinds[next++]);
+            for (; next < kinds.Count; next++)
+            {
+                var cell = FreeCellNear(CurrentCell);
+                if (!cell.HasValue) return;
+                Place(cell.Value, kinds[next]);
+            }
+        }
+
+        private void Place(Vector2Int cell, PillKind kind)
+        {
+            _pills[cell] = kind;
+            PillSpawned?.Invoke(cell, kind);
         }
 
         private void TickDelivery(float deltaTime)

@@ -20,10 +20,14 @@ namespace SnackDash.Editor.Restore
         private const string GraphicSetSource = "G:/Game_2D/APK/ExportedProject/Assets/Resources/graphicssets/GraphicSet_VO.asset";
         private const string JsonFolder = "Assets/_MyGame/Data/Levels/SourceJson/";
         private const string OutputFolder = "Assets/_MyGame/Data/Levels/Definitions/";
+        public const string LevelListPath = "Assets/_MyGame/Data/Levels/LevelList.asset";
         private const string GraphicSetOutput = "Assets/_MyGame/Data/FruitGraphicSet.asset";
 
         // Default cohort ab-vo-co (Resources/cohorts/ab-vo-co.asset), levels 1-13 in order.
         // Maps come from Resources/levelmaps/<name>.json.
+        // Booster tutorial (Level 7, needs a booster to reach the crate): skipped in play until boosters exist.
+        private static readonly string[] SkippedForNow = { "11019_v4_nt_VO" };
+
         public static readonly string[] Levels =
         {
             "5126_v4_nt_VO", "11002_v3_nt_VO", "11003_v4_nt_VO", "11014_v4_nt_VO", "6069_v4_nt_VO",
@@ -56,6 +60,17 @@ namespace SnackDash.Editor.Restore
                           $"{level.columns.Sum(c => c.crates.Count)} crates, {level.batches.Count} waves, " +
                           $"timer {level.timeLimitSeconds}s, map {(level.map != null ? "ok" : "MISSING")}", level);
             }
+
+            // Play order for GameBootstrap / LevelProgress.
+            var list = AssetDatabase.LoadAssetAtPath<LevelList>(LevelListPath);
+            if (list == null)
+            {
+                list = ScriptableObject.CreateInstance<LevelList>();
+                AssetDatabase.CreateAsset(list, LevelListPath);
+            }
+            list.levels = Levels.Select(name => AssetDatabase.LoadAssetAtPath<LevelDefinition>(OutputFolder + name + ".asset")).ToList();
+            list.skipped = SkippedForNow.Select(name => AssetDatabase.LoadAssetAtPath<LevelDefinition>(OutputFolder + name + ".asset")).ToList();
+            EditorUtility.SetDirty(list);
             AssetDatabase.SaveAssets();
         }
 

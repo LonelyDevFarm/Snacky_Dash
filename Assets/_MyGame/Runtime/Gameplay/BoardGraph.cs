@@ -56,11 +56,15 @@ namespace SnackDash.Gameplay
 
         /// <summary>
         /// Cells fruit may spawn on in levels without fixed spawn1..N layers (RespawnScheduler
-        /// "map pill" respawn): the PillSpawnPoint cells of the spawn layer when the level has any,
-        /// otherwise every road except stops, NoPill roads, NonPillSpawnPlace cells and the start.
-        /// Grouped by flood fill like FloodFillGroupBuilder; each group is in path order from one end.
+        /// "map pill" slots): every road except stops, NoPill roads, NonPillSpawnPlace cells and the
+        /// start; PillSpawnPoint cells are priority slots (see <see cref="PrioritySlots"/>).
+        /// Split into segments (FloodFillGroupBuilder groups): straight runs of slots joined by road,
+        /// broken at excluded cells, junctions and corners, each listed from one end to the other.
         /// </summary>
         public IReadOnlyList<IReadOnlyList<Vector2Int>> PillSlotGroups { get; }
+
+        /// <summary>PillSpawnPoint cells (category PrioritySpawnPoint): their segments are filled first.</summary>
+        public IReadOnlyCollection<Vector2Int> PrioritySlots { get; private set; } = new HashSet<Vector2Int>();
 
         private List<IReadOnlyList<Vector2Int>> BuildPillSlotGroups(TiledMap map, TileDefinitionDatabase database)
         {
@@ -75,55 +79,74 @@ namespace SnackDash.Gameplay
                 }
             }
 
+            // PillSpawnPoint (277) is in the PrioritySpawnPoint category: those cells are filled first,
+            // they do not restrict the slots (Level 6 has only 2 of them for waves of ~30 fruit).
+            PrioritySlots = spawnPoints;
             var slots = new HashSet<Vector2Int>(spawnPoints);
-            if (slots.Count == 0)
-                foreach (var pair in _cells)
-                    if (!excluded.Contains(pair.Key) && IsPillRoad(pair.Value.type)) slots.Add(pair.Key);
+            foreach (var pair in _cells)
+                if (!excluded.Contains(pair.Key) && IsPillRoad(pair.Value.type)) slots.Add(pair.Key);
+
+            // Junctions inside the slot set would branch a segment: leave them out.
+            var junctions = new List<Vector2Int>();
+            foreach (var cell in slots)
+                if (SlotNeighbours(cell, slots).Count >= 3) junctions.Add(cell);
+            foreach (var cell in junctions) slots.Remove(cell);
 
             var ordered = new List<Vector2Int>(slots);
-            ordered.Sort((a, b) => a.y != b.y ? b.y.CompareTo(a.y) : a.x.CompareTo(b.x)); // top-left first
-            var groups = new List<IReadOnlyList<Vector2Int>>();
-            var assigned = new HashSet<Vector2Int>();
+            ordered.Sort((a, b) => a.y != b.y ? b.y.CompareTo(a.y) : a.x.CompareTo(b.x)); // stable order
+            var segments = new List<IReadOnlyList<Vector2Int>>();
+            var visited = new HashSet<Vector2Int>();
+            // Open runs from an end first, then whatever is left (closed loops) from any cell.
             foreach (var start in ordered)
-            {
-                if (assigned.Contains(start)) continue;
-                var region = Flood(start, slots);
-                // Seed at a run end (fewest neighbours in the group) so the order follows the road.
-                var seed = region[0];
-                foreach (var cell in region)
-                    if (SlotNeighbours(cell, slots) < SlotNeighbours(seed, slots)) seed = cell;
-                var group = Flood(seed, slots);
-                assigned.UnionWith(group);
-                groups.Add(group);
-            }
-            return groups;
-        }
+                if (!visited.Contains(start) && SlotNeighbours(start, slots).Count <= 1)
+                    segments.Add(Walk(start, slots, visited));
+            foreach (var start in ordered)
+                if (!visited.Contains(start))
+                    segments.Add(Walk(start, slots, visited));
 
-        private static List<Vector2Int> Flood(Vector2Int seed, HashSet<Vector2Int> slots)
-        {
-            var result = new List<Vector2Int>();
-            var seen = new HashSet<Vector2Int> { seed };
-            var queue = new Queue<Vector2Int>();
-            queue.Enqueue(seed);
-            while (queue.Count > 0)
+            // Footage: a run of one kind never turns a corner, so segments are straight. Cut at
+            // every change of direction (the corner cell ends the run it comes from).
+            var straight = new List<IReadOnlyList<Vector2Int>>();
+            foreach (var segment in segments)
             {
-                var cell = queue.Dequeue();
-                result.Add(cell);
-                foreach (var direction in DirectionExtensions.All)
+                var run = new List<Vector2Int> { segment[0] };
+                for (int i = 1; i < segment.Count; i++)
                 {
-                    var next = cell + direction.ToCell();
-                    if (slots.Contains(next) && seen.Add(next)) queue.Enqueue(next);
+                    bool turns = run.Count >= 2 && segment[i] - segment[i - 1] != segment[i - 1] - segment[i - 2];
+                    if (turns) { straight.Add(run); run = new List<Vector2Int>(); }
+                    run.Add(segment[i]);
                 }
+                straight.Add(run);
             }
-            return result;
+            return straight;
         }
 
-        private static int SlotNeighbours(Vector2Int cell, HashSet<Vector2Int> slots)
+        /// <summary>Follows a run of slots from <paramref name="start"/> along the road.</summary>
+        private List<Vector2Int> Walk(Vector2Int start, HashSet<Vector2Int> slots, HashSet<Vector2Int> visited)
         {
-            int count = 0;
+            var run = new List<Vector2Int>();
+            Vector2Int? cell = start;
+            while (cell.HasValue && visited.Add(cell.Value))
+            {
+                run.Add(cell.Value);
+                Vector2Int? next = null;
+                foreach (var neighbour in SlotNeighbours(cell.Value, slots))
+                    if (!visited.Contains(neighbour)) { next = neighbour; break; }
+                cell = next;
+            }
+            return run;
+        }
+
+        /// <summary>Slots connected to <paramref name="cell"/> by road.</summary>
+        private List<Vector2Int> SlotNeighbours(Vector2Int cell, HashSet<Vector2Int> slots)
+        {
+            var neighbours = new List<Vector2Int>(4);
             foreach (var direction in DirectionExtensions.All)
-                if (slots.Contains(cell + direction.ToCell())) count++;
-            return count;
+            {
+                var next = cell + direction.ToCell();
+                if (slots.Contains(next) && CanMove(cell, direction)) neighbours.Add(next);
+            }
+            return neighbours;
         }
 
         private static bool IsPillRoad(TileType type) =>

@@ -19,7 +19,6 @@ namespace SnackDash.Editor.Setup
     {
         private const string ScenePath = "Assets/_MyGame/Scenes/Game.unity";
         private const string Prefabs = "Assets/_MyGame/Prefabs/Original/";
-        private const string DefaultLevel = "Assets/_MyGame/Data/Levels/Definitions/11002_v3_nt_VO.asset";
 
         [MenuItem("SnackDash/Setup/Build Game Scene")]
         public static void Build()
@@ -54,6 +53,7 @@ namespace SnackDash.Editor.Setup
 
             var crates = Child<CratesView>(level, "Crates");
             Set(crates, "crate9Prefab", Prefab("GameObject/Box_Crate_9_VO"));
+            Set(crates, "holePrefab", Prefab("GameObject/Hole_VO"));
             Set(crates, "pillPrefab", Prefab("GameObject/PillMaster_VO"));
             Set(crates, "fruits", AssetDatabase.LoadAssetAtPath<FruitGraphicSet>("Assets/_MyGame/Data/FruitGraphicSet.asset"));
             Set(crates, "board", board);
@@ -69,7 +69,7 @@ namespace SnackDash.Editor.Setup
             Set(audio, "library", AssetDatabase.LoadAssetAtPath<SnackDash.Audio.SoundLibrary>("Assets/_MyGame/Data/SoundLibrary.asset"));
             cameraGo.AddComponent<AudioListener>();
             var bootstrap = game.AddComponent<GameBootstrap>();
-            Set(bootstrap, "level", AssetDatabase.LoadAssetAtPath<LevelDefinition>(DefaultLevel));
+            Set(bootstrap, "levels", AssetDatabase.LoadAssetAtPath<LevelList>(Restore.LevelDataImporter.LevelListPath));
             Set(bootstrap, "database", database);
             Set(bootstrap, "board", board);
             Set(bootstrap, "cameraFitter", fitter);
@@ -79,10 +79,22 @@ namespace SnackDash.Editor.Setup
             Set(bootstrap, "input", input);
             Set(bootstrap, "gameAudio", audio);
 
+            CreateUiPrefabs(); // missing ones only; hand-edited prefabs are kept
             var ui = new GameObject("UI");
             var loseFlow = ui.AddComponent<SnackDash.UI.LoseFlowView>();
             FillSkin(loseFlow);
+            Set(loseFlow, "prefabs.noWayOut", UiPrefabAsset("NoWayOut"));
+            Set(loseFlow, "prefabs.secondChance", UiPrefabAsset("SecondChance"));
+            Set(loseFlow, "prefabs.gameOver", UiPrefabAsset("GameOver"));
             Set(bootstrap, "loseFlow", loseFlow);
+            var victory = ui.AddComponent<SnackDash.UI.VictoryView>();
+            FillSkin(victory);
+            Set(victory, "prefab", UiPrefabAsset("Victory"));
+            Set(bootstrap, "victory", victory);
+            var hud = ui.AddComponent<SnackDash.UI.HudView>();
+            FillSkin(hud);
+            Set(hud, "prefab", UiPrefabAsset("HUD"));
+            Set(bootstrap, "hud", hud);
             var eventSystem = new GameObject("EventSystem");
             eventSystem.AddComponent<UnityEngine.EventSystems.EventSystem>();
             eventSystem.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
@@ -91,6 +103,45 @@ namespace SnackDash.Editor.Setup
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             Debug.Log($"[Setup] Built {ScenePath}");
         }
+
+        private const string UiPrefabFolder = "Assets/_MyGame/Prefabs/UI/";
+
+        /// <summary>
+        /// Saves each popup / HUD layout as a prefab in Prefabs/UI so it can be edited by hand. Only
+        /// prefabs that do not exist yet are made: hand edits are never overwritten (delete a prefab
+        /// to get the code layout back).
+        /// </summary>
+        [MenuItem("SnackDash/Setup/Create UI Prefabs (missing only)")]
+        public static void CreateUiPrefabs()
+        {
+            UiPrefab<SnackDash.UI.LoseFlowView>("NoWayOut", 10, (view, root) => view.BuildNoWayOut(root));
+            UiPrefab<SnackDash.UI.LoseFlowView>("SecondChance", 10, (view, root) => view.BuildSecondChance(root));
+            UiPrefab<SnackDash.UI.LoseFlowView>("GameOver", 10, (view, root) => view.BuildGameOver(root));
+            UiPrefab<SnackDash.UI.VictoryView>("Victory", 20, (view, root) => view.BuildVictory(root));
+            UiPrefab<SnackDash.UI.HudView>("HUD", 5, (view, root) => view.BuildHud(root));
+            AssetDatabase.SaveAssets();
+        }
+
+        private static GameObject UiPrefab<T>(string name, int sortingOrder, System.Action<T, RectTransform> build) where T : MonoBehaviour
+        {
+            var path = UiPrefabFolder + name + ".prefab";
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) return existing;
+
+            System.IO.Directory.CreateDirectory(UiPrefabFolder);
+            var host = new GameObject("UI prefab builder");
+            var view = host.AddComponent<T>();
+            FillSkin(view);
+            var root = SnackDash.UI.UiBuilder.Canvas(null, name, sortingOrder);
+            build(view, root);
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root.gameObject, path);
+            Object.DestroyImmediate(root.gameObject);
+            Object.DestroyImmediate(host);
+            Debug.Log($"[Setup] Created UI prefab {path}");
+            return prefab;
+        }
+
+        private static GameObject UiPrefabAsset(string name) => AssetDatabase.LoadAssetAtPath<GameObject>(UiPrefabFolder + name + ".prefab");
 
         /// <summary>Original popup sprites, font and TMP materials, found by their original names.</summary>
         private static void FillSkin(Object target)
@@ -120,6 +171,19 @@ namespace SnackDash.Editor.Setup
             Ref("blueUnderlayMaterial", Preset("LuckiestGuy-Regular SDF Blue Underlay"));
             Ref("greenCartoonMaterial", Preset("LuckiestGuy-Regular SDF Green Cartoon"));
             Ref("plainMaterial", Preset("LuckiestGuy-Regular Atlas Material"));
+            Ref("redCartoonMaterial", Preset("LuckiestGuy-Regular SDF Red Cartoon"));
+            Ref("redCartoonInnerMaterial", Preset("LuckiestGuy-Regular SDF Red Cartoon Play btn"));
+            Ref("brownLevelMaterial", Preset("LuckiestGuy-Regular Brown Level Number"));
+            Ref("hudBar", Find<Sprite>("S_CoreTopUI_Main_0"));
+            Ref("hudLevelHolder", Find<Sprite>("S_CoreTopUI_LevelHolder_0"));
+            Ref("hudProgressBackground", Find<Sprite>("S_CoreTopUI_ProgressBarBG_0"));
+            Ref("hudProgressFill", Find<Sprite>("S_CoreTopUI_ProgressBarStraight_0"));
+            Ref("hudSnakeHead", Find<Sprite>("S_SnakeHead_0"));
+            Ref("hudFruits", Find<Sprite>("Group 1321316041_0"));
+            Ref("milestonePendingBar", Find<Sprite>("S_CoreTopUI_ProgressBarBGMilestone_0"));
+            Ref("milestonePendingDot", Find<Sprite>("S_CoreTopUI_ProgressBar_Milestone_0"));
+            Ref("milestoneDoneBar", Find<Sprite>("S_CoreTopUI_ProgressBarMilestone_0"));
+            Ref("checkMark", Find<Sprite>("S_Icon_CheckMark"));
             Sprites("bigButton", "S_Button_Sheet_3", "S_Button_Sheet_2", "S_Button_Sheet_1", "S_Button_Sheet_0");
             Sprites("smallButton", "S_Button_Small_Sheet_3", "S_Button_Small_Sheet_2", "S_Button_Small_Sheet_1", "S_Button_Small_Sheet_0");
             Ref("buttonUnderlay", Find<Sprite>("S_Button_Underlay_Sheet_1"));
@@ -129,6 +193,10 @@ namespace SnackDash.Editor.Setup
             Ref("titleBanner", Find<Sprite>("S_BG_Title (1)_0"));
             Ref("brokenHeart", Find<Sprite>("S_Icon_BrokenHeart_Large_0"));
             Ref("greenButton", Find<Sprite>("S_Button_Green"));
+            Ref("cancelButton", Find<Sprite>("SP_Cancel_Btn"));
+            Ref("snakeIllustration", Find<Sprite>("SP_Snake_0"));
+            Ref("fruitsIllustration", Find<Sprite>("SP_Fruits (1)_34"));
+            Ref("coinIcon", Find<Sprite>("S_Icon_Coin_Single"));
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

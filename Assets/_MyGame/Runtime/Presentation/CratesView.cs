@@ -28,6 +28,8 @@ namespace SnackDash.Presentation
         public static readonly Vector3 CrateSize = new Vector3(2.8f, 2f, 0f);
 
         [SerializeField] private GameObject crate9Prefab;
+        [Tooltip("Hole_VO (CrateVisualConfig_Box_VO.HoleColumnPrefab): the pit the stack stands in; its wooden floor shows once the column is empty.")]
+        [SerializeField] private GameObject holePrefab;
         [SerializeField] private GameObject pillPrefab;
         [SerializeField] private FruitGraphicSet fruits;
         [Tooltip("Board whose crate-stop covers (TileCov_Crate_Delivery) get their idle/highlight state.")]
@@ -63,6 +65,14 @@ namespace SnackDash.Presentation
         public void Bind(GameSession session)
         {
             _session = session;
+            // Every column, extra-crate slots included (bought with coins in the original, empty here).
+            if (holePrefab != null)
+                foreach (var anchor in session.Board.CrateAnchors)
+                {
+                    var hole = Instantiate(holePrefab, transform);
+                    hole.name = $"Hole c{anchor.Key}";
+                    hole.transform.localPosition = BoardView.CellToWorld(anchor.Value) + new Vector3(0f, CrateHeightAboveEndPoint, 0f);
+                }
             for (int column = 0; column < session.Columns.Count; column++) Rebuild(column, false);
             session.SegmentDelivered += OnDelivered;
             session.SegmentSnipped += OnSnipped;

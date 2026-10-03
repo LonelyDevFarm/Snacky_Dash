@@ -133,14 +133,16 @@ namespace SnackDash.Editor.Restore
         {
             "LuckiestGuy-Regular Combo - BG", "LuckiestGuy-Regular Combo - Base", "LuckiestGuy-Regular SDF Green Outline",
             "LuckiestGuy-Regular SDF Dark Red", "LuckiestGuy-Regular SDF Blue Underlay", "LuckiestGuy-Regular SDF Green Cartoon",
-            "LuckiestGuy-Regular Atlas Material",
+            "LuckiestGuy-Regular Atlas Material", "LuckiestGuy-Regular SDF Red Cartoon", "LuckiestGuy-Regular SDF Red Cartoon Play btn",
+            "LuckiestGuy-Regular Brown Level Number",
         };
 
         /// <summary>
         /// The exported "LuckiestGuy-Regular SDF" font asset comes from Unity 6's TextMeshPro and
         /// crashes this editor (TMP 3.0.7) when its text is drawn. Builds a fresh dynamic font asset from
         /// the TTF and recreates each original material preset on it, copying colours, outline,
-        /// underlay values and keywords.
+        /// underlay values and keywords. Running it again only adds the presets that are missing, so
+        /// references to the font and existing presets stay valid.
         /// </summary>
         [MenuItem("SnackDash/Restore/Rebuild TMP Font")]
         public static void RebuildFont()
@@ -150,19 +152,24 @@ namespace SnackDash.Editor.Restore
             Directory.CreateDirectory(RebuiltFontFolder);
 
             var fontPath = RebuiltFontFolder + RebuiltFontName + ".asset";
-            AssetDatabase.DeleteAsset(fontPath);
-            var font = TMPro.TMP_FontAsset.CreateFontAsset(ttf, 90, 9, UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA, 1024, 1024,
-                TMPro.AtlasPopulationMode.Dynamic, true);
-            font.name = RebuiltFontName;
-            AssetDatabase.CreateAsset(font, fontPath);
-            font.atlasTextures[0].name = RebuiltFontName + " Atlas";
-            AssetDatabase.AddObjectToAsset(font.atlasTextures[0], font);
-            font.material.name = RebuiltFontName + " Material";
-            AssetDatabase.AddObjectToAsset(font.material, font);
+            var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>(fontPath);
+            if (font == null)
+            {
+                font = TMPro.TMP_FontAsset.CreateFontAsset(ttf, 90, 9, UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA, 1024, 1024,
+                    TMPro.AtlasPopulationMode.Dynamic, true);
+                font.name = RebuiltFontName;
+                AssetDatabase.CreateAsset(font, fontPath);
+                font.atlasTextures[0].name = RebuiltFontName + " Atlas";
+                AssetDatabase.AddObjectToAsset(font.atlasTextures[0], font);
+                font.material.name = RebuiltFontName + " Material";
+                AssetDatabase.AddObjectToAsset(font.material, font);
+            }
 
             int made = 0;
             foreach (var preset in FontPresets)
             {
+                var presetPath = RebuiltFontFolder + RebuiltFontName + " (" + preset + ").mat";
+                if (AssetDatabase.LoadAssetAtPath<Material>(presetPath) != null) continue;
                 var original = FindByName<Material>(preset);
                 var material = new Material(original != null ? original.shader : font.material.shader);
                 material.CopyPropertiesFromMaterial(font.material);
@@ -185,11 +192,11 @@ namespace SnackDash.Editor.Restore
                 }
                 material.SetTexture("_MainTex", font.atlasTextures[0]);
                 material.name = RebuiltFontName + " (" + preset + ")";
-                AssetDatabase.CreateAsset(material, RebuiltFontFolder + material.name + ".mat");
+                AssetDatabase.CreateAsset(material, presetPath);
                 made++;
             }
             AssetDatabase.SaveAssets();
-            Debug.Log($"[Restore] Rebuilt {fontPath} and {made} material presets in {RebuiltFontFolder}");
+            Debug.Log($"[Restore] Font {fontPath}: {made} new material presets in {RebuiltFontFolder}");
         }
 
         private static T FindByName<T>(string assetName) where T : UnityEngine.Object
