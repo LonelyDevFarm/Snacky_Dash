@@ -41,6 +41,10 @@ namespace SnackDash.Presentation
         [Tooltip("Footage (30 fps) shows ~4 frames; 0.475 s chosen by play-testing against the original on a phone.")]
         [SerializeField] private float flightDuration = 0.475f;
         [SerializeField] private float flightArcHeight = 1.5f;
+        [Tooltip("Lv7 video (15 fps steps): a boomerang fruit is lifted off the road first, then glides into the crate in ~0.5 s, wrapped in the Vortex2 FX wind; ~6 are in the air at once.")]
+        [SerializeField] private float boomerangFlightDuration = 0.5f;
+        [SerializeField] private float boomerangArcHeight = 3f;
+        [SerializeField] private GameObject vortexPrefab;
         [Tooltip("Footage: the fruit lands large and settles into its slot over ~6 frames.")]
         [SerializeField] private float landingScale = 1.6f;
         [SerializeField] private float landingDuration = 0.2f;
@@ -57,6 +61,21 @@ namespace SnackDash.Presentation
         private readonly Dictionary<int, (GameObject idle, GameObject highlight)> _stopStates = new Dictionary<int, (GameObject, GameObject)>();
         private GameSession _session;
         private int _snipOrder;
+        // Completions whose crate is still on screen (the swap comes after the hold), per column, and
+        // fruit still flying into a crate: a boomerang keeps streaming into the next crate meanwhile.
+        private readonly Dictionary<int, int> _pendingSwaps = new Dictionary<int, int>();
+        private readonly Dictionary<int, float> _columnFreeAt = new Dictionary<int, float>(); // next completion may start
+        private float _lastEffectLag;
+
+        private float NormalCompletionWait => (_boomerang ? boomerangFlightDuration : flightDuration) + fullCrateHold;
+
+        /// <summary>
+        /// How much later than usual the last scheduled crate completion plays (crates of a column
+        /// queue up after a boomerang); the victory screen waits that much longer.
+        /// </summary>
+        public float LastCompletionLag => _lastEffectLag;
+        private readonly Dictionary<(int column, int crate), int> _inFlight = new Dictionary<(int, int), int>();
+        private bool _boomerang; // the SegmentSnipped flights now come from a boomerang throw
 
         /// <summary>Centre of the current (top) crate of a column.</summary>
         public static Vector3 CratePosition(Vector2Int endPoint) =>
@@ -76,7 +95,10 @@ namespace SnackDash.Presentation
             for (int column = 0; column < session.Columns.Count; column++) Rebuild(column, false);
             session.SegmentDelivered += OnDelivered;
             session.SegmentSnipped += OnSnipped;
-            session.TailSnipped += keep => _snipOrder = 0;
+            session.TailSnipped += keep => { _snipOrder = 0; _boomerang = false; };
+            session.BoomerangThrown += (column, thrown) => { _snipOrder = 0; _boomerang = true; };
+            session.TailBitten += count => _boomerang = false; // a snip follows: plain flights
+            session.DeliveryStarted += column => _boomerang = false;
             session.CrateCompleted += OnCrateCompleted;
 
             // Original CrateDeliverPoint: idleRoot / highlightRoot, highlighted whenever the snake
@@ -106,7 +128,7 @@ namespace SnackDash.Presentation
             var points = crates[0].transform.Find("AllDestinationPoints/DestinationPoints");
             int slot = _session.Columns[columnIndex].Filled - 1;
             if (points == null || slot < 0 || slot >= points.childCount) return;
-            StartCoroutine(Fly(kind, points.GetChild(slot), snake != null ? snake.HeadWorldPosition : points.position, 0f));
+            { var target = points.GetChild(slot); StartCoroutine(Fly(kind, () => target, snake != null ? snake.HeadWorldPosition : points.position, 0f)); }
         }
 
         /// <summary>
@@ -117,29 +139,71 @@ namespace SnackDash.Presentation
         {
             if (!_columns.TryGetValue(columnIndex, out var crates) || crates.Count == 0) return;
             var start = snake != null ? snake.SegmentWorldPosition(segmentIndex) : transform.position;
-            float delay = _snipOrder++ * GameSession.DeliveryInterval;
-            int depth = crateIndex - _session.Columns[columnIndex].CurrentIndex;
+            // Boomerang fruit come one per GameSession.BoomerangInterval tick already: no extra stagger.
+            float delay = _boomerang ? 0f : _snipOrder++ * GameSession.DeliveryInterval;
             int slot = _session.Columns[columnIndex].FilledIn(crateIndex) - 1;
-            var points = depth < crates.Count ? crates[depth].transform.Find("AllDestinationPoints/DestinationPoints") : null;
-            if (points != null && slot >= 0 && slot < points.childCount)
-                StartCoroutine(Fly(kind, points.GetChild(slot), start, delay));
-            else // deeper than the visible stack: into the bottom crate, shown once it comes up
-                StartCoroutine(Fly(kind, crates[crates.Count - 1].transform, start, delay, vanish: true));
+            if (SlotFor(columnIndex, crateIndex, slot) != null)
+            {
+                var key = (columnIndex, crateIndex);
+                _inFlight[key] = InFlight(key) + 1;
+                StartCoroutine(Fly(kind, () => SlotFor(columnIndex, crateIndex, slot), start, delay, boomerang: _boomerang,
+                    landed: () => _inFlight[key] = InFlight(key) - 1));
+            }
+            else
+            {
+                // Deeper than the visible stack: into the bottom crate, shown once it comes up.
+                var bottom = crates[crates.Count - 1].transform;
+                StartCoroutine(Fly(kind, () => bottom, start, delay, vanish: true, boomerang: _boomerang));
+            }
         }
 
-        private IEnumerator Fly(PillKind kind, Transform slot, Vector3 start, float delay, bool vanish = false)
+        private int InFlight((int, int) key) => _inFlight.TryGetValue(key, out int n) ? n : 0;
+
+        /// <summary>Destination point <paramref name="slot"/> of a crate as the stack shows it now, or null when it is not shown.</summary>
+        private Transform SlotFor(int column, int crateIndex, int slot)
+        {
+            if (!_columns.TryGetValue(column, out var crates)) return null;
+            int shownTop = _session.Columns[column].CurrentIndex - (_pendingSwaps.TryGetValue(column, out int p) ? p : 0);
+            int depth = crateIndex - shownTop;
+            if (depth < 0 || depth >= crates.Count || crates[depth] == null) return null;
+            var points = crates[depth].transform.Find("AllDestinationPoints/DestinationPoints");
+            return points != null && slot >= 0 && slot < points.childCount ? points.GetChild(slot) : null;
+        }
+
+        /// <summary>
+        /// Flies a fruit to <paramref name="target"/>, asked again every frame: the stack may swap
+        /// crates under a boomerang stream, which then lands in the crate where it now stands.
+        /// </summary>
+        private IEnumerator Fly(PillKind kind, System.Func<Transform> target, Vector3 start, float delay, bool vanish = false, bool boomerang = false, System.Action landed = null)
         {
             if (delay > 0f) yield return new WaitForSeconds(delay);
-            if (slot == null) yield break;
+            var slot = target();
+            if (slot == null) { landed?.Invoke(); yield break; }
             var fruit = Instantiate(pillPrefab, transform);
             PillVisual.SetKind(fruit, kind);
-            yield return Tween.Run(flightDuration, Tween.Linear, t =>
+            GameObject wind = boomerang && vortexPrefab != null ? Instantiate(vortexPrefab, fruit.transform) : null;
+            yield return Tween.Run(boomerang ? boomerangFlightDuration : flightDuration, Tween.Linear, t =>
             {
-                if (fruit == null || slot == null) return;
-                var position = Vector3.Lerp(start, slot.position, Tween.OutQuad(t));
-                position.z -= 4f * t * (1f - t) * flightArcHeight;
+                if (fruit == null) return;
+                slot = target() ?? slot;
+                if (slot == null) return;
+                Vector3 position;
+                if (boomerang)
+                {
+                    // Lifted first (height peaks a quarter of the way), then a slow glide in.
+                    position = Vector3.Lerp(start, slot.position, Tween.InOutSine(t));
+                    position.z -= Mathf.Sin(Mathf.PI * Mathf.Sqrt(t)) * boomerangArcHeight;
+                }
+                else
+                {
+                    position = Vector3.Lerp(start, slot.position, Tween.OutQuad(t));
+                    position.z -= 4f * t * (1f - t) * flightArcHeight;
+                }
                 fruit.transform.position = position;
             });
+            if (wind != null) Destroy(wind);
+            slot = target();
+            landed?.Invoke();
             if (slot == null || vanish) { Destroy(fruit); yield break; }
             fruit.transform.SetParent(slot, false);
             fruit.transform.localPosition = Vector3.zero;
@@ -151,15 +215,25 @@ namespace SnackDash.Presentation
             });
         }
 
-        private void OnCrateCompleted(int columnIndex, int crateIndex) => StartCoroutine(Complete(columnIndex));
+        private void OnCrateCompleted(int columnIndex, int crateIndex)
+        {
+            _pendingSwaps[columnIndex] = (_pendingSwaps.TryGetValue(columnIndex, out int p) ? p : 0) + 1;
+            StartCoroutine(Complete(columnIndex));
+        }
 
         /// <summary>
         /// Footage: the last fruit lands, the full crate holds still, then the flash/smoke plays while
         /// the next crate takes its place underneath. The session's CrateCompletePause covers all of it.
+        /// Crates of one column finish one after another: a boomerang can fill the next crate before
+        /// the previous one has gone, and that crate still comes up and holds before it goes [user].
         /// </summary>
         private IEnumerator Complete(int columnIndex)
         {
-            yield return new WaitForSeconds(flightDuration + fullCrateHold);
+            float ready = Time.time + NormalCompletionWait;
+            float start = Mathf.Max(ready, _columnFreeAt.TryGetValue(columnIndex, out float free) ? free : 0f);
+            _columnFreeAt[columnIndex] = start + appearDuration + fullCrateHold;
+            _lastEffectLag = Mathf.Max(0f, start - ready);
+            yield return new WaitForSeconds(start - Time.time);
             CompletionEffectStarted?.Invoke(columnIndex);
             if (_columns.TryGetValue(columnIndex, out var crates) && crates.Count > 0)
             {
@@ -167,6 +241,7 @@ namespace SnackDash.Presentation
                 crates.RemoveAt(0);
                 StartCoroutine(Exit(finished));
             }
+            _pendingSwaps[columnIndex]--;
             Rebuild(columnIndex, true);
         }
 
@@ -204,7 +279,7 @@ namespace SnackDash.Presentation
                 crate.name = $"Crate c{columnIndex} #{crateIndex} {definition.kind} x{definition.requiredCount}";
                 Paint(crate, definition.kind);
                 crates.Add(crate);
-                ShowFilled(crate, definition.kind, column.FilledIn(crateIndex));
+                ShowFilled(crate, definition.kind, column.FilledIn(crateIndex) - InFlight((columnIndex, crateIndex)));
 
                 var target = basePosition + new Vector3(0f, 0f, StackDepth * k);
                 crate.transform.localPosition = target;

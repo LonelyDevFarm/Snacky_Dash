@@ -32,6 +32,7 @@ namespace SnackDash.Bootstrap
         [SerializeField] private SnackDash.UI.LoseFlowView loseFlow;
         [SerializeField] private SnackDash.UI.VictoryView victory;
         [SerializeField] private SnackDash.UI.HudView hud;
+        [SerializeField] private SnackDash.UI.BoosterBarView boosters;
 
         [Tooltip("Seconds after a stop during which a finger still held down cannot start a new move (a fresh touch can).")]
         [SerializeField] private float heldSwipeGraceAfterStop = 0.15f;
@@ -60,11 +61,13 @@ namespace SnackDash.Bootstrap
 
             board.Build(map);
             snake.Bind(Session);
+            board.BindGates(Session);
             pills.Bind(Session);
             crates.Bind(Session);
             if (gameAudio != null) gameAudio.Bind(Session, crates);
             if (loseFlow != null) loseFlow.Bind(Session, Wallet, RestartLevel, cameraFitter);
             if (hud != null) hud.Bind(Session, LevelNumber);
+            if (boosters != null) boosters.Bind(Session, LevelNumber, board, cameraFitter);
             input.Swiped += (direction, fingerHeld) => Session.RequestMove(direction, fingerHeld);
             Session.Won += OnWon;
 
@@ -81,7 +84,7 @@ namespace SnackDash.Bootstrap
         {
             if (Level == testLevel) LevelProgress.TestLevelDone = true;
             LevelProgress.Advance(levels, Level);
-            if (victory != null) victory.Show(RestartLevel);
+            if (victory != null) victory.Show(RestartLevel, crates != null ? crates.LastCompletionLag : 0f);
             else RestartLevel();
         }
 

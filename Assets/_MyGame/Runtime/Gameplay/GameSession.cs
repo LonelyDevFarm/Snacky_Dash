@@ -99,11 +99,19 @@ namespace SnackDash.Gameplay
         public event Action<int, int> CrateCompleted;                      // column, crate index
         public event Action<Direction> MoveStarted;
         public event Action<Vector2Int> Stopped;
+        public event Action<Direction> MoveBlocked;                        // swipe into a wall or the tail
         public event Action<int> DeliveryStarted;                          // column
         public event Action<int> DeliveryEnded;                            // column
         public event Action<int> TailBitten;                               // first segment index a snip removes
         public event Action<int, PillKind, int, int> SegmentSnipped;       // segment index, kind, column, crate index (before removal)
         public event Action<int> TailSnipped;                              // segments kept (all from that index on removed)
+        public event Action<int, IReadOnlyList<int>> BoomerangThrown;      // column, segment indices that will fly
+        public event Action<int> SegmentRemoved;                           // segment index taken out of the middle (after SegmentSnipped)
+        public event Action<Vector2Int, Vector2Int> ArrowsFlipped;          // the two arrows of a pair, after turning round
+        public event Action<Vector2Int> ArrowNotAllowed;                    // a gate or arrow beside the head's way that it may not enter
+        public event Action<int, int> WallHealthChanged;                    // rock group, health left (after a crate completed)
+        public event Action<int> WallBroken;                                // rock group gone, its road open
+        public event Action<Vector2Int, int> SecretRevealed;                // cell, segment index: a secret fruit was eaten
         public event Action Won;
 
         private readonly BoardGraph _board;
@@ -113,6 +121,33 @@ namespace SnackDash.Gameplay
         private readonly Dictionary<Vector2Int, PillKind> _pills = new Dictionary<Vector2Int, PillKind>();
         private readonly List<PillKind> _segments = new List<PillKind>();
         private readonly List<Vector2> _trail = new List<Vector2>(); // cell centres passed, newest first
+        // [i] >= 0: from _trail[i] back to _trail[i+1] goes through a tunnel that long (along the body);
+        // NotTunnel for plain road. A tunnel just entered is 0 long, so never use 0 as "no tunnel"
+        // (that drew the body on the straight line between the two mouths for a frame).
+        private const float NotTunnel = -1f;
+        private readonly List<float> _trailJump = new List<float>();
+        private readonly Dictionary<int, Vector2Int> _arrowEntered = new Dictionary<int, Vector2Int>(); // flip group -> arrow the head went in by
+        private readonly List<int> _wallHealth = new List<int>();
+        private readonly HashSet<Vector2Int> _secret = new HashSet<Vector2Int>();
+
+        /// <summary>Crates still to complete before each rock group breaks (BoardGraph.WallGroups order).</summary>
+        public IReadOnlyList<int> WallHealth => _wallHealth;
+
+        /// <summary>A fruit on the board whose kind stays hidden until it is eaten.</summary>
+        public bool IsSecret(Vector2Int cell) => _secret.Contains(cell);
+        private float _tunnelLeft; // > 0: body still sliding into a tunnel (distance, at tunnel speed)
+        private float _tunnelWait; // > 0: whole snake inside, seconds until the head comes out
+
+        /// <summary>
+        /// Lv14 footage (15 fps steps), 16-segment snake: from the head reaching the mouth the body
+        /// is in after ~0.3 s (about twice the normal speed) [user: it speeds up into the tunnel],
+        /// then nothing shows for ~0.4 s before the head comes out at normal speed.
+        /// </summary>
+        public const float TunnelSpeedMultiplier = 2f;
+        public const float TunnelInsideTime = 0.4f;
+
+        /// <summary>The head is inside a tunnel (hidden) until the whole body has gone in and come through [user].</summary>
+        public bool HeadInTunnel => _tunnelLeft > 0f || _tunnelWait > 0f;
         private readonly float _speed;
 
         /// <summary>A buffered swipe expires after this long (SwipeRecorder.maxTimeRecordSwipe, Game.unity).</summary>
@@ -136,9 +171,19 @@ namespace SnackDash.Gameplay
         private int _deliveryColumn = -1;
         private float _deliveryTimer;
         private bool _deliverFromTail; // false: only completing crates a snip filled (snake not at the crate)
+        private bool _boomerang;       // the delivery is a boomerang throw (fruit fly from the body)
+        private int _boomerangLeft;    // planned fruit still to throw
+
+        /// <summary>Lv7 video stepped at 15 fps: one boomerang fruit takes off per frame (~0.067 s), </summary>
+        public const float BoomerangInterval = 0.07f;
+
+        /// <summary>Wait between the last fruit of a full crate and the first of the next (one flight, CratesView 0.5 s).</summary>
+        public const float BoomerangCrateGap = 0.5f;
 
         public Vector2 HeadPosition { get; private set; }
         public Vector2Int CurrentCell { get; private set; }
+        /// <summary>Cell the head is running into (equals <see cref="CurrentCell"/> once it arrives).</summary>
+        public Vector2Int TargetCell => _target;
         public Direction Heading { get; private set; } = Direction.Up;
         public bool IsMoving { get; private set; }
         public bool IsDelivering => _deliveryColumn >= 0;
@@ -167,9 +212,19 @@ namespace SnackDash.Gameplay
             foreach (var column in level.columns) columns.Add(new CrateColumn(column.crates));
             Columns = columns;
 
+            // Rock rows: the level health, or the row's own when one of its cells is listed.
+            foreach (var group in board.WallGroups)
+            {
+                int health = level.wallHealth;
+                foreach (var own in level.wallGroupHealths)
+                    if (System.Linq.Enumerable.Contains(group, own.seedCell)) health = own.health;
+                _wallHealth.Add(Mathf.Max(1, health));
+            }
+
             CurrentCell = board.PlayerStart;
             HeadPosition = CurrentCell;
             _trail.Add(CurrentCell);
+            _trailJump.Add(NotTunnel);
         }
 
         /// <summary>Spawns the first wave. Separate from the constructor so views can subscribe first.</summary>
@@ -196,7 +251,11 @@ namespace SnackDash.Gameplay
                 return false;
             }
             if (fingerHeld && _sinceStop < HeldSwipeGraceAfterStop) return false;
-            if (!_board.CanMove(CurrentCell, direction) || BlockedByTail(direction)) return false;
+            if (!_board.CanMove(CurrentCell, direction) || BlockedByTail(direction))
+            {
+                MoveBlocked?.Invoke(direction);
+                return false;
+            }
 
             Heading = direction;
             _target = CurrentCell + direction.ToCell();
@@ -219,6 +278,13 @@ namespace SnackDash.Gameplay
 
         /// <summary>Point on the head's recent path, <paramref name="distance"/> cells behind the head.</summary>
         public Vector2 PathPoint(float distance) => SampleTrail(distance);
+
+        /// <summary>True when the point <paramref name="distance"/> cells behind the head is inside a tunnel.</summary>
+        public bool PathInTunnel(float distance)
+        {
+            SampleTrail(distance, out bool inTunnel);
+            return inTunnel;
+        }
 
         /// <summary>Fruit spawned by waves 0..<paramref name="lastWave"/> together.</summary>
         public int FruitInWaves(int lastWave)
@@ -284,6 +350,58 @@ namespace SnackDash.Gameplay
             return true;
         }
 
+        /// <summary>
+        /// Boomerang booster (BoomerangDeliveryPlanner): fruit fly from anywhere in the snake into the
+        /// chosen column, crate by crate: the current crate takes its kind (segments nearest the head
+        /// first) and the next crate is only planned once that one would be full [Lv7 video].
+        /// Returns the planned (segment index, crate index) pairs, indices as they are now.
+        /// </summary>
+        public List<(int segment, int crate)> PlanBoomerang(int columnIndex)
+        {
+            var plan = new List<(int segment, int crate)>();
+            if (IsWon || IsStuck || IsMoving || IsDelivering) return plan;
+            if (columnIndex < 0 || columnIndex >= Columns.Count) return plan;
+            var column = Columns[columnIndex];
+            var taken = new HashSet<int>();
+            for (int crate = column.CurrentIndex; crate < column.Crates.Count; crate++)
+            {
+                int room = column.Crates[crate].requiredCount - column.FilledIn(crate);
+                var kind = column.Crates[crate].kind;
+                for (int i = 0; i < _segments.Count && room > 0; i++)
+                {
+                    if (_segments[i] != kind || taken.Contains(i)) continue;
+                    taken.Add(i);
+                    plan.Add((i, crate));
+                    room--;
+                }
+                if (room > 0) break; // this crate stays part filled: nothing further down is reached
+            }
+            return plan;
+        }
+
+        public bool CanBoomerang(int columnIndex) => PlanBoomerang(columnIndex).Count > 0;
+
+        /// <summary>
+        /// Throws the boomerang at a column (see <see cref="PlanBoomerang"/>). Stock is the caller's job.
+        /// Runs like a delivery from afar [Lv7 video]: one fruit every <see cref="BoomerangInterval"/>,
+        /// the current crate's kind nearest the head first; after a full crate the next kind waits
+        /// <see cref="BoomerangCrateGap"/>. <see cref="BoomerangThrown"/> lists the segments that will go.
+        /// </summary>
+        public bool UseBoomerang(int columnIndex)
+        {
+            var plan = PlanBoomerang(columnIndex);
+            if (plan.Count == 0) return false;
+            var segments = new List<int>();
+            foreach (var entry in plan) segments.Add(entry.segment);
+            BoomerangThrown?.Invoke(columnIndex, segments);
+            _deliveryColumn = columnIndex;
+            _deliverFromTail = true;
+            _boomerang = true;
+            _boomerangLeft = plan.Count;
+            _deliveryTimer = BoomerangInterval; // the first fruit leaves at once
+            return true;
+        }
+
         /// <summary>First crate of this kind with room, columns in order, each from its current crate down.</summary>
         private bool TryReserveCrate(PillKind kind, out int column, out int crate)
         {
@@ -342,13 +460,29 @@ namespace SnackDash.Gameplay
             if (_segments.Count < MinSegmentsBeforeBite) return false;
             for (int i = 1; i < _segments.Count; i++)
             {
+                if (SegmentInTunnel(i)) continue; // out of reach inside a tunnel
                 if (Vector2.Distance(SegmentPosition(i), HeadPosition) >= BiteDistance) continue;
+                if (OnOtherLevelOfBridge(i)) continue;
                 IsStuck = true;
                 SnipKeep = _segments.Count / KeptPerSegments;
                 TailBitten?.Invoke(SnipKeep);
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// At a bridge the deck and the road under it never touch [user]: a segment crossing the bridge
+        /// on the other axis than the head is on the other level.
+        /// </summary>
+        private bool OnOtherLevelOfBridge(int segment)
+        {
+            if (!_board.IsBridge(CurrentCell)) return false;
+            var ahead = segment == 0 ? HeadPosition : SegmentPosition(segment - 1);
+            var behind = SegmentPosition(Mathf.Min(segment + 1, _segments.Count - 1));
+            var along = ahead - behind;
+            bool segmentHorizontal = Mathf.Abs(along.x) >= Mathf.Abs(along.y);
+            return segmentHorizontal != Heading.IsHorizontal();
         }
 
         private bool BlockedByTail(Direction direction)
@@ -360,6 +494,22 @@ namespace SnackDash.Gameplay
 
         private void Advance(float distance)
         {
+            if (_tunnelLeft > 0f)
+            {
+                float boosted = distance * TunnelSpeedMultiplier;
+                float used = Mathf.Min(boosted, _tunnelLeft);
+                _tunnelLeft -= used;
+                _trailJump[0] += used; // the tunnel link the head is in is always the newest
+                distance = (boosted - used) / TunnelSpeedMultiplier;
+                if (_tunnelLeft > 0f) return;
+            }
+            if (_tunnelWait > 0f)
+            {
+                float time = distance / _speed;
+                if (time < _tunnelWait) { _tunnelWait -= time; return; }
+                distance -= _tunnelWait * _speed;
+                _tunnelWait = 0f;
+            }
             while (distance > 0f)
             {
                 var remaining = Vector2.Distance(HeadPosition, _target);
@@ -373,7 +523,9 @@ namespace SnackDash.Gameplay
                 HeadPosition = _target;
                 CurrentCell = _target;
                 _trail.Insert(0, CurrentCell);
+                _trailJump.Insert(0, NotTunnel);
                 PruneTrail();
+                if (_trail.Count > 1) LeftCell(Vector2Int.RoundToInt(_trail[1]));
                 if (CheckBite())
                 {
                     IsMoving = false;
@@ -381,16 +533,37 @@ namespace SnackDash.Gameplay
                     return;
                 }
                 Enter(CurrentCell);
+                var arrivedHeading = Heading;
                 if (IsWon || !ContinueFrom(CurrentCell))
                 {
                     Stop();
                     return;
                 }
+                if (HeadInTunnel) return; // the tunnel trip starts next tick
+                SignalClosedArrows(CurrentCell, arrivedHeading, Heading);
+
             }
         }
 
         private bool ContinueFrom(Vector2Int cell)
         {
+            // Into a tunnel mouth [user]: the tunnel holds the whole snake. The head travels inside
+            // (hidden) while the body slides in after it, and comes out of the other mouth once the
+            // tail is in, onto that mouth's road; the body then comes out behind it, never back at
+            // the first mouth.
+            if (_board.TryTunnel(cell, Heading, out var exit, out var exitHeading))
+            {
+                CurrentCell = exit;
+                HeadPosition = exit;
+                _trail.Insert(0, exit);
+                _trailJump.Insert(0, 0f); // grows as the head goes through (Advance)
+                _tunnelLeft = (_segments.Count + 1) * SegmentSpacing;
+                _tunnelWait = TunnelInsideTime;
+                PruneTrail();
+                Heading = exitHeading;
+                _target = exit + Heading.ToCell();
+                return true;
+            }
             if (!NextStep(cell, Heading, out var heading)) return false;
             Heading = heading;
             _target = cell + Heading.ToCell();
@@ -405,8 +578,9 @@ namespace SnackDash.Gameplay
         private bool NextStep(Vector2Int cell, Direction heading, out Direction next)
         {
             next = heading;
-            if (_board.IsStop(cell)) return false;
+            if (_board.IsStop(cell)) return PassThroughStop(cell, heading, out next);
             if (_board.CanMove(cell, heading)) return true;
+            if (_board.IsBridge(cell)) return false; // straight through only (never happens on real maps)
 
             Direction? turn = null;
             foreach (var exit in _board.Exits(cell))
@@ -420,6 +594,54 @@ namespace SnackDash.Gameplay
             return true;
         }
 
+        /// <summary>
+        /// A stop square is only a stop where there is a choice [user]: a branch an arrow lets the snake
+        /// out of but not into does not count, so a junction left with a single way on is run through
+        /// (turning that way) instead of stopping. Crate stops always stop.
+        /// </summary>
+        private bool PassThroughStop(Vector2Int cell, Direction heading, out Direction next)
+        {
+            next = heading;
+            if (_board.IsCrateStopCell(cell)) return false;
+            int roads = 0, open = 0;
+            foreach (var direction in DirectionExtensions.All)
+            {
+                if (direction == heading.Opposite() || !_board.HasRoad(cell, direction)) continue;
+                roads++;
+                if (!BranchEnterable(cell, direction)) continue;
+                open++;
+                next = direction;
+            }
+            return roads >= 2 && open == 1;
+        }
+
+        /// <summary>
+        /// Follows a branch from a junction along its road to the next stop: false when an arrow gate on
+        /// it turns the snake back (one way out only).
+        /// </summary>
+        private bool BranchEnterable(Vector2Int cell, Direction direction)
+        {
+            var c = cell;
+            var h = direction;
+            for (int steps = 0; steps < 256; steps++)
+            {
+                if (!_board.CanMove(c, h)) return !_board.HasRoad(c, h); // blocked by a gate, or the road just ends
+                c += h.ToCell();
+                if (_board.IsStop(c) || _board.TunnelMouths.ContainsKey(c)) return true;
+                if (_board.IsBridge(c)) continue; // straight over (or under) a bridge
+                Direction? on = null;
+                foreach (var exit in DirectionExtensions.All)
+                {
+                    if (exit == h.Opposite() || !_board.HasRoad(c, exit)) continue;
+                    if (on.HasValue) return true; // a junction without a stop square: a real way in
+                    on = exit;
+                }
+                if (!on.HasValue) return true; // dead end
+                h = on.Value;
+            }
+            return true;
+        }
+
         /// <summary>Cells the head still runs over before its next stop (the current cell included).</summary>
         private HashSet<Vector2Int> PathToNextStop()
         {
@@ -428,8 +650,18 @@ namespace SnackDash.Gameplay
             var cell = CurrentCell;
             var heading = Heading;
             if (cell != _target) { cell = _target; path.Add(cell); } // already on its way to the next cell
-            while (NextStep(cell, heading, out heading) && path.Add(cell + heading.ToCell()))
+            while (true)
+            {
+                if (_board.TryTunnel(cell, heading, out var exit, out var exitHeading))
+                {
+                    if (!path.Add(exit)) break;
+                    cell = exit;
+                    heading = exitHeading;
+                }
+                else if (!NextStep(cell, heading, out heading)) break;
+                if (!path.Add(cell + heading.ToCell())) break;
                 cell += heading.ToCell();
+            }
             return path;
         }
 
@@ -459,12 +691,46 @@ namespace SnackDash.Gameplay
             }
         }
 
+        /// <summary>
+        /// The head has just left <paramref name="cell"/>. A flipping arrow pair turns round once the head
+        /// has gone in by one arrow and out by the other [user]; a stop in between changes nothing.
+        /// Counted on leaving the cell, so the arrow under the head never turns against it.
+        /// </summary>
+        /// <summary>
+        /// Running past a gate or arrow that points out of its branch shakes it, to show that way is
+        /// closed (ArrowGroupController.AnimateNotAllowedArrowsAround). Driving straight into one does
+        /// not (only the snake bumps) [user].
+        /// </summary>
+        private void SignalClosedArrows(Vector2Int cell, Direction arrivedHeading, Direction leaving)
+        {
+            foreach (var direction in DirectionExtensions.All)
+            {
+                if (direction == arrivedHeading.Opposite() || direction == leaving) continue;
+                var beside = cell + direction.ToCell();
+                if (_board.HasRoad(cell, direction) && _board.OneWayGates.TryGetValue(beside, out var way) && way != direction)
+                    ArrowNotAllowed?.Invoke(beside);
+            }
+        }
+
+        private void LeftCell(Vector2Int cell)
+        {
+            if (!_board.FlippingArrows.TryGetValue(cell, out int group)) return;
+            if (_arrowEntered.TryGetValue(group, out var entered) && entered != cell)
+            {
+                _arrowEntered.Remove(group);
+                _board.FlipPair(cell);
+                ArrowsFlipped?.Invoke(cell, entered);
+            }
+            else _arrowEntered[group] = cell;
+        }
+
         private void Enter(Vector2Int cell)
         {
             if (!_pills.TryGetValue(cell, out var kind)) return;
             _pills.Remove(cell);
             _segments.Add(kind);
             PillEaten?.Invoke(cell, kind, _segments.Count - 1);
+            if (_secret.Remove(cell)) SecretRevealed?.Invoke(cell, _segments.Count - 1);
             if (_pills.Count == 0) SpawnNextBatch();
         }
 
@@ -484,6 +750,7 @@ namespace SnackDash.Gameplay
                 var cell = new Vector2Int(x, y);
                 if (!_spawnIds.TryGetValue(_map.GetLocalTileId(layer, cell), out var kind)) continue;
                 _pills[cell] = kind;
+                if (_board.IsSecretSpawn(BatchIndex, cell)) _secret.Add(cell);
                 PillSpawned?.Invoke(cell, kind);
             }
         }
@@ -574,14 +841,16 @@ namespace SnackDash.Gameplay
         private void TickDelivery(float deltaTime)
         {
             _deliveryTimer += deltaTime;
-            while (_deliveryTimer >= DeliveryInterval)
+            float interval = _boomerang ? BoomerangInterval : DeliveryInterval;
+            while (_deliveryTimer >= interval)
             {
-                _deliveryTimer -= DeliveryInterval;
+                _deliveryTimer -= interval;
                 if (!DeliverOne(_deliveryColumn))
                 {
                     int column = _deliveryColumn;
-                    bool fromTail = _deliverFromTail;
+                    bool fromTail = _deliverFromTail && !_boomerang;
                     _deliveryColumn = -1;
+                    _boomerang = false;
                     if (fromTail) DeliveryEnded?.Invoke(column);
                     if (!IsWon) StartSettlingFullCrates();
                     return;
@@ -599,6 +868,28 @@ namespace SnackDash.Gameplay
             if (!_deliverFromTail) return false;
 
             var kind = column.Current.kind;
+            if (_boomerang)
+            {
+                // Boomerang: from the head side, flying out of the body (no snake at the stop).
+                int thrown = _boomerangLeft > 0 ? _segments.IndexOf(kind) : -1;
+                if (thrown < 0) return false;
+                _boomerangLeft--;
+                column.Add(column.CurrentIndex);
+                SegmentSnipped?.Invoke(thrown, kind, columnIndex, column.CurrentIndex);
+                _segments.RemoveAt(thrown);
+                SegmentRemoved?.Invoke(thrown);
+                if (column.IsFull(column.CurrentIndex))
+                {
+                    // Lv7 video: the next kind lifts off as the full crate's last fruit lands (one
+                    // flight), not after the whole 1 s crate pause, so it arrives as the new crate
+                    // comes up. Without the gap it flew into the crate still hidden underneath (bug1).
+                    bool more = CompleteCurrent(columnIndex);
+                    _deliveryTimer = BoomerangInterval - BoomerangCrateGap;
+                    return more && _boomerangLeft > 0;
+                }
+                return _boomerangLeft > 0;
+            }
+
             int index = _segments.LastIndexOf(kind);
             if (index < 0) return false;
 
@@ -617,10 +908,25 @@ namespace SnackDash.Gameplay
             column.CurrentIndex++;
             _deliveryTimer = -CrateCompletePause; // the snake stays locked during the pause
             CrateCompleted?.Invoke(columnIndex, completed);
+            WearWalls();
             if (!AllColumnsComplete()) return true;
             IsWon = true;
             Won?.Invoke();
             return false;
+        }
+
+        /// <summary>Every completed crate takes one off every rock row; at 0 it breaks and its road opens [user].</summary>
+        private void WearWalls()
+        {
+            for (int group = 0; group < _wallHealth.Count; group++)
+            {
+                if (_wallHealth[group] <= 0) continue;
+                _wallHealth[group]--;
+                WallHealthChanged?.Invoke(group, _wallHealth[group]);
+                if (_wallHealth[group] > 0) continue;
+                _board.OpenWall(group);
+                WallBroken?.Invoke(group);
+            }
         }
 
         private bool AllColumnsComplete()
@@ -630,14 +936,35 @@ namespace SnackDash.Gameplay
             return true;
         }
 
-        private Vector2 SampleTrail(float distanceBehindHead)
+        private Vector2 SampleTrail(float distanceBehindHead) => SampleTrail(distanceBehindHead, out _);
+
+        /// <summary>True while tail segment <paramref name="index"/> is inside a tunnel (hidden, cannot be bitten).</summary>
+        public bool SegmentInTunnel(int index)
         {
+            SampleTrail((index + 1) * SegmentSpacing, out bool inTunnel);
+            return inTunnel;
+        }
+
+        /// <summary>
+        /// Point on the head's path; a tunnel link counts as long as the stretch of body that went in,
+        /// and anything on it is inside the tunnel (placed at the mouth it went into).
+        /// </summary>
+        private Vector2 SampleTrail(float distanceBehindHead, out bool inTunnel)
+        {
+            inTunnel = false;
             var previous = HeadPosition;
-            foreach (var point in _trail)
+            for (int i = 0; i < _trail.Count; i++)
             {
-                float step = Vector2.Distance(previous, point);
-                if (distanceBehindHead <= step && step > 0f)
-                    return Vector2.Lerp(previous, point, distanceBehindHead / step);
+                var point = _trail[i];
+                float jumpLength = i > 0 ? _trailJump[i - 1] : NotTunnel;
+                bool jump = jumpLength >= 0f;
+                float step = jump ? jumpLength : Vector2.Distance(previous, point);
+                if (distanceBehindHead <= step && (step > 0f || jump))
+                {
+                    if (!jump) return Vector2.Lerp(previous, point, distanceBehindHead / step);
+                    inTunnel = true;
+                    return point;
+                }
                 distanceBehindHead -= step;
                 previous = point;
             }
@@ -647,7 +974,11 @@ namespace SnackDash.Gameplay
         private void PruneTrail()
         {
             int keep = _segments.Count + 3;
-            if (_trail.Count > keep) _trail.RemoveRange(keep, _trail.Count - keep);
+            if (_trail.Count > keep)
+            {
+                _trail.RemoveRange(keep, _trail.Count - keep);
+                _trailJump.RemoveRange(keep, _trailJump.Count - keep);
+            }
         }
     }
 }

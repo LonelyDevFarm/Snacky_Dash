@@ -34,7 +34,10 @@ namespace SnackDash.Presentation
             Apply(size, position);
         }
 
-        /// <summary>Tween the board into the area between <paramref name="bottom"/> and <paramref name="top"/> canvas units.</summary>
+        /// <summary>
+        /// Tween the board into the area between <paramref name="bottom"/> and <paramref name="top"/>
+        /// canvas units, counted inside the safe area (see Compute).
+        /// </summary>
         public void FitBetween(float bottom, float top, float duration)
         {
             Compute(top - bottom, (bottom + top) * 0.5f - referenceHeight * 0.5f, out var size, out var position);
@@ -51,6 +54,15 @@ namespace SnackDash.Presentation
         private void Compute(float areaHeight, float areaOffsetY, out float size, out Vector3 position)
         {
             if (_camera == null) _camera = GetComponent<Camera>();
+
+            // The HUD and the booster bar sit inside Screen.safeArea (like the original's
+            // _safe_area_fitter), so on a notched phone they move in from the top and bottom: keep the
+            // board inside the safe area too, or the bar overlaps it (Simulator, iPhone).
+            var safe = Screen.safeArea;
+            float insetTop = Screen.height > 0 ? (Screen.height - safe.yMax) / Screen.height * referenceHeight : 0f;
+            float insetBottom = Screen.height > 0 ? safe.yMin / Screen.height * referenceHeight : 0f;
+            areaHeight -= insetTop + insetBottom;
+            areaOffsetY += (insetBottom - insetTop) * 0.5f;
             var bounds = _board;
             bounds.Expand(new Vector3(expandBoundsX, expandBoundsY, 0f));
 

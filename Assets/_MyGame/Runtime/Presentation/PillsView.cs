@@ -30,6 +30,8 @@ namespace SnackDash.Presentation
         }
 
         [SerializeField] private GameObject pillPrefab;
+        [Tooltip("GameObject/View_Secret_Collectible: the ? box a secret fruit shows until it is eaten.")]
+        [SerializeField] private GameObject secretPrefab;
         [SerializeField] private float spawnZ = -3f;
         [SerializeField] private float jumpHeight = 2f;
         [SerializeField] private float jumpDuration = 0.2f;
@@ -109,6 +111,7 @@ namespace SnackDash.Presentation
             go.name = $"Pill {kind} {cell}";
             PillVisual.SetKind(go, kind);
             var pill = new Pill { go = go, cell = cell };
+            if (_session.IsSecret(cell)) ShowSecret(go);
             _pills[cell] = pill;
             go.SetActive(delay <= 0f);
 
@@ -121,6 +124,19 @@ namespace SnackDash.Presentation
                 landing = pill.waitPosition;
             }
             StartCoroutine(JumpIn(pill, landing, delay));
+        }
+
+        /// <summary>Secret fruit: the fruit mesh hides under the ? box (PillView puts it in SecreteCollectibleParent).</summary>
+        private void ShowSecret(GameObject pill)
+        {
+            if (secretPrefab == null) return;
+            var fruits = pill.transform.Find("Visual/FruitsParent");
+            var parent = pill.transform.Find("Visual/SecreteCollectibleParent");
+            if (fruits == null || parent == null) return;
+            fruits.gameObject.SetActive(false);
+            var box = Instantiate(secretPrefab, parent, false);
+            var burst = box.transform.Find("Feedbacks");
+            if (burst != null) burst.gameObject.SetActive(false); // the reveal burst plays when eaten (SnakeView)
         }
 
         private IEnumerator JumpIn(Pill pill, Vector3 landing, float delay)

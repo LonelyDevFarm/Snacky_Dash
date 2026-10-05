@@ -45,5 +45,22 @@ namespace SnackDash.UI
         public Sprite snakeIllustration;             // SP_Snake_0 (second-chance popup)
         public Sprite fruitsIllustration;            // SP_Fruits (1)_34
         public Sprite coinIcon;                      // S_Icon_Coin_Single
+
+        [Header("Boosters")]
+        public Sprite boosterSlot;                   // S_Boosters_BG (2)_0 (beige hexagon)
+        public Sprite boomerangIcon;                 // S_Icon_Booster_FruitCanon_0 (Boomerang's internal name)
+        public Sprite shovelIcon;                    // S_Icon_Booster_Teleporter_0
+        public Sprite boosterCountBadge;             // S_BoostersNumber_Bg (1)_0
+        public Sprite boosterPlus;                   // S_BoostersBuy_Bg (2)_0
+        public Sprite lockIcon;                      // S_Icon_Lock_0_0
+        public Sprite whitePlate;                    // JU-Texture-Common-ReosurcesBG
+        public Sprite bluePlate;                     // background (tinted 2C64CF)
+        public Sprite settingsBackground;            // S_Settings_Bg_0
+        public Sprite settingsIcon;                  // Icon_Settings
+        public Sprite overlayVignette;               // S_BG_Overlay_0
+        public Sprite closeSquare;                   // S_Bg_Close_btn
+        public Sprite tutorialArrow;                 // PictoIcon_Arrow_Up (BoosterTutorialView)
+        public Material homeScreenLevelsMaterial;    // LuckiestGuy-Regular HomeScreen Levels
+        public Material progressBarMaterial;         // LuckiestGuy-Regular Progress Bar
     }
 }

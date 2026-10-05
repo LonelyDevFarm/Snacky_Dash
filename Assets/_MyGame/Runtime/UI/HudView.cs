@@ -74,7 +74,12 @@ namespace SnackDash.UI
             var safe = Stretch(root, "SafeArea");
             var top = Rect(safe, "_top", new Vector2(0, 1), Vector2.one, new Vector2(0, -10), new Vector2(0, 128), new Vector2(0.5f, 1));
             var panel = Rect(top, "Panel_InGame_HUD", new Vector2(0, 1), Vector2.one, new Vector2(0, -5), new Vector2(0, 120), new Vector2(0.5f, 1));
-            var bar = Rect(panel, "ProgressBar", new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(0, -7.24f), new Vector2(-215.56f, 70.07f));
+            // Shorter bar with the settings button on its right, as on Level 27 of the original
+            // (Man_Lose video); the older layout ran the bar across and kept settings in the bottom row.
+            var bar = Rect(panel, "ProgressBar", new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(-43.6f, -7.24f), new Vector2(-302.8f, 70.07f));
+            var settings = Rect(panel, "SettingsButton", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-83.3f, -7.24f), new Vector2(105, 105));
+            Image(settings, skin.settingsBackground, Color.white, raycast: true);
+            Image(Rect(settings, "icon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(65, 65)), skin.settingsIcon, Color.white);
             Image(bar, skin.hudBar, Color.white);
 
             var holder = Rect(bar, "LvlHolder_Img", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, 2.32f), new Vector2(271.48f, 68.61f));

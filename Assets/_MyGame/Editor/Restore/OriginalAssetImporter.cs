@@ -134,7 +134,7 @@ namespace SnackDash.Editor.Restore
             "LuckiestGuy-Regular Combo - BG", "LuckiestGuy-Regular Combo - Base", "LuckiestGuy-Regular SDF Green Outline",
             "LuckiestGuy-Regular SDF Dark Red", "LuckiestGuy-Regular SDF Blue Underlay", "LuckiestGuy-Regular SDF Green Cartoon",
             "LuckiestGuy-Regular Atlas Material", "LuckiestGuy-Regular SDF Red Cartoon", "LuckiestGuy-Regular SDF Red Cartoon Play btn",
-            "LuckiestGuy-Regular Brown Level Number",
+            "LuckiestGuy-Regular Brown Level Number", "LuckiestGuy-Regular HomeScreen Levels", "LuckiestGuy-Regular Progress Bar",
         };
 
         /// <summary>

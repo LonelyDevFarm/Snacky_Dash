@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81670f59cfe347c41bad25d85bca6a16, type: 3}
+  m_Name: Level36_3009_v4_ftue_nt_VO
+  m_EditorClassIdentifier: 
+  map: {fileID: 4900000, guid: 077f59715c4d7cb47afaaf7d4eabc7d8, type: 3}
+  columns:
+  - crates:
+    - kind: 0
+      requiredCount: 18
+    - kind: 1
+      requiredCount: 18
+    - kind: 3
+      requiredCount: 18
+    - kind: 1
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 9
+    - kind: 3
+      requiredCount: 18
+    - kind: 1
+      requiredCount: 9
+    closedAtStart: 0
+    isExtra: 0
+  - crates:
+    - kind: 5
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 18
+    - kind: 5
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 18
+    - kind: 5
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    closedAtStart: 0
+    isExtra: 0
+  batches:
+  - pills:
+    - kind: 0
+      count: 10
+    - kind: 4
+      count: 15
+    - kind: 1
+      count: 6
+    - kind: 3
+      count: 9
+    - kind: 5
+      count: 6
+  - pills:
+    - kind: 0
+      count: 8
+    - kind: 4
+      count: 12
+    - kind: 1
+      count: 6
+    - kind: 3
+      count: 12
+    - kind: 5
+      count: 6
+  - pills:
+    - kind: 0
+      count: 2
+    - kind: 4
+      count: 6
+    - kind: 1
+      count: 13
+    - kind: 3
+      count: 9
+    - kind: 5
+      count: 9
+  - pills:
+    - kind: 0
+      count: 7
+    - kind: 4
+      count: 12
+    - kind: 1
+      count: 20
+    - kind: 3
+      count: 6
+    - kind: 5
+      count: 6
+  timeLimitSeconds: 475
+  speedOverride: 0
+  wallHealth: 3
+  wallGroupHealths: []

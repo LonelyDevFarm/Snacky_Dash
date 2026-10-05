@@ -129,9 +129,9 @@ namespace SnackDash.Tests
         }
 
         [Test]
-        public void Level2_MatchesFootage()
+        public void Level2_SpawnsAndSwipes()
         {
-            var level = Load("11002_v3_nt_VO");
+            var level = Load("11002_v4_ftue_nt_VO"); // Level 2 in v1.15
             var map = TiledMap.Parse(level.map.text);
 
             // Spawn markers 371.. map to kinds in order of first appearance in the waves.
@@ -148,46 +148,63 @@ namespace SnackDash.Tests
                 CollectionAssert.AreEquivalent(expected, actual, $"wave {b + 1}");
             }
 
-            // Video LV2-3: swipe right -> along the bottom, up the right side (auto-turn) -> top crate stop.
-            // Extra swipes on the way: only the latest fresh one (Left) is applied there.
-            var session = new GameSession(new BoardGraph(map, _database), map, level);
+            // Swipe right: along the bottom, up the right side (auto-turn) to the top crate stop (rules
+            // from video LV2-3, v1.14.1; v1.15 has a smaller, symmetric Level 2). Extra swipes on the way:
+            // only the latest fresh one (Left) is applied there.
+            var board = new BoardGraph(map, _database);
+            var session = new GameSession(board, map, level);
             session.Begin();
-            Assert.AreEqual(new Vector2Int(7, 1), session.CurrentCell);
+            var start = board.PlayerStart;
+            var crateStop = board.CrateStops.Values.First();
+            Assert.AreEqual(start, session.CurrentCell);
             Assert.IsTrue(session.RequestMove(Direction.Right));
             session.Tick(0.25f);
             Assert.AreEqual(Direction.Up, session.Heading, "turned at the bottom-right corner");
             session.RequestMove(Direction.Down);
             session.RequestMove(Direction.Left);
             session.RequestMove(Direction.Right, fingerHeld: true); // further flick of a held finger: ignored
-            for (int i = 0; i < 180 && session.CurrentCell != new Vector2Int(7, 16); i++) session.Tick(1f / 60f);
-            Assert.AreEqual(9, session.Segments.Count, "all nine bananas on the right side eaten");
+            for (int i = 0; i < 180 && session.CurrentCell != crateStop; i++) session.Tick(1f / 60f);
+            Assert.AreEqual(crateStop, session.CurrentCell);
+            Assert.Greater(session.Segments.Count, 0, "fruit on the right side eaten");
             Assert.IsTrue(session.IsMoving);
             Assert.AreEqual(Direction.Left, session.Heading);
 
-            // ...round the left side back to the bottom stop, arriving from the left:
+            // ...round the left side back to the start, arriving from the left:
             // the tail is behind the head there, so turning back left is refused.
             for (int i = 0; i < 180 && session.IsMoving; i++) session.Tick(1f / 60f);
-            Assert.AreEqual(new Vector2Int(7, 1), session.CurrentCell);
+            Assert.AreEqual(start, session.CurrentCell);
             Assert.IsFalse(session.RequestMove(Direction.Left), "cannot reverse into the tail");
             Assert.IsTrue(session.RequestMove(Direction.Up));
         }
 
-        /// <summary>Every imported level (cohort ab-vo-co, Levels 1-13).</summary>
+        /// <summary>Every imported level (cohort ab-vo-co of v1.15, LevelDataImporter.LevelCount levels).</summary>
         private static IEnumerable<string> ImportedLevels() =>
             System.IO.Directory.GetFiles(LevelFolder, "*.asset").Select(System.IO.Path.GetFileNameWithoutExtension);
 
         [TestCaseSource(nameof(ImportedLevels))]
         public void Level_IsWinnable(string name)
         {
-            // 11019 (Level 7) introduces a booster (likely Boomerang: BoosterData tutorial threshold 36 =
-            // its 36 fruit): the crate loop is unreachable without it [user]. Re-enable with boosters.
-            if (name == "11019_v4_nt_VO") Assert.Ignore("booster tutorial level: needs the booster");
+            // 11019 (Level 7) is the Boomerang tutorial: the crate loop is unreachable without it [user].
+            bool boomerangLevel = name.EndsWith("11019_v4_nt_VO");
+            int boomerangs = 0;
             var level = Load(name);
+            var list = AssetDatabase.LoadAssetAtPath<LevelList>("Assets/_MyGame/Data/Levels/LevelList.asset");
+            if (list != null && list.skipped.Contains(level)) Assert.Ignore("skipped in play for now (mechanic not built)");
             var map = TiledMap.Parse(level.map.text);
             var session = new GameSession(new BoardGraph(map, _database), map, level);
             session.SetSeed(1);
             session.Begin();
             if (!map.HasLayer("spawn1")) AssertRandomLayout(session, level.batches[0]);
+            foreach (var gate in session.Board.OneWayGates)
+            {
+                var way = gate.Value;
+                Assert.IsTrue(session.Board.CanMove(gate.Key, way), "a gate lets the snake through its way");
+                Assert.IsFalse(session.Board.CanMove(gate.Key + way.ToCell(), way.Opposite()), "a gate is a wall the other way");
+            }
+            if (!map.HasLayer("spawn1"))
+                Assert.IsFalse(session.Pills.Keys.Any(cell => BoardGraph.HasRoadObject(map, cell)
+                        || DirectionExtensions.All.Any(d => BoardGraph.HasRoadObject(map, cell + d.ToCell()))),
+                    "no fruit on or next to an object on the road (bridge, gate...)");
             var random = new System.Random(1);
             int snips = 0;
             for (int move = 0; move < 3000 && !session.IsWon; move++)
@@ -196,11 +213,30 @@ namespace SnackDash.Tests
                 if (session.IsStuck && session.Snip()) snips++;
                 // Crates a snip filled complete before the snake may move again.
                 for (int i = 0; i < 3600 && session.IsDelivering; i++) session.Tick(1f / 60f);
+                // The booster tutorial level: the crate is out of reach, the boomerang feeds it.
+                if (boomerangLevel && session.Pills.Count == 0)
+                    for (int c = 0; c < session.Columns.Count; c++)
+                        if (session.UseBoomerang(c))
+                        {
+                            boomerangs++;
+                            for (int i = 0; i < 3600 && session.IsDelivering; i++) session.Tick(1f / 60f);
+                        }
                 if (!session.RequestMove((Direction)random.Next(4))) continue;
                 // Long crate combos (1 s pause per filled crate) can take several seconds.
-                for (int i = 0; i < 3600 && (session.IsMoving || session.IsDelivering); i++) session.Tick(1f / 60f);
+                for (int i = 0; i < 3600 && (session.IsMoving || session.IsDelivering); i++)
+                {
+                    session.Tick(1f / 60f);
+                    // Every shown segment lies on a road: never across the grass between tunnel mouths.
+                    for (int k = 0; k < session.Segments.Count; k++)
+                        if (!session.SegmentInTunnel(k))
+                            Assert.IsTrue(session.Board.IsWalkable(Vector2Int.RoundToInt(session.SegmentPosition(k))),
+                                $"segment {k} off the road at {session.SegmentPosition(k)}");
+                }
+                Assert.IsFalse(session.Board.IsBridge(session.CurrentCell), "the snake never stops on a bridge");
+                Assert.IsFalse(session.Board.TunnelMouths.ContainsKey(session.CurrentCell), "the snake never stops at a tunnel mouth");
             }
             Assert.IsTrue(session.IsWon, $"not won after {snips} snips");
+            if (boomerangLevel) Assert.AreEqual(1, boomerangs, "one free boomerang wins the tutorial level");
             TestContext.WriteLine($"{name}: won, {snips} tail bites");
         }
 
@@ -215,6 +251,14 @@ namespace SnackDash.Tests
             Assert.AreEqual(expected, session.Pills.Count, "whole first wave placed");
             var slots = new HashSet<Vector2Int>(session.Board.PillSlotGroups.SelectMany(segment => segment));
             Assert.IsTrue(session.Pills.Keys.All(slots.Contains), "every fruit on a slot (none dumped next to the snake)");
+            foreach (var bridge in session.Board.Bridges)
+            {
+                // On the deck: 2 cells each way along it; under it: 1 cell each way along the road below.
+                var along = bridge.Value ? Vector2Int.right : Vector2Int.up;
+                var across = bridge.Value ? Vector2Int.up : Vector2Int.right;
+                for (int i = -2; i <= 2; i++) Assert.IsFalse(session.Pills.ContainsKey(bridge.Key + along * i), "no fruit on a bridge");
+                Assert.IsFalse(session.Pills.ContainsKey(bridge.Key + across) || session.Pills.ContainsKey(bridge.Key - across), "no fruit under a bridge");
+            }
 
             int partial = 0;
             foreach (var segment in session.Board.PillSlotGroups)
@@ -238,7 +282,9 @@ namespace SnackDash.Tests
             Assert.LessOrEqual(partial, 1, "segments are filled whole, at most one part way");
         }
 
-        private static LevelDefinition Load(string name) => AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelFolder + name + ".asset");
+        // Assets are named LevelNN_<map>; a bare map name also finds its file.
+        private static LevelDefinition Load(string name) => AssetDatabase.LoadAssetAtPath<LevelDefinition>(
+            System.IO.Directory.GetFiles(LevelFolder, "*" + name + ".asset")[0].Replace('\\', '/'));
 
         /// <summary>One wave and one crate column.</summary>
         private static LevelDefinition Level((PillKind kind, int count) wave, params (PillKind kind, int count)[] crates)

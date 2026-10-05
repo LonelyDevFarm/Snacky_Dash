@@ -59,5 +59,16 @@ namespace SnackDash.LevelSystem
         public float timeLimitSeconds;
         [Tooltip("Original LevelDataSO.speedPlayer; 0 = use the default speed.")]
         public float speedOverride;
+        [Tooltip("Original destructibleWallHealth: crates to complete before a rock row breaks.")]
+        public int wallHealth;
+        [Tooltip("Original destructibleWallGroupHealths: rock rows with their own health (found by a cell).")]
+        public List<WallGroupHealth> wallGroupHealths = new List<WallGroupHealth>();
+    }
+
+    [Serializable]
+    public struct WallGroupHealth
+    {
+        public Vector2Int seedCell;
+        public int health;
     }
 }

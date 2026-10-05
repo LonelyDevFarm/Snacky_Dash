@@ -28,11 +28,12 @@ namespace SnackDash.UI
         [Tooltip("CONTINUE centre above the screen bottom (canvas units), measured on the video.")]
         [SerializeField] private float continueHeight = 380f;
 
-        public void Show(Action onContinue) => StartCoroutine(Run(onContinue));
+        /// <param name="extraDelay">Added to appearDelay when the last crate finishes later than usual.</param>
+        public void Show(Action onContinue, float extraDelay = 0f) => StartCoroutine(Run(onContinue, extraDelay));
 
-        private IEnumerator Run(Action onContinue)
+        private IEnumerator Run(Action onContinue, float extraDelay)
         {
-            yield return new WaitForSeconds(appearDelay);
+            yield return new WaitForSeconds(appearDelay + extraDelay);
             RectTransform root;
             if (prefab != null)
             {

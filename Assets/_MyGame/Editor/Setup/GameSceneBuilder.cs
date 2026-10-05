@@ -61,6 +61,12 @@ namespace SnackDash.Editor.Setup
             var snake = Child<SnakeView>(level, "Snake");
             Set(snake, "headPrefab", Prefab("GameObject/SnakeHead_VO"));
             Set(snake, "segmentPrefab", Prefab("GameObject/TailSegment_VO"));
+            var vortex = AssetDatabase.LoadAssetAtPath<GameObject>(Prefabs + "boosters/Vortex2 FX.prefab");
+            Set(snake, "vortexPrefab", vortex);
+            Set(crates, "vortexPrefab", vortex);
+            var secret = Prefab("GameObject/View_Secret_Collectible");
+            Set(snake, "secretPrefab", secret);
+            Set(pills, "secretPrefab", secret);
             Set(crates, "snake", snake);
 
             var game = new GameObject("Game");
@@ -95,6 +101,9 @@ namespace SnackDash.Editor.Setup
             FillSkin(hud);
             Set(hud, "prefab", UiPrefabAsset("HUD"));
             Set(bootstrap, "hud", hud);
+            var boosters = ui.AddComponent<SnackDash.UI.BoosterBarView>();
+            FillSkin(boosters);
+            Set(bootstrap, "boosters", boosters);
             var eventSystem = new GameObject("EventSystem");
             eventSystem.AddComponent<UnityEngine.EventSystems.EventSystem>();
             eventSystem.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
@@ -197,6 +206,22 @@ namespace SnackDash.Editor.Setup
             Ref("snakeIllustration", Find<Sprite>("SP_Snake_0"));
             Ref("fruitsIllustration", Find<Sprite>("SP_Fruits (1)_34"));
             Ref("coinIcon", Find<Sprite>("S_Icon_Coin_Single"));
+            Ref("boosterSlot", Find<Sprite>("S_Boosters_BG (2)_0"));
+            Ref("boomerangIcon", Find<Sprite>("S_Icon_Booster_FruitCanon_0"));
+            Ref("shovelIcon", Find<Sprite>("S_Icon_Booster_Teleporter_0"));
+            Ref("boosterCountBadge", Find<Sprite>("S_BoostersNumber_Bg (1)_0"));
+            Ref("boosterPlus", Find<Sprite>("S_BoostersBuy_Bg (2)_0"));
+            // Two assets carry the sprite name S_Icon_Lock_0; the scene uses the file S_Icon_Lock_0_0.
+            Ref("lockIcon", AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_MyGame/Art/Sprite/S_Icon_Lock_0_0.asset"));
+            Ref("whitePlate", Find<Sprite>("JU-Texture-Common-ReosurcesBG"));
+            Ref("bluePlate", Find<Sprite>("background"));
+            Ref("settingsBackground", Find<Sprite>("S_Settings_Bg_0"));
+            Ref("settingsIcon", Find<Sprite>("Icon_Settings"));
+            Ref("overlayVignette", Find<Sprite>("S_BG_Overlay_0"));
+            Ref("closeSquare", Find<Sprite>("S_Bg_Close_btn"));
+            Ref("tutorialArrow", Find<Sprite>("PictoIcon_Arrow_Up"));
+            Ref("homeScreenLevelsMaterial", Preset("LuckiestGuy-Regular HomeScreen Levels"));
+            Ref("progressBarMaterial", Preset("LuckiestGuy-Regular Progress Bar"));
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

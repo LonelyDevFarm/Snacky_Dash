@@ -12,41 +12,83 @@ namespace SnackDash.Editor.Restore
     /// <summary>
     /// Converts original LevelDataSO assets (YAML) into LevelDefinition assets, and the original
     /// GraphicSet_VO into a FruitGraphicSet. Only the fields the game uses are read:
-    /// manualColumns, respawnSequence, _timeLimitSeconds and speedPlayer.
+    /// manualColumns, respawnSequence, _timeLimitSeconds, speedPlayer and the rock healths.
+    /// Source: the v1.15 export (the version on the user's phone), level order from its default
+    /// cohort ab-vo-co; v1.15 shuffles levels from 15 on and uses newer variants (ftue).
     /// </summary>
     public static class LevelDataImporter
     {
-        private const string SourceFolder = "G:/Game_2D/APK/ExportedProject/Assets/MonoBehaviour/";
+        private const string ExportRoot = "G:/Game_2D/APK/Export_1.15_ShadersYaml/ExportedProject/Assets/";
+        private const string SourceFolder = ExportRoot + "MonoBehaviour/";
+        private const string MapSource = ExportRoot + "Resources/levelmaps/";
+        private const string CohortSource = ExportRoot + "Resources/cohorts/ab-vo-co.asset";
+        /// <summary>How many levels of the cohort are imported (more as mechanics get built).</summary>
+        public const int LevelCount = 40;
         private const string GraphicSetSource = "G:/Game_2D/APK/ExportedProject/Assets/Resources/graphicssets/GraphicSet_VO.asset";
         private const string JsonFolder = "Assets/_MyGame/Data/Levels/SourceJson/";
         private const string OutputFolder = "Assets/_MyGame/Data/Levels/Definitions/";
         public const string LevelListPath = "Assets/_MyGame/Data/Levels/LevelList.asset";
         private const string GraphicSetOutput = "Assets/_MyGame/Data/FruitGraphicSet.asset";
 
-        // Default cohort ab-vo-co (Resources/cohorts/ab-vo-co.asset), levels 1-13 in order.
-        // Maps come from Resources/levelmaps/<name>.json.
-        // Booster tutorial (Level 7, needs a booster to reach the crate): skipped in play until boosters exist.
-        private static readonly string[] SkippedForNow = { "11019_v4_nt_VO" };
+        // Levels whose mechanic is not built yet: kept in the list (numbering) but skipped in play.
+        private static readonly string[] SkippedForNow = { };
 
-        public static readonly string[] Levels =
+        private static string[] _levels;
+
+        /// <summary>The first <see cref="LevelCount"/> levels of the cohort, in play order (LevelDataSO names).</summary>
+        public static string[] Levels => _levels ?? (_levels = ReadCohort());
+
+        private static string[] ReadCohort()
         {
-            "5126_v4_nt_VO", "11002_v3_nt_VO", "11003_v4_nt_VO", "11014_v4_nt_VO", "6069_v4_nt_VO",
-            "6111_v2_nt_VO", "11019_v4_nt_VO", "6112_v2_nt_VO", "6070_v4_nt_VO", "5025_v3_nt_VO",
-            "6114_v2_nt_VO", "11012_v5_nt_VO", "3001_v3_nt_VO",
-        };
+            var names = new Dictionary<string, string>();
+            foreach (var meta in Directory.GetFiles(SourceFolder, "*.asset.meta"))
+            {
+                var guidLine = File.ReadLines(meta).FirstOrDefault(l => l.StartsWith("guid: "));
+                if (guidLine != null) names[guidLine.Substring(6).Trim()] = Path.GetFileName(meta).Replace(".asset.meta", "");
+            }
+            var order = new List<string>();
+            bool inLevels = false;
+            foreach (var line in File.ReadLines(CohortSource))
+            {
+                if (line.StartsWith("  levels:")) { inLevels = true; continue; }
+                if (!inLevels) continue;
+                if (!line.StartsWith("  - ")) break;
+                int g = line.IndexOf("guid: ");
+                if (g >= 0 && names.TryGetValue(line.Substring(g + 6, 32), out var name)) order.Add(name);
+                if (order.Count == LevelCount) break;
+            }
+            return order.ToArray();
+        }
+
+        /// <summary>Definitions/LevelNN_mapname.asset: sorted by play order, original map name kept [user].</summary>
+        public static string AssetPath(string name) =>
+            OutputFolder + $"Level{System.Array.IndexOf(Levels, name) + 1:00}_{name}.asset";
 
         [MenuItem("SnackDash/Restore/Import Level Data")]
         public static void ImportLevels()
         {
             Directory.CreateDirectory(OutputFolder);
+            _levels = null; // re-read the cohort
+            // Definitions from another version or order go (they are regenerated from the source data).
+            var wanted = new HashSet<string>(Levels.Select(AssetPath));
+            foreach (var old in Directory.GetFiles(OutputFolder, "*.asset").Select(p => p.Replace('\\', '/')))
+                if (!wanted.Contains(old)) AssetDatabase.DeleteAsset(old);
             foreach (var name in Levels)
             {
                 var lines = File.ReadAllLines(SourceFolder + name + ".asset");
-                var level = AssetDatabase.LoadAssetAtPath<LevelDefinition>(OutputFolder + name + ".asset");
+                var path = AssetPath(name);
+                var json = JsonFolder + name + ".json";
+                // Always the v1.15 map: some names are the same in v1.14.1 with a different board (14, 15, 20...).
+                if (!File.Exists(json) || File.ReadAllText(json) != File.ReadAllText(MapSource + name + ".json"))
+                {
+                    File.Copy(MapSource + name + ".json", json, true);
+                    AssetDatabase.ImportAsset(json);
+                }
+                var level = AssetDatabase.LoadAssetAtPath<LevelDefinition>(path);
                 if (level == null)
                 {
                     level = ScriptableObject.CreateInstance<LevelDefinition>();
-                    AssetDatabase.CreateAsset(level, OutputFolder + name + ".asset");
+                    AssetDatabase.CreateAsset(level, path);
                 }
 
                 level.map = AssetDatabase.LoadAssetAtPath<TextAsset>(JsonFolder + name + ".json");
@@ -54,6 +96,8 @@ namespace SnackDash.Editor.Restore
                 level.batches = ParseBatches(Block(lines, "  respawnSequence:"));
                 level.timeLimitSeconds = Float(TopLevel(lines, "_timeLimitSeconds"));
                 level.speedOverride = Float(TopLevel(lines, "<speedPlayer>k__BackingField"));
+                level.wallHealth = Int(TopLevel(lines, "destructibleWallHealth"));
+                level.wallGroupHealths = ParseWallGroups(Block(lines, "  destructibleWallGroupHealths:"));
                 EditorUtility.SetDirty(level);
 
                 Debug.Log($"[Restore] {name}: {level.columns.Count} columns, " +
@@ -68,8 +112,8 @@ namespace SnackDash.Editor.Restore
                 list = ScriptableObject.CreateInstance<LevelList>();
                 AssetDatabase.CreateAsset(list, LevelListPath);
             }
-            list.levels = Levels.Select(name => AssetDatabase.LoadAssetAtPath<LevelDefinition>(OutputFolder + name + ".asset")).ToList();
-            list.skipped = SkippedForNow.Select(name => AssetDatabase.LoadAssetAtPath<LevelDefinition>(OutputFolder + name + ".asset")).ToList();
+            list.levels = Levels.Select(name => AssetDatabase.LoadAssetAtPath<LevelDefinition>(AssetPath(name))).ToList();
+            list.skipped = SkippedForNow.Select(name => AssetDatabase.LoadAssetAtPath<LevelDefinition>(AssetPath(name))).ToList();
             EditorUtility.SetDirty(list);
             AssetDatabase.SaveAssets();
         }
@@ -221,6 +265,29 @@ namespace SnackDash.Editor.Restore
         }
 
         /// <summary>Lines nested under a top-level (2-space) key, until the next top-level key.</summary>
+        /// <summary>destructibleWallGroupHealths entries: "- groupId", "seedCell: {x, y}", "cellCount", "health".</summary>
+        private static List<WallGroupHealth> ParseWallGroups(List<string> block)
+        {
+            var groups = new List<WallGroupHealth>();
+            var group = new WallGroupHealth();
+            foreach (var line in block)
+            {
+                var t = line.Trim();
+                if (t.StartsWith("seedCell:"))
+                {
+                    var parts = t.Substring(t.IndexOf('{') + 1).TrimEnd('}').Split(',');
+                    group.seedCell = new Vector2Int(Int(Value(parts[0])), Int(Value(parts[1])));
+                }
+                else if (t.StartsWith("health:"))
+                {
+                    group.health = Int(Value(t));
+                    groups.Add(group);
+                    group = new WallGroupHealth();
+                }
+            }
+            return groups;
+        }
+
         private static List<string> Block(string[] lines, string header)
         {
             var result = new List<string>();
