@@ -64,6 +64,12 @@ namespace SnackDash.UI
 
         // ---------------------------------------------------------------- NO WAY OUT
 
+        /// <summary>Runs before NO WAY OUT when it returns a routine (the Level 3 tutorial message, TutorialView).</summary>
+        public Func<IEnumerator> BeforeNoWayOut { get; set; }
+
+        /// <summary>True while the snip is forced (Level 3 tutorial): NO WAY OUT shows no GIVE UP.</summary>
+        public Func<bool> ForcedSnip { get; set; }
+
         private void ShowNoWayOut() => StartCoroutine(NoWayOut());
 
         /// <summary>
@@ -72,13 +78,21 @@ namespace SnackDash.UI
         /// </summary>
         private IEnumerator NoWayOut()
         {
+            var before = BeforeNoWayOut?.Invoke();
+            if (before != null) yield return before;
             var root = Open(prefabs.noWayOut, "NoWayOut", BuildNoWayOut);
             var failText = root.Find("FailText");
             var title = (RectTransform)root.Find("FailText/Title_Text");
             var group = root.Find("Body").GetComponent<CanvasGroup>();
             SetGroup(group, 0f, false);
 
-            SetText(root, "Body/Bottom_Container/View_Button_Snip/Tex_Container/Value", snipOffer.CurrentCost.ToString());
+            // Value: "<sprite index=0> price" in the original (coin icon, then the price; FREE when it costs nothing).
+            int cost = snipOffer.CurrentCost;
+            SetText(root, "Body/Bottom_Container/View_Button_Snip/Tex_Container/Value", cost == 0 ? "FREE" : cost.ToString());
+            CoinBeside(root.Find("Body/Bottom_Container/View_Button_Snip/Tex_Container/Value"));
+            // The Level 3 lose tutorial makes the player snip: no GIVE UP [user].
+            var giveUp = root.Find("Body/Bottom_Container/View_Button_GiveUp");
+            if (giveUp != null) giveUp.gameObject.SetActive(ForcedSnip == null || !ForcedSnip());
             OnClick(root, "Body/Bottom_Container/View_Button_Snip", Snip);
             OnClick(root, "Body/Bottom_Container/View_Button_GiveUp", ShowSecondChance);
 
@@ -333,6 +347,22 @@ namespace SnackDash.UI
             var button = root.Find(path)?.GetComponent<Button>();
             if (button == null) { Debug.LogWarning($"[UI] No button at {root.name}/{path}"); return; }
             button.onClick.AddListener(() => action());
+        }
+
+        /// <summary>The coin icon just left of the price text (its TMP sprite in the original).</summary>
+        private void CoinBeside(Transform value)
+        {
+            var label = value != null ? value.GetComponent<TMP_Text>() : null;
+            if (label == null || skin.coinIcon == null) return;
+            var coin = value.Find("Coin") as RectTransform;
+            if (coin == null)
+            {
+                coin = Rect(value, "Coin", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56f, 56f));
+                Image(coin, skin.coinIcon, Color.white).preserveAspect = true;
+            }
+            float width = label.GetPreferredValues(label.text).x;
+            label.rectTransform.anchoredPosition = new Vector2(30f, label.rectTransform.anchoredPosition.y);
+            coin.anchoredPosition = new Vector2(-width / 2f - 34f, 4f);
         }
 
         private static void SetText(Transform root, string path, string text)

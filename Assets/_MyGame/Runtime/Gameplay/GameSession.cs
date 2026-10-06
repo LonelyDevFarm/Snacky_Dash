@@ -235,6 +235,12 @@ namespace SnackDash.Gameplay
             if (BatchIndex < 0) SpawnNextBatch();
         }
 
+        /// <summary>Tutorial: while set, only this swipe is taken (others do nothing); cleared once it starts a move.</summary>
+        public Direction? ForcedSwipe { get; set; }
+
+        /// <summary>Tutorial message on screen: swipes are ignored until it is tapped away.</summary>
+        public bool InputBlocked { get; set; }
+
         /// <param name="fingerHeld">
         /// True for a further flick of a finger that stayed down: while moving it is ignored, so a
         /// held finger only steers again once the snake has stopped [user, tested on the original],
@@ -243,6 +249,8 @@ namespace SnackDash.Gameplay
         public bool RequestMove(Direction direction, bool fingerHeld = false)
         {
             if (IsWon || IsStuck || IsDelivering || IsRewinding) return false; // no input until an undo has run back [user]
+            if (InputBlocked) return false; // a tutorial message is up
+            if (ForcedSwipe.HasValue && direction != ForcedSwipe.Value) return false; // Level 1 tutorial: only the shown way [user]
             if (IsMoving)
             {
                 if (!fingerHeld)
@@ -259,6 +267,7 @@ namespace SnackDash.Gameplay
                 return false;
             }
 
+            ForcedSwipe = null;
             SaveForUndo();
             Heading = direction;
             _target = CurrentCell + direction.ToCell();
@@ -611,6 +620,25 @@ namespace SnackDash.Gameplay
             if (!turn.HasValue) return false;
             next = turn.Value;
             return true;
+        }
+
+        /// <summary>
+        /// The cells a swipe <paramref name="direction"/> would run over from where the head stands, up to the
+        /// next stop (tutorial path highlight, TutorialPathOverlayService). Tunnels are not followed.
+        /// </summary>
+        public List<Vector2Int> PreviewPath(Direction direction)
+        {
+            var path = new List<Vector2Int> { CurrentCell };
+            if (!_board.CanMove(CurrentCell, direction)) return path;
+            var cell = CurrentCell + direction.ToCell();
+            var heading = direction;
+            path.Add(cell);
+            for (int i = 0; i < 256 && NextStep(cell, heading, out heading); i++)
+            {
+                cell += heading.ToCell();
+                path.Add(cell);
+            }
+            return path;
         }
 
         /// <summary>Cells the head still runs over before its next stop (the current cell included).</summary>

@@ -26,12 +26,25 @@ namespace SnackDash.UI
         [Tooltip("Fill speed of the progress bar, in bar lengths per second (smoothing; not measured).")]
         [SerializeField] private float fillSpeed = 1.5f;
         [SerializeField] private float markerCompleteDelay = 0.15f;
+        [Tooltip("The settings popup has BACK TO HOME from this level on [user: from Level 6].")]
+        [SerializeField] private int backToHomeFromLevel = 6;
 
         private readonly List<(float fraction, int fruit, GameObject pending)> _markers = new List<(float, int, GameObject)>();
         private GameSession _session;
         private RectTransform _fill, _completedHolder;
         private float _shown;
         private float _total;
+
+        private RectTransform _settingsCanvas;
+
+        private void OpenSettings(int levelNumber)
+        {
+            if (_settingsCanvas == null) _settingsCanvas = UiBuilder.Canvas(transform, "Settings", 50);
+            if (_settingsCanvas.childCount > 0) return;
+            Time.timeScale = 0f;
+            System.Action home = levelNumber >= backToHomeFromLevel ? () => LoadingScreen.Load(LoadingScreen.HomeScene, skin) : (System.Action)null;
+            SettingsPopup.Open(_settingsCanvas, skin, home, () => Time.timeScale = 1f);
+        }
 
         public void Bind(GameSession session, int levelNumber)
         {
@@ -58,6 +71,17 @@ namespace SnackDash.UI
             const string bar = "SafeArea/_top/Panel_InGame_HUD/ProgressBar/";
             root.Find(bar + "LvlHolder_Img/LvlNumber_Txt").GetComponent<TMPro.TMP_Text>().text = "LEVEL " + levelNumber;
             _fill = (RectTransform)root.Find(bar + "Slider/FillArea/Fill");
+
+            // Settings: pauses the level; BACK TO HOME from Level 6 on (earlier levels have none) [user].
+            LoadingScreen.Skin = skin;
+            var settingsButton = root.Find("SafeArea/_top/Panel_InGame_HUD/SettingsButton");
+            if (settingsButton != null)
+            {
+                var image = settingsButton.GetComponent<UnityEngine.UI.Image>();
+                if (image != null) image.raycastTarget = true;
+                settingsButton.gameObject.AddComponent<UnityEngine.UI.Button>().onClick.AddListener(() => OpenSettings(levelNumber));
+                UiBuilder.Pressable(settingsButton);
+            }
             _completedHolder = (RectTransform)root.Find(bar + "Slider/CompletedMilestoneHolder");
             var pendingHolder = (RectTransform)root.Find(bar + "Slider/PendingMilestoneHolder");
             for (int wave = 0; wave < _session.WaveCount - 1; wave++)

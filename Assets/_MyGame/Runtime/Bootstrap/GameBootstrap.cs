@@ -33,6 +33,8 @@ namespace SnackDash.Bootstrap
         [SerializeField] private SnackDash.UI.VictoryView victory;
         [SerializeField] private SnackDash.UI.HudView hud;
         [SerializeField] private SnackDash.UI.BoosterBarView boosters;
+        [SerializeField] private SnackDash.UI.TutorialView tutorial;
+        [SerializeField] private SnackDash.UI.ComboView combo;
 
         [Tooltip("Seconds after a stop during which a finger still held down cannot start a new move (a fresh touch can).")]
         [SerializeField] private float heldSwipeGraceAfterStop = 0.15f;
@@ -68,6 +70,11 @@ namespace SnackDash.Bootstrap
             if (loseFlow != null) loseFlow.Bind(Session, Wallet, RestartLevel, cameraFitter);
             if (hud != null) hud.Bind(Session, LevelNumber);
             if (boosters != null) boosters.Bind(Session, LevelNumber, board, cameraFitter);
+            if (tutorial != null) tutorial.Bind(Session, LevelNumber);
+            if (combo != null) combo.Bind(Session, crates);
+            if (tutorial != null && loseFlow != null) loseFlow.BeforeNoWayOut = tutorial.LoseTutorial;
+            if (tutorial != null && loseFlow != null) loseFlow.ForcedSnip = () => tutorial.ForcedSnip;
+            if (tutorial != null && boosters != null) boosters.HideWhen = () => tutorial.HidesBoosterBar;
             input.Swiped += (direction, fingerHeld) => Session.RequestMove(direction, fingerHeld);
             Session.Won += OnWon;
 
@@ -84,7 +91,9 @@ namespace SnackDash.Bootstrap
         {
             if (Level == testLevel) LevelProgress.TestLevelDone = true;
             LevelProgress.Advance(levels, Level);
-            if (victory != null) victory.Show(RestartLevel, crates != null ? crates.LastCompletionLag : 0f);
+            // The next level brings a new mechanic: the win screen shows it UNLOCKED! [user]. After it, CONTINUE goes Home; otherwise to the next level [user].
+            bool unlocks = SnackDash.UI.UnlockPopups.TryGet(LevelNumber + 1, false, out var unlocked);
+            if (victory != null) victory.Show(unlocks ? () => SnackDash.UI.LoadingScreen.Load(SnackDash.UI.LoadingScreen.HomeScene) : (System.Action)RestartLevel, crates != null ? crates.LastCompletionLag : 0f, unlocks ? unlocked : (SnackDash.UI.UnlockPopups.Entry?)null);
             else RestartLevel();
         }
 

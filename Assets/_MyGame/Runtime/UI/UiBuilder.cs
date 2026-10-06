@@ -61,6 +61,23 @@ namespace SnackDash.UI
             return label;
         }
 
+        /// <summary>
+        /// LuckiestGuy's line box sits low, so line-centred text rides up to the top edge of buttons and bars
+        /// [user]: centre labels on the letters themselves (Midline) instead.
+        /// </summary>
+        public static void CentreOnLetters(Transform root)
+        {
+            foreach (var label in root.GetComponentsInChildren<TMP_Text>(true))
+                if (label.alignment == TextAlignmentOptions.Center) label.alignment = TextAlignmentOptions.Midline;
+        }
+
+        /// <summary>Every Button under <paramref name="root"/> dips when pressed, clicks and buzzes lightly (PressFeedback).</summary>
+        public static void Pressable(Transform root)
+        {
+            foreach (var button in root.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+                if (button.GetComponent<PressFeedback>() == null) button.gameObject.AddComponent<PressFeedback>();
+        }
+
         public static Color Hex(string rgba) => ColorUtility.TryParseHtmlString("#" + rgba, out var color) ? color : Color.white;
     }
 }

@@ -104,6 +104,12 @@ namespace SnackDash.Editor.Setup
             var boosters = ui.AddComponent<SnackDash.UI.BoosterBarView>();
             FillSkin(boosters);
             Set(bootstrap, "boosters", boosters);
+            var tutorial = ui.AddComponent<SnackDash.UI.TutorialView>();
+            FillSkin(tutorial);
+            Set(bootstrap, "tutorial", tutorial);
+            var combo = ui.AddComponent<SnackDash.UI.ComboView>();
+            FillSkin(combo);
+            Set(bootstrap, "combo", combo);
             Set(boosters, "shovelCirclePrefab", Prefab("boosters/Booster_Tunnel_CircleToClick"));
             Set(boosters, "shovelHolePrefab", Prefab("boosters/Booster_Tunnel_Hole"));
             Set(boosters, "magnetFxPrefab", Prefab("boosters/FX_Snake_Magnetic"));
@@ -113,7 +119,7 @@ namespace SnackDash.Editor.Setup
             eventSystem.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+            SetBuildScenes();
             Debug.Log($"[Setup] Built {ScenePath}");
         }
 
@@ -170,7 +176,12 @@ namespace SnackDash.Editor.Setup
             {
                 var array = skin.FindPropertyRelative(field);
                 array.arraySize = names.Length;
-                for (int i = 0; i < names.Length; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = Find<Sprite>(names[i]);
+                for (int i = 0; i < names.Length; i++)
+                {
+                    var sprite = Find<Sprite>(names[i]);
+                    if (sprite == null) Debug.LogWarning($"[Setup] UI skin: no sprite {names[i]} for {field}");
+                    array.GetArrayElementAtIndex(i).objectReferenceValue = sprite;
+                }
             }
 
             // Font + presets rebuilt for TMP 3.0.7 (SnackDash/Restore/Rebuild TMP Font): the exported
@@ -217,10 +228,26 @@ namespace SnackDash.Editor.Setup
             Ref("undoDisabledIcon", Find<Sprite>("S_Icon_Booster_Undo_Disabled_0"));
             Ref("magnetIcon", Find<Sprite>("S_Icon_Booster_Magnet_0"));
             Ref("magnetField", Find<Texture2D>("TX_FX_Magnet_Base"));
+            Ref("tutorialFrame", Find<Sprite>("S_Tutorial_BG"));
+            Ref("tutorialHand", Find<Sprite>("HandHD_cartoon"));
+            Ref("tutorialHandTrail", Find<Sprite>("Hand_Trail"));
+            Ref("cardFrameWhite", Find<Sprite>("S_OnboardingScreen_Frame_White"));
+            Ref("cardFrameGold", Find<Sprite>("S_OnboardingScreen_Frame_Gold"));
+            Ref("cardPin", Find<Sprite>("S_OnboardingScreen_Pin"));
+            Ref("cardRibbon", Find<Sprite>("S_OnboardingScreen_Flag"));
+            Ref("speechBubble", Find<Sprite>("S_Background_SpeechBubble_02"));
+            Ref("speechTriangle", Find<Sprite>("S_Background_Triangle_0"));
+            Sprites("mechanicIcons", "S_Icon_Bridge_2_0", "S_Icon_Gate_0", "S_Icon_Tunnel2_0", "S_Icon_Rocks_0", "S_Icon_SecretColectable_0", "S_Icon_SwitchingArrow_0");
+            Ref("ribbonGreen", Find<Sprite>("S_Ribbon_Green"));
+            Ref("glow", Find<Sprite>("Glow"));
+            Ref("fxRay", Find<Texture2D>("lightray3"));
+            Ref("fxGlow", Find<Texture2D>("TX_FX_glow1"));
+            Ref("fxSparkle", Find<Texture2D>("TX_FX_Sparkle"));
             Ref("boosterCountBadge", Find<Sprite>("S_BoostersNumber_Bg (1)_0"));
             Ref("boosterPlus", Find<Sprite>("S_BoostersBuy_Bg (2)_0"));
             // Two assets carry the sprite name S_Icon_Lock_0; the scene uses the file S_Icon_Lock_0_0.
             Ref("lockIcon", AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_MyGame/Art/Sprite/S_Icon_Lock_0_0.asset"));
+            Sprites("lockedIcons", "S_Icon_Booster_Teleporter_Locked_0", "S_Icon_Booster_FruitCanon_Locked_0", "S_Icon_Booster_Undo_Locked_0", "S_Icon_Booster_Magnet_Locked_0");
             Ref("whitePlate", Find<Sprite>("JU-Texture-Common-ReosurcesBG"));
             Ref("bluePlate", Find<Sprite>("background"));
             Ref("settingsBackground", Find<Sprite>("S_Settings_Bg_0"));
@@ -230,8 +257,55 @@ namespace SnackDash.Editor.Setup
             Ref("tutorialArrow", Find<Sprite>("PictoIcon_Arrow_Up"));
             Ref("homeScreenLevelsMaterial", Preset("LuckiestGuy-Regular HomeScreen Levels"));
             Ref("progressBarMaterial", Preset("LuckiestGuy-Regular Progress Bar"));
+            Ref("splash", Find<Texture2D>("unity_static_splash"));
+            Sprites("named", NamedSprites);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
+
+        /// <summary>Sprites the Home, settings and loading screens look up by name (UiSkin.Get).</summary>
+        private static readonly string[] NamedSprites =
+        {
+            "Button_Cancel", "Icon_Arrow", "Icon_Arrow_2", "LineShadow", "LoadingBg", "Popup_Background_Blue", "ZigZag_Tile", "gdpr_rounded_square",
+            "S_Active_Tab_3_0", "S_BG_Pop-up_0", "S_BG_Pop-up_Frame_0", "S_BG_Title (1)_0", "S_Bow_Widget (2)_0", "S_Close_Btn_0", "S_Green_btn_0",
+            "S_Button_Sheet_0", "S_Button_Sheet_1", "S_Button_Sheet_2", "S_Button_Sheet_3", "S_Coin_CoreStreak_0", "S_Flame_CoreStreak_0",
+            "S_StreakBar_Thin_0", "S_Streakbar_Shadow_0", "S_Bg_CoreStreak_Progress_Unfilled_Corner_0", "S_Bg_CoreStreak_Progress_Unfilled_0",
+            "S_Counter_Bg_0", "S_Coin_Icon", "S_Heart_Icon_0", "S_Plus_Icon_0", "S_Settings_Icon_0", "S_Notification_Icon_Widget_0",
+            "S_Illustration_HomeScreen_Upper", "S_Illustration_HomeScreen_Down", "S_Icon_LoadingScreen_Eyes", "S_Icon_LoadingScreen_Slot",
+            "S_Chest_Icon_Widget_0", "S_Bg_Widget_0", "S_Bow_Widget_Corner_0", "S_Lava Quest_Widget_0", "S_Icon_GoldenTicket_0", "S_Icon_NoAds", "S_Lock_Icon_0", "S_Clock_Icon_Widget_0",
+            "S_Shop_Icon_0", "S_Home_Icon_0", "Shadow_Round", "Shadow_Round_sharp", "Button_Green_256", "Button_Blue_256", "S_Btn_Green_UI_0", "S_Icon_Support", "Pictogram_Home",
+            "S_Button_Round_Green_Underlay", "S_Button_Round_Gray_Underlay",
+            "S_Icon_Music_Enabled", "S_Icon_Music_Disabled", "S_Icon_Haptics_Enabled", "S_Icon_Haptics_Disabled", "S_Icon_Sound_Enabled", "S_Icon_Sound_Disabled",
+        };
+
+        private const string HomeScenePath = "Assets/_MyGame/Scenes/Home.unity";
+
+        /// <summary>(Re)creates Scenes/Home.unity: a UI camera, the EventSystem and HomeView (splash, loading, Home).</summary>
+        [MenuItem("SnackDash/Setup/Build Home Scene")]
+        public static void BuildHome()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var cameraGo = new GameObject("Main Camera") { tag = "MainCamera" };
+            var camera = cameraGo.AddComponent<Camera>();
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0.682f, 0.424f, 0.988f);
+            camera.cullingMask = 0; // nothing in the world: Home is all canvas
+            cameraGo.AddComponent<UniversalAdditionalCameraData>();
+            var home = new GameObject("Home").AddComponent<SnackDash.UI.HomeView>();
+            FillSkin(home);
+            Set(home, "levels", AssetDatabase.LoadAssetAtPath<LevelList>("Assets/_MyGame/Data/Levels/LevelList.asset"));
+            Set(home, "sounds", AssetDatabase.LoadAssetAtPath<SnackDash.Audio.SoundLibrary>("Assets/_MyGame/Data/SoundLibrary.asset"));
+            var eventSystem = new GameObject("EventSystem");
+            eventSystem.AddComponent<UnityEngine.EventSystems.EventSystem>();
+            eventSystem.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+            EditorSceneManager.SaveScene(scene, HomeScenePath);
+            SetBuildScenes();
+            Debug.Log($"[Setup] Built {HomeScenePath}");
+        }
+
+        /// <summary>Home first (the app starts there), then Game.</summary>
+        private static void SetBuildScenes() =>
+            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(HomeScenePath, true), new EditorBuildSettingsScene(ScenePath, true) };
 
         private static T Find<T>(string assetName) where T : Object
         {

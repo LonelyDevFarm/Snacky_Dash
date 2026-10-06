@@ -22,6 +22,8 @@ namespace SnackDash.Audio
 
         public void Bind(GameSession session, SnackDash.Presentation.CratesView crates)
         {
+            SoundPlayer.Use(library);
+            SoundPlayer.Music(null); // the Home music stops; the level has its own
             for (int i = 0; i < voices; i++)
             {
                 var source = gameObject.AddComponent<AudioSource>();
@@ -35,10 +37,10 @@ namespace SnackDash.Audio
             session.PillEaten += (cell, kind, index) => Play("GetPill" + Mathf.Min(++_eatStreak, 3));
             session.SegmentDelivered += (index, kind, column) => Play("ShootToCrate");
             // Completion sounds go with the crate's flash, which follows the full-crate hold.
-            crates.CompletionEffectStarted += column => { Play("Complete_Crate"); Play("CrateConfetti"); };
+            crates.CompletionEffectStarted += column => { Play("Complete_Crate"); Play("CrateConfetti"); Haptics.Light(); };
             session.PillSpawned += (cell, kind) => PlayOncePerFrame("SpawnPill");
-            session.Won += () => Play("Confetti");
-            session.TailBitten += count => Play("HitTail");
+            session.Won += () => { Play("Confetti"); Haptics.Heavy(); };
+            session.TailBitten += count => { Play("HitTail"); Haptics.Medium(); };
         }
 
         private int _lastSpawnSoundFrame = -1;
@@ -52,6 +54,7 @@ namespace SnackDash.Audio
 
         public void Play(string soundName)
         {
+            if (!GameSettings.Sound) return;
             var sound = library != null ? library.Get(soundName) : null;
             if (sound?.clip == null || _sources.Count == 0) return;
             var source = _sources[_next];
@@ -59,6 +62,10 @@ namespace SnackDash.Audio
             source.pitch = sound.pitch;
             source.PlayOneShot(sound.clip, sound.volume);
         }
+
+        private void OnSettingsChanged() { if (_music != null) _music.mute = !GameSettings.Music; }
+
+        private void OnDestroy() => GameSettings.Changed -= OnSettingsChanged;
 
         private void PlayMusic(string soundName)
         {
@@ -70,6 +77,8 @@ namespace SnackDash.Audio
             _music.pitch = sound.pitch;
             _music.loop = true;
             _music.Play();
+            _music.mute = !GameSettings.Music;
+            GameSettings.Changed += OnSettingsChanged;
         }
     }
 }

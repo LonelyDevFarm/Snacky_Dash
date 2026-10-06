@@ -20,8 +20,9 @@ namespace SnackDash.UI
     ///   between banner and bar. Shovel: a circle on every stop it can dig to, tap one. Boomerang: the
     ///   delivery points' clickable arrows, tap one. Undo and Magnet: CONFIRM. X cancels.
     /// - Unlock order 4, 7, 11, 16 [user]. Undo shows its disabled icon while it cannot be used.
-    /// - Level 7 (first time): once every fruit is eaten, the screen dims, only the boomerang stays
-    ///   and a purple arrow bobs over it; it shows FREE. Tutorials of the other boosters: later [user].
+    /// - First use of each booster (BoosterData _forcedTutorialEntry): when its moment comes the screen
+    ///   dims, only that booster stays and a purple arrow bobs over it (once); the unlock gift shows FREE
+    ///   until it is used [user].
     /// Stock: 99 each until there is a shop [user].
     /// </summary>
     public class BoosterBarView : MonoBehaviour
@@ -39,6 +40,9 @@ namespace SnackDash.UI
             public GameObject countPanel, plusIcon, freePanel;
             public TMP_Text count;
             public Image iconImage;
+            public bool free;      // the unlock gift: FREE until it is used once [user]
+            public string FreeKey => id == Booster.Boomerang ? BoomerangIntroKey : stockKey + "_intro";
+            public string TutorialKey => stockKey + "_tutorial";
             public int Stock
             {
                 get => PlayerPrefs.GetInt(stockKey, DefaultStock);
@@ -80,10 +84,14 @@ namespace SnackDash.UI
         private RectTransform _root, _bar, _aimPanel, _tutorialPanel, _confirmButton;
         private TMP_Text _bannerTitle, _bannerText;
         private Info _aiming;
-        private bool _free, _tutorialShown;
+        private bool _tutorialShown;
+        private Info _tutorialBooster;
         private readonly Dictionary<int, GameObject> _arrows = new Dictionary<int, GameObject>();
         private readonly Dictionary<Vector2Int, GameObject> _circles = new Dictionary<Vector2Int, GameObject>();
         private GameObject _magnetFx, _hole;
+
+        /// <summary>The bar hides while this is true (a tutorial step is up).</summary>
+        public Func<bool> HideWhen { get; set; }
 
         /// <summary>Boomerang stock (tests and older callers).</summary>
         public static int Stock
@@ -108,7 +116,7 @@ namespace SnackDash.UI
                 description = $"<color={Highlight}>REWINDS</color> YOUR LAST MOVE" });
             _boosters.Add(new Info { id = Booster.Magnet, name = "MAGNET", stockKey = "booster_magnet", icon = skin.magnetIcon, unlockLevel = 16, confirm = true,
                 description = $"<color={Highlight}>ATTRACT</color> NEARBY FRUITS TO THE CRATES FOR A FEW SWIPES!" });
-            _free = levelNumber >= BoomerangUnlockLevel && PlayerPrefs.GetInt(BoomerangIntroKey, 0) == 0;
+            foreach (var b in _boosters) b.free = levelNumber >= b.unlockLevel && PlayerPrefs.GetInt(b.FreeKey, 0) == 0;
 
             _root = Canvas(transform, "Boosters", 6);
             var safe = Stretch(_root, "SafeArea");
@@ -163,14 +171,20 @@ namespace SnackDash.UI
             var button = Rect(slot, "Button", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 8), new Vector2(200, 184));
             Image(button, skin.boosterSlot, Color.white);
             bool locked = lockedLabel != null;
-            if (icon != null && !locked)
-                Image(Rect(button, "Icon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 7.5f), new Vector2(130, 120)), icon, Color.white).preserveAspect = true;
+            // Locked: the booster's beige silhouette (_Locked sprite) stays under the lock, as in the original.
+            int index = _boosters.FindIndex(b => b.name == name);
+            var shown = locked && skin.lockedIcons != null && index >= 0 && index < skin.lockedIcons.Length ? skin.lockedIcons[index] : icon;
+            if (shown != null)
+                Image(Rect(button, "Icon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 7.5f), new Vector2(130, 120)), shown, Color.white).preserveAspect = true;
 
             var inventory = Rect(slot, "InventoryPanel", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(51.4f, 5.7f), new Vector2(50, 50));
             var badge = Rect(inventory, "Bg", Vector2.zero, Vector2.one, new Vector2(0.2f, 0), new Vector2(0.6f, 7.8f));
             Image(badge, skin.boosterCountBadge, Color.white);
-            var number = Text(Rect(badge, "NumberText", Vector2.zero, Vector2.one, new Vector2(0, -7.1f), new Vector2(-6, 0)), "0", skin.font, skin.homeScreenLevelsMaterial, 50, Color.white);
+            var number = Text(Rect(badge, "NumberText", Vector2.zero, Vector2.one, new Vector2(0, -7.1f), new Vector2(-6, 0)), "0", skin.font, skin.plainMaterial, 50, Color.white); // plain white: the shadowed preset smeared at phone size
             number.alignment = TextAlignmentOptions.Center;
+            number.enableAutoSizing = true; // NumberText: auto size, max 50 (two digits stay inside the badge)
+            number.fontSizeMin = 18f;
+            number.fontSizeMax = 44f; // a little inside the red square
             inventory.gameObject.SetActive(false);
 
             var plus = Rect(slot, "PlusIcon", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(51.4f, 5.7f), new Vector2(50, 50));
@@ -180,8 +194,8 @@ namespace SnackDash.UI
             if (locked)
             {
                 var panel = Rect(slot, "LockedPanel", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200, 200));
-                Image(Rect(panel, "Lock", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 7.7f), new Vector2(83.4f, 133.5f)), skin.lockIcon, Color.white);
-                Label(panel, "UnlockLevelPanel", lockedLabel, 30, 150.9f);
+                Image(Rect(panel, "Lock", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 7.7f), new Vector2(83.4f, 133.5f)), skin.lockIcon, Color.white).preserveAspect = true; // the sprite is trimmed: keep its shape inside the 83.4 x 133.5 rect
+                Label(panel, "UnlockLevelPanel", lockedLabel, 30, 122f); // 150.9 in the prefab; narrower on the phone [user screenshot]
             }
             Label(slot, "BoosterFreePanel", "FREE", 28, 120f).gameObject.SetActive(false);
             return slot;
@@ -190,11 +204,17 @@ namespace SnackDash.UI
         /// <summary>UnlockLevelPanel / BoosterFreePanel: white rounded plate, blue inner plate, white text.</summary>
         private RectTransform Label(RectTransform parent, string name, string text, float size, float width)
         {
-            var panel = Rect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -76.2f), new Vector2(width, 62.8f));
-            Image(panel, skin.whitePlate, Color.white, sliced: true);
-            var inner = Rect(panel, "Bg", Vector2.zero, Vector2.one, new Vector2(-0.9f, 4), new Vector2(-24f, -22.2f));
-            Image(inner, skin.bluePlate, Hex("2C64CFFF"), sliced: true);
-            var label = Text(Stretch(inner, "Text"), text, skin.font, skin.progressBarMaterial, size, Color.white);
+            // On the phone: a blue rounded box with an even thin white rim [user screenshots]. The prefab's white
+            // plate (JU-Texture-Common-ReosurcesBG, a tall card with a blue drop at its foot) squashed to this height
+            // showed a white crescent under a blue pill, so both layers use the rounded box sprite instead.
+            var panel = Rect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -72f), new Vector2(width, 50f));
+            Image(panel, skin.bluePlate, Color.white, sliced: true).pixelsPerUnitMultiplier = 2.6f;
+            var inner = Rect(panel, "Bg", Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-9f, -9f));
+            Image(inner, skin.bluePlate, Hex("2C64CFFF"), sliced: true).pixelsPerUnitMultiplier = 3f;
+            var label = Text(Rect(inner, "Text", Vector2.zero, Vector2.one, new Vector2(0f, 1f), new Vector2(-8f, 0f)), text, skin.font, skin.plainMaterial, size, Color.white);
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 14f;
+            label.fontSizeMax = size;
             label.alignment = TextAlignmentOptions.Center;
             return panel;
         }
@@ -257,9 +277,8 @@ namespace SnackDash.UI
 
         private void OnTapped(Info booster)
         {
-            if (!_session.IsIdle) return;
-            bool free = booster.id == Booster.Boomerang && _free;
-            if (!free && booster.Stock <= 0) return; // buying with coins: later
+            if (!_session.IsIdle || _session.InputBlocked || _session.ForcedSwipe.HasValue) return; // not over a tutorial message
+            if (!booster.free && booster.Stock <= 0) return; // buying with coins: later
             if (booster.id == Booster.Undo && !_session.CanUndo) return;
             if (booster.id == Booster.Magnet && _session.MagnetActive) return;
             SetAiming(_aiming == booster ? null : booster);
@@ -312,7 +331,7 @@ namespace SnackDash.UI
             StartCoroutine(FlyIcon(booster, () =>
             {
                 bool used = booster.id == Booster.Undo ? _session.Undo() : _session.UseMagnet();
-                if (used) booster.Stock -= 1;
+                if (used) Spend(booster);
             }));
         }
 
@@ -358,7 +377,7 @@ namespace SnackDash.UI
         {
             SetAiming(null);
             var shovel = Get(Booster.Shovel);
-            shovel.Stock -= 1;
+            Spend(shovel);
             if (shovelHolePrefab == null) return;
             if (_hole != null) Destroy(_hole);
             _hole = Instantiate(shovelHolePrefab, transform);
@@ -420,14 +439,43 @@ namespace SnackDash.UI
             Destroy(swirl, 2f);
         }
 
-        // ------------------------------------------------------------------ tutorial (boomerang, Level 7)
+        // ------------------------------------------------------------------ forced tutorial (first use of each booster)
 
-        /// <summary>BoosterForcedTutorialView: dim everything but the boomerang, purple arrow bobbing over it.</summary>
-        private void ShowTutorial()
+        /// <summary>
+        /// BoosterData _forcedTutorialEntry: the shovel waits for a tail of 9 (_delayedTailLengthThreshold),
+        /// the boomerang 36 (Level 7: every fruit eaten) and a crate it can feed, undo 1 (and something to
+        /// undo), the magnet comes at once (_flowType 1).
+        /// </summary>
+        private bool TutorialReady(Info booster)
+        {
+            switch (booster.id)
+            {
+                case Booster.Shovel: return _session.Segments.Count >= 9 && _session.ShovelTargets().Count > 0;
+                case Booster.Boomerang: return _session.Pills.Count == 0 && AnyColumnFeedable();
+                case Booster.Undo: return _session.Segments.Count >= 1 && _session.CanUndo;
+                default: return true;
+            }
+        }
+
+        /// <summary>A use: the unlock gift first (FREE), then the stock.</summary>
+        private void Spend(Info booster)
+        {
+            if (!booster.free) { booster.Stock -= 1; return; }
+            booster.free = false;
+            PlayerPrefs.SetInt(booster.FreeKey, 1);
+            PlayerPrefs.Save();
+        }
+
+        /// <summary>BoosterForcedTutorialView: dim everything but the booster, purple arrow bobbing over it. Once [user].</summary>
+        private void ShowTutorial(Info booster)
         {
             _tutorialShown = true;
-            var slot = Get(Booster.Boomerang).slot;
+            _tutorialBooster = booster;
+            PlayerPrefs.SetInt(booster.TutorialKey, 1);
+            PlayerPrefs.Save();
+            var slot = booster.slot;
             _tutorialPanel.gameObject.SetActive(true);
+            _tutorialPanel.SetAsLastSibling(); // over the bar, so only the lifted slot stays lit
             slot.SetParent(_tutorialPanel, true);
             var arrow = Rect(_tutorialPanel, "Arrow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(160, 160));
             arrow.position = slot.position;
@@ -450,22 +498,28 @@ namespace SnackDash.UI
         private void HideTutorial()
         {
             if (!_tutorialPanel.gameObject.activeSelf) return;
-            Get(Booster.Boomerang).slot.SetParent(_bar, true);
+            _tutorialBooster.slot.SetParent(_bar, true);
+            var arrow = _tutorialPanel.Find("Arrow");
+            if (arrow != null) Destroy(arrow.gameObject);
             _tutorialPanel.gameObject.SetActive(false);
         }
 
         private void Update()
         {
             if (_session == null) return;
+            bool hide = HideWhen != null && HideWhen();
+            if (_bar.gameObject.activeSelf == hide) _bar.gameObject.SetActive(!hide);
             foreach (var booster in _boosters)
             {
                 if (booster.count == null) continue;
-                bool free = booster.id == Booster.Boomerang && _free;
+                bool free = booster.free;
                 int stock = booster.Stock;
                 booster.freePanel.SetActive(free);
                 booster.countPanel.SetActive(!free && stock > 0);
                 booster.plusIcon.SetActive(!free && stock <= 0);
                 booster.count.text = stock.ToString();
+                // Two digits: a wider badge so the number keeps its size (NumberText auto-sizes to max 50).
+                ((RectTransform)booster.countPanel.transform).sizeDelta = new Vector2(stock >= 10 ? 74f : 50f, 50f);
                 // Undo is grey while it cannot be used (right after a booster, or before a fresh swipe) [user].
                 if (booster.id == Booster.Undo && booster.iconImage != null)
                     booster.iconImage.sprite = _session.CanUndo ? skin.undoIcon : (skin.undoDisabledIcon != null ? skin.undoDisabledIcon : skin.undoIcon);
@@ -483,7 +537,9 @@ namespace SnackDash.UI
             if (_hole != null && !_session.HeadInTunnel && !AnySegmentUnderground()) { Destroy(_hole); _hole = null; }
 
             var boomerang = Get(Booster.Boomerang);
-            if (boomerang.count != null && _free && !_tutorialShown && _aiming == null && _session.IsIdle && _session.Pills.Count == 0 && AnyColumnFeedable()) ShowTutorial();
+            if (!_tutorialShown && _aiming == null && _session.IsIdle && !_session.InputBlocked && !_session.ForcedSwipe.HasValue)
+                foreach (var booster in _boosters)
+                    if (booster.count != null && booster.free && PlayerPrefs.GetInt(booster.TutorialKey, 0) == 0 && TutorialReady(booster)) { ShowTutorial(booster); break; }
 
             bool arrows = false;
             foreach (var pair in _arrows)
@@ -508,13 +564,7 @@ namespace SnackDash.UI
             StartCoroutine(FlyIcon(boomerang, () =>
             {
                 if (!_session.UseBoomerang(column)) return;
-                if (_free)
-                {
-                    _free = false;
-                    PlayerPrefs.SetInt(BoomerangIntroKey, 1);
-                    PlayerPrefs.Save();
-                }
-                else boomerang.Stock -= 1;
+                Spend(boomerang);
             }));
         }
 

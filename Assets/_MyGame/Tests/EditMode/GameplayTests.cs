@@ -157,7 +157,14 @@ namespace SnackDash.Tests
             var start = board.PlayerStart;
             var crateStop = board.CrateStops.Values.First();
             Assert.AreEqual(start, session.CurrentCell);
+            // Tutorial: a message up blocks swipes; the forced first swipe takes only its way [user].
+            session.InputBlocked = true;
+            Assert.IsFalse(session.RequestMove(Direction.Right), "no swipe under a tutorial message");
+            session.InputBlocked = false;
+            session.ForcedSwipe = Direction.Right;
+            Assert.IsFalse(session.RequestMove(Direction.Left), "only the shown swipe");
             Assert.IsTrue(session.RequestMove(Direction.Right));
+            Assert.IsNull(session.ForcedSwipe, "done after the first swipe");
             session.Tick(0.25f);
             Assert.AreEqual(Direction.Up, session.Heading, "turned at the bottom-right corner");
             session.RequestMove(Direction.Down);

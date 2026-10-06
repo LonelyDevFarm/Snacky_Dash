@@ -57,6 +57,7 @@ namespace SnackDash.UI
         public Sprite boosterCountBadge;             // S_BoostersNumber_Bg (1)_0
         public Sprite boosterPlus;                   // S_BoostersBuy_Bg (2)_0
         public Sprite lockIcon;                      // S_Icon_Lock_0_0
+        public Sprite[] lockedIcons;                 // S_Icon_Booster_{Teleporter,FruitCanon,Undo,Magnet}_Locked_0 (shown under the lock)
         public Sprite whitePlate;                    // JU-Texture-Common-ReosurcesBG
         public Sprite bluePlate;                     // background (tinted 2C64CF)
         public Sprite settingsBackground;            // S_Settings_Bg_0
@@ -66,5 +67,31 @@ namespace SnackDash.UI
         public Sprite tutorialArrow;                 // PictoIcon_Arrow_Up (BoosterTutorialView)
         public Material homeScreenLevelsMaterial;    // LuckiestGuy-Regular HomeScreen Levels
         public Material progressBarMaterial;         // LuckiestGuy-Regular Progress Bar
+        public Sprite tutorialFrame;                 // S_Tutorial_BG (TutorialView_Redesign message frame and panel)
+        public Sprite tutorialHand;                  // HandHD_cartoon (Hand_SwipeTuto)
+        public Sprite tutorialHandTrail;             // Hand_Trail
+        public Sprite cardFrameWhite;                // S_OnboardingScreen_Frame_White (LdfTutorialPopup card)
+        public Sprite cardFrameGold;                 // S_OnboardingScreen_Frame_Gold (BoosterTutorialPopup card)
+        public Sprite cardPin;                       // S_OnboardingScreen_Pin
+        public Sprite cardRibbon;                    // S_OnboardingScreen_Flag
+        public Sprite speechBubble;                  // S_Background_SpeechBubble_02
+        public Sprite speechTriangle;                // S_Background_Triangle_0
+        public Sprite[] mechanicIcons;               // S_Icon_Bridge_2_0, Gate, Tunnel2, Rocks, SecretColectable, SwitchingArrow (IngredientUnlockConfig)
+        public Sprite ribbonGreen;                   // S_Ribbon_Green (VictoryPopup feature unlocked)
+        public Sprite glow;                          // Glow
+        public Texture2D fxRay;                      // lightray3 (LdfTutorialPopup Back Rays 02)
+        public Texture2D fxGlow;                     // TX_FX_glow1 (Center, Chest Pop FX)
+        public Texture2D fxSparkle;                  // TX_FX_Sparkle (sparkles/stars)
+        public Texture2D splash;                     // unity_static_splash (the APK's launch image)
+        [UnityEngine.Tooltip("Home, settings and loading sprites, looked up by name (UiSkin.Get).")]
+        public Sprite[] named;
+
+        /// <summary>A sprite of <see cref="named"/> by its asset name (null when missing).</summary>
+        public Sprite Get(string name)
+        {
+            if (named == null) return null;
+            foreach (var sprite in named) if (sprite != null && sprite.name == name) return sprite;
+            return null;
+        }
     }
 }
