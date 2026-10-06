@@ -36,7 +36,7 @@ namespace SnackDash.Gameplay
     /// - A filled crate pauses the delivery for its completion effect [observed on the original].
     /// - All crates filled = win [WinConditionChecker].
     /// </summary>
-    public sealed class GameSession
+    public sealed partial class GameSession
     {
         public const float DefaultCellsPerSecond = 30f;
         public const float SegmentSpacing = 1f;
@@ -71,6 +71,8 @@ namespace SnackDash.Gameplay
             public int FilledIn(int crateIndex) => _filled[crateIndex];
             internal void Add(int crateIndex) => _filled[crateIndex]++;
             internal bool IsFull(int crateIndex) => _filled[crateIndex] >= Crates[crateIndex].requiredCount;
+            internal int[] SaveFilled() => (int[])_filled.Clone();
+            internal void Restore(int[] filled, int current) { filled.CopyTo(_filled, 0); CurrentIndex = current; }
 
             internal CrateColumn(IReadOnlyList<CrateDefinition> crates)
             {
@@ -240,7 +242,7 @@ namespace SnackDash.Gameplay
         /// </param>
         public bool RequestMove(Direction direction, bool fingerHeld = false)
         {
-            if (IsWon || IsStuck || IsDelivering) return false;
+            if (IsWon || IsStuck || IsDelivering || IsRewinding) return false; // no input until an undo has run back [user]
             if (IsMoving)
             {
                 if (!fingerHeld)
@@ -257,9 +259,11 @@ namespace SnackDash.Gameplay
                 return false;
             }
 
+            SaveForUndo();
             Heading = direction;
             _target = CurrentCell + direction.ToCell();
             IsMoving = true;
+            OnMoveStartedForBoosters();
             MoveStarted?.Invoke(direction);
             return true;
         }
@@ -267,6 +271,8 @@ namespace SnackDash.Gameplay
         public void Tick(float deltaTime)
         {
             if (IsWon || IsStuck) return;
+            if (_rewindTime > 0f) _rewindTime = Mathf.Max(0f, _rewindTime - deltaTime);
+            TickMagnet(deltaTime);
             _bufferedAge += deltaTime;
             if (!IsMoving) _sinceStop += deltaTime;
             if (IsMoving) Advance(_speed * deltaTime);
@@ -393,6 +399,7 @@ namespace SnackDash.Gameplay
             if (plan.Count == 0) return false;
             var segments = new List<int>();
             foreach (var entry in plan) segments.Add(entry.segment);
+            ForgetUndo(); // a booster was used: undo waits for the next swipe [user]
             BoomerangThrown?.Invoke(columnIndex, segments);
             _deliveryColumn = columnIndex;
             _deliverFromTail = true;
@@ -524,6 +531,8 @@ namespace SnackDash.Gameplay
                 CurrentCell = _target;
                 _trail.Insert(0, CurrentCell);
                 _trailJump.Insert(0, NotTunnel);
+                _swipePath.Add(CurrentCell);
+                _swipeUnderground.Add(false);
                 PruneTrail();
                 if (_trail.Count > 1) LeftCell(Vector2Int.RoundToInt(_trail[1]));
                 if (CheckBite())
@@ -533,9 +542,17 @@ namespace SnackDash.Gameplay
                     return;
                 }
                 Enter(CurrentCell);
+                if (_stopOnArrival) // came up from a shovel hole: waits there
+                {
+                    _stopOnArrival = false;
+                    Stop();
+                    return;
+                }
                 var arrivedHeading = Heading;
                 if (IsWon || !ContinueFrom(CurrentCell))
                 {
+                    // Arriving at a stop shakes the closed gates and arrows around it too, every time [user].
+                    if (!IsWon && _board.IsStop(CurrentCell)) SignalClosedArrows(CurrentCell, arrivedHeading, arrivedHeading.Opposite()); // not when it just ran into one
                     Stop();
                     return;
                 }
@@ -556,6 +573,8 @@ namespace SnackDash.Gameplay
                 CurrentCell = exit;
                 HeadPosition = exit;
                 _trail.Insert(0, exit);
+                _swipePath.Add(exit);
+                _swipeUnderground.Add(true); // from the mouth it went into to this one, inside the tube
                 _trailJump.Insert(0, 0f); // grows as the head goes through (Advance)
                 _tunnelLeft = (_segments.Count + 1) * SegmentSpacing;
                 _tunnelWait = TunnelInsideTime;
@@ -578,7 +597,7 @@ namespace SnackDash.Gameplay
         private bool NextStep(Vector2Int cell, Direction heading, out Direction next)
         {
             next = heading;
-            if (_board.IsStop(cell)) return PassThroughStop(cell, heading, out next);
+            if (_board.IsStop(cell)) return false; // a stop square always stops, whatever arrows, gates or rocks close [user]
             if (_board.CanMove(cell, heading)) return true;
             if (_board.IsBridge(cell)) return false; // straight through only (never happens on real maps)
 
@@ -591,54 +610,6 @@ namespace SnackDash.Gameplay
             }
             if (!turn.HasValue) return false;
             next = turn.Value;
-            return true;
-        }
-
-        /// <summary>
-        /// A stop square is only a stop where there is a choice [user]: a branch an arrow lets the snake
-        /// out of but not into does not count, so a junction left with a single way on is run through
-        /// (turning that way) instead of stopping. Crate stops always stop.
-        /// </summary>
-        private bool PassThroughStop(Vector2Int cell, Direction heading, out Direction next)
-        {
-            next = heading;
-            if (_board.IsCrateStopCell(cell)) return false;
-            int roads = 0, open = 0;
-            foreach (var direction in DirectionExtensions.All)
-            {
-                if (direction == heading.Opposite() || !_board.HasRoad(cell, direction)) continue;
-                roads++;
-                if (!BranchEnterable(cell, direction)) continue;
-                open++;
-                next = direction;
-            }
-            return roads >= 2 && open == 1;
-        }
-
-        /// <summary>
-        /// Follows a branch from a junction along its road to the next stop: false when an arrow gate on
-        /// it turns the snake back (one way out only).
-        /// </summary>
-        private bool BranchEnterable(Vector2Int cell, Direction direction)
-        {
-            var c = cell;
-            var h = direction;
-            for (int steps = 0; steps < 256; steps++)
-            {
-                if (!_board.CanMove(c, h)) return !_board.HasRoad(c, h); // blocked by a gate, or the road just ends
-                c += h.ToCell();
-                if (_board.IsStop(c) || _board.TunnelMouths.ContainsKey(c)) return true;
-                if (_board.IsBridge(c)) continue; // straight over (or under) a bridge
-                Direction? on = null;
-                foreach (var exit in DirectionExtensions.All)
-                {
-                    if (exit == h.Opposite() || !_board.HasRoad(c, exit)) continue;
-                    if (on.HasValue) return true; // a junction without a stop square: a real way in
-                    on = exit;
-                }
-                if (!on.HasValue) return true; // dead end
-                h = on.Value;
-            }
             return true;
         }
 
@@ -671,6 +642,7 @@ namespace SnackDash.Gameplay
             _sinceStop = 0f;
             if (_bufferedAge > BufferedSwipeLifetime) _bufferedSwipe = null;
             Stopped?.Invoke(CurrentCell);
+            OnStoppedForBoosters();
 
             int column = _board.CrateColumnAt(CurrentCell);
             if (CanDeliverTo(column))
@@ -728,6 +700,7 @@ namespace SnackDash.Gameplay
         {
             if (!_pills.TryGetValue(cell, out var kind)) return;
             _pills.Remove(cell);
+            _eatenSinceSwipe.Add((cell, kind));
             _segments.Add(kind);
             PillEaten?.Invoke(cell, kind, _segments.Count - 1);
             if (_secret.Remove(cell)) SecretRevealed?.Invoke(cell, _segments.Count - 1);
@@ -895,6 +868,7 @@ namespace SnackDash.Gameplay
 
             _segments.RemoveAt(index);
             column.Add(column.CurrentIndex);
+            _deliveredSinceSwipe.Add(kind);
             SegmentDelivered?.Invoke(index, kind, columnIndex);
 
             if (column.IsFull(column.CurrentIndex)) return CompleteCurrent(columnIndex);

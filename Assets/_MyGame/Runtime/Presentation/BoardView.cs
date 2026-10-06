@@ -168,8 +168,32 @@ namespace SnackDash.Presentation
                 var spinner = cover.transform.Find("Switching Arrow/Arrow");
                 var shakeOrigin = cover.transform.Find("Switching Arrow");
                 if (spinner == null || shakeOrigin == null) continue;
-                _flips[arrow] = new FlipArrow { arrow = spinner, rest = spinner.localRotation, shakeOrigin = shakeOrigin, shakeRest = shakeOrigin.localPosition };
+                _flips[arrow] = new FlipArrow { arrow = spinner, rest = spinner.localRotation, shakeOrigin = shakeOrigin, shakeRest = shakeOrigin.localPosition,
+                    initial = session.Board.OneWayGates[arrow] };
             }
+            // Undo booster: arrows point and rocks stand as the session has them again.
+            session.Rewound += () =>
+            {
+                foreach (var flip in _flips)
+                {
+                    int turned = session.Board.OneWayGates[flip.Key] != flip.Value.initial ? 1 : 0;
+                    flip.Value.turns = turned;
+                    flip.Value.shown = turned;
+                }
+                for (int group = 0; group < _wallCovers.Count; group++)
+                {
+                    if (session.WallHealth[group] <= 0) continue;
+                    foreach (var cover in _wallCovers[group])
+                    {
+                        if (cover == null) continue;
+                        cover.SetActive(true);
+                        cover.transform.localScale = Vector3.one;
+                        var text = cover.GetComponentInChildren<TMPro.TMP_Text>(true);
+                        if (text != null) text.gameObject.SetActive(true);
+                    }
+                    SetWallText(group, session.WallHealth[group]);
+                }
+            };
             session.ArrowsFlipped += (a, b) =>
             {
                 foreach (var cell in new[] { a, b })
@@ -344,6 +368,7 @@ namespace SnackDash.Presentation
             public Transform arrow, shakeOrigin;
             public Quaternion rest;
             public Vector3 shakeRest;
+            public Direction initial; // the way it pointed at the start
             public int turns;     // half turns asked for
             public float shown;   // half turns shown so far (eases towards turns)
             public float shake;

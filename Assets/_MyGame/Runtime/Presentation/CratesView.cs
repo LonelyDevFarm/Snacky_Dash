@@ -100,6 +100,14 @@ namespace SnackDash.Presentation
             session.TailBitten += count => _boomerang = false; // a snip follows: plain flights
             session.DeliveryStarted += column => _boomerang = false;
             session.CrateCompleted += OnCrateCompleted;
+            session.PillMagnetized += OnMagnetized;
+            // Undo booster: the stacks show what the session holds again.
+            session.Rewound += () =>
+            {
+                _pendingSwaps.Clear();
+                _inFlight.Clear();
+                for (int column = 0; column < session.Columns.Count; column++) Rebuild(column, false);
+            };
 
             // Original CrateDeliverPoint: idleRoot / highlightRoot, highlighted whenever the snake
             // carries the current crate's kind (CrateManager.highlightOnlyIfEnoughToFill = 0).
@@ -141,19 +149,29 @@ namespace SnackDash.Presentation
             var start = snake != null ? snake.SegmentWorldPosition(segmentIndex) : transform.position;
             // Boomerang fruit come one per GameSession.BoomerangInterval tick already: no extra stagger.
             float delay = _boomerang ? 0f : _snipOrder++ * GameSession.DeliveryInterval;
+            FlyToCrate(start, kind, columnIndex, crateIndex, delay, _boomerang);
+        }
+
+        /// <summary>Magnet booster: the fruit flies from its cell into the crate it was given (the boomerang's flight).</summary>
+        private void OnMagnetized(Vector2Int cell, PillKind kind, int columnIndex, int crateIndex) =>
+            FlyToCrate(BoardView.CellToWorld(cell), kind, columnIndex, crateIndex, 0f, true);
+
+        private void FlyToCrate(Vector3 start, PillKind kind, int columnIndex, int crateIndex, float delay, bool boomerang)
+        {
+            if (!_columns.TryGetValue(columnIndex, out var crates) || crates.Count == 0) return;
             int slot = _session.Columns[columnIndex].FilledIn(crateIndex) - 1;
             if (SlotFor(columnIndex, crateIndex, slot) != null)
             {
                 var key = (columnIndex, crateIndex);
                 _inFlight[key] = InFlight(key) + 1;
-                StartCoroutine(Fly(kind, () => SlotFor(columnIndex, crateIndex, slot), start, delay, boomerang: _boomerang,
+                StartCoroutine(Fly(kind, () => SlotFor(columnIndex, crateIndex, slot), start, delay, boomerang: boomerang,
                     landed: () => _inFlight[key] = InFlight(key) - 1));
             }
             else
             {
                 // Deeper than the visible stack: into the bottom crate, shown once it comes up.
                 var bottom = crates[crates.Count - 1].transform;
-                StartCoroutine(Fly(kind, () => bottom, start, delay, vanish: true, boomerang: _boomerang));
+                StartCoroutine(Fly(kind, () => bottom, start, delay, vanish: true, boomerang: boomerang));
             }
         }
 

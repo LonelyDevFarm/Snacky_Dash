@@ -50,6 +50,10 @@ namespace SnackDash.UI
         public Sprite boosterSlot;                   // S_Boosters_BG (2)_0 (beige hexagon)
         public Sprite boomerangIcon;                 // S_Icon_Booster_FruitCanon_0 (Boomerang's internal name)
         public Sprite shovelIcon;                    // S_Icon_Booster_Teleporter_0
+        public Sprite undoIcon;                      // S_Icon_Booster_Undo_0
+        public Sprite undoDisabledIcon;              // S_Icon_Booster_Undo_Disabled_0
+        public Sprite magnetIcon;                    // S_Icon_Booster_Magnet_0
+        public Texture2D magnetField;                // TX_FX_Magnet_Base: the field disc of MT_FX_Magnet_Projection (a URP decal in the original)
         public Sprite boosterCountBadge;             // S_BoostersNumber_Bg (1)_0
         public Sprite boosterPlus;                   // S_BoostersBuy_Bg (2)_0
         public Sprite lockIcon;                      // S_Icon_Lock_0_0

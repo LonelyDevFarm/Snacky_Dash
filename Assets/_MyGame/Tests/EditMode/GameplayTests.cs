@@ -177,6 +177,85 @@ namespace SnackDash.Tests
             Assert.IsTrue(session.RequestMove(Direction.Up));
         }
 
+        [Test]
+        public void Boosters_UndoMagnetShovel()
+        {
+            var level = Load("11012_v5_nt_VO");
+            var map = TiledMap.Parse(level.map.text);
+            var session = new GameSession(new BoardGraph(map, _database), map, level);
+            session.SetSeed(2);
+            session.Begin();
+            var random = new System.Random(3);
+            void Run() { for (int i = 0; i < 3600 && (session.IsMoving || session.IsDelivering); i++) session.Tick(1f / 60f); }
+
+            // Undo: a swipe that eats fruit is rewound, fruit back on the board. Only the latest swipe is
+            // remembered: never twice in a row, again after the next swipe [user].
+            for (int m = 0; m < 50; m++)
+            {
+                int before = session.Segments.Count;
+                if (session.RequestMove((Direction)random.Next(4))) Run();
+                if (session.Segments.Count > before) break;
+            }
+            int pills = session.Pills.Count, segments = session.Segments.Count;
+            Assert.IsTrue(session.Undo());
+            Assert.AreEqual(pills + segments, session.Pills.Count + session.Segments.Count, "eaten fruit back on the board");
+            // Views run back along the whole swipe, from the restored head, dropping each eaten fruit [VFX_hoantac].
+            Assert.AreEqual(session.HeadPosition, session.RewindPath[0], "rewind ends where the swipe began");
+            Assert.AreEqual(segments - session.Segments.Count, session.RewindDropped.Count, "eaten fruit drops off the tail");
+
+            // Through a tunnel the rewind goes back through the tube as well [user] (Level 14).
+            var tunnelLevel = Load("6072_v4_ftue_nt_VO");
+            var tunnelMap = TiledMap.Parse(tunnelLevel.map.text);
+            var tunnelSession = new GameSession(new BoardGraph(tunnelMap, _database), tunnelMap, tunnelLevel);
+            tunnelSession.SetSeed(2);
+            tunnelSession.Begin();
+            bool underground = false;
+            for (int m = 0; m < 200 && !underground; m++)
+            {
+                if (!tunnelSession.RequestMove((Direction)random.Next(4))) continue;
+                bool through = false;
+                for (int i = 0; i < 3600 && (tunnelSession.IsMoving || tunnelSession.IsDelivering); i++)
+                {
+                    tunnelSession.Tick(1f / 60f);
+                    through |= tunnelSession.HeadInTunnel;
+                }
+                if (!through || !tunnelSession.CanUndo) continue;
+                var head = tunnelSession.HeadPosition;
+                Assert.IsTrue(tunnelSession.Undo());
+                for (int i = 0; i < 600 && tunnelSession.IsRewinding; i++) tunnelSession.Tick(1f / 60f);
+                underground = System.Linq.Enumerable.Contains(tunnelSession.RewindUnderground, true);
+                if (underground) Assert.AreEqual(head, tunnelSession.RewindPath[tunnelSession.RewindPath.Count - 1]);
+            }
+            Assert.IsTrue(underground, "a swipe through the tube rewinds through it");
+            Assert.IsFalse(session.CanUndo, "not twice in a row");
+            Assert.IsTrue(session.IsRewinding && !session.RequestMove(session.Heading) && !session.RequestMove(session.Heading.Opposite()), "no swipe while it runs back [user]");
+            for (int i = 0; i < 600 && session.IsRewinding; i++) session.Tick(1f / 60f);
+            for (int m = 0; m < 50 && !session.CanUndo; m++)
+                if (session.RequestMove((Direction)random.Next(4))) Run();
+            Assert.IsTrue(session.CanUndo, "again after the next swipe");
+
+            // Magnet: pulls fruit near the head into crates for five swipes, then goes [user].
+            int pulled = 0;
+            session.PillMagnetized += (c, k, col, crate) => pulled++;
+            Assert.IsTrue(session.UseMagnet());
+            for (int m = 0; m < 200 && session.MagnetActive; m++)
+            {
+                if (session.RequestMove((Direction)random.Next(4))) Run();
+                session.Tick(0.1f);
+            }
+            Assert.IsFalse(session.MagnetActive);
+            Assert.Greater(pulled, 0);
+
+            // Shovel: only to another stop; the head comes up there and waits, the body follows out.
+            var targets = session.ShovelTargets();
+            Assert.IsTrue(targets.TrueForAll(c => session.Board.IsStop(c)));
+            var to = targets[targets.Count - 1];
+            Assert.IsTrue(session.UseShovel(to));
+            Run();
+            Assert.AreEqual(to, session.CurrentCell);
+            Assert.IsFalse(session.IsMoving, "waits where it came up");
+        }
+
         /// <summary>Every imported level (cohort ab-vo-co of v1.15, LevelDataImporter.LevelCount levels).</summary>
         private static IEnumerable<string> ImportedLevels() =>
             System.IO.Directory.GetFiles(LevelFolder, "*.asset").Select(System.IO.Path.GetFileNameWithoutExtension);
@@ -205,6 +284,8 @@ namespace SnackDash.Tests
                 Assert.IsFalse(session.Pills.Keys.Any(cell => BoardGraph.HasRoadObject(map, cell)
                         || DirectionExtensions.All.Any(d => BoardGraph.HasRoadObject(map, cell + d.ToCell()))),
                     "no fruit on or next to an object on the road (bridge, gate...)");
+            int shakes = 0;
+            session.ArrowNotAllowed += cell => shakes++;
             var random = new System.Random(1);
             int snips = 0;
             for (int move = 0; move < 3000 && !session.IsWon; move++)
@@ -237,6 +318,8 @@ namespace SnackDash.Tests
             }
             Assert.IsTrue(session.IsWon, $"not won after {snips} snips");
             if (boomerangLevel) Assert.AreEqual(1, boomerangs, "one free boomerang wins the tutorial level");
+            // Running past (or stopping beside) a closed gate or arrow shakes it, every time [user].
+            if (session.Board.OneWayGates.Count > 0) Assert.Greater(shakes, 0, "closed gates shake as the snake goes by");
             TestContext.WriteLine($"{name}: won, {snips} tail bites");
         }
 

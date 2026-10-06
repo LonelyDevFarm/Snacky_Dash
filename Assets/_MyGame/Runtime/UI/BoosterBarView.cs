@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using SnackDash.Gameplay;
@@ -11,23 +12,44 @@ using static SnackDash.UI.UiBuilder;
 namespace SnackDash.UI
 {
     /// <summary>
-    /// Bottom booster bar and the Boomerang flow [Lv7 video; original Game.unity _bottom/button_list,
-    /// Boosters_Pop-up_Tutorial, BoosterTutorialView, TileCov_Crate_Delivery ArrowCLICKABLE].
-    /// - Bar: shovel, boomerang, two locked slots (LVL. 11 / LVL. 16); a centred row,
-    ///   slots 150.6 wide at scale 0.85; settings sit by the HUD bar, as on Level 27 (Man_Lose video).
+    /// Bottom booster bar and the booster flows [Lv7 and booster videos; original Game.unity
+    /// _bottom/button_list, Boosters_Pop-up_Tutorial, BoosterTutorialView, BoosterData, LocData].
+    /// - Bar: shovel, boomerang, undo (LVL. 11), magnet (LVL. 16); a centred row, slots 150.6 wide at
+    ///   scale 0.85; settings sit by the HUD bar, as on Level 27 (Man_Lose video).
+    /// - Tapping a booster: dark vignette, its banner (name + LocData description), the board refits
+    ///   between banner and bar. Shovel: a circle on every stop it can dig to, tap one. Boomerang: the
+    ///   delivery points' clickable arrows, tap one. Undo and Magnet: CONFIRM. X cancels.
+    /// - Unlock order 4, 7, 11, 16 [user]. Undo shows its disabled icon while it cannot be used.
     /// - Level 7 (first time): once every fruit is eaten, the screen dims, only the boomerang stays
-    ///   and a purple arrow bobs over it; it shows FREE.
-    /// - Tapping the boomerang: dark vignette, the "BOOMERANG – Click Arrow to deliver your fruits!"
-    ///   banner, the board refits between banner and bar, and the delivery points the snake can feed
-    ///   show their clickable arrow. Tapping an arrow throws (GameSession.UseBoomerang); X cancels.
-    /// Only the boomerang works yet; the shovel is shown as in the footage but does nothing.
+    ///   and a purple arrow bobs over it; it shows FREE. Tutorials of the other boosters: later [user].
+    /// Stock: 99 each until there is a shop [user].
     /// </summary>
     public class BoosterBarView : MonoBehaviour
     {
+        private enum Booster { Shovel, Boomerang, Undo, Magnet }
+
+        private sealed class Info
+        {
+            public Booster id;
+            public string name, description, stockKey;
+            public Sprite icon;
+            public int unlockLevel;
+            public bool confirm;  // used with the CONFIRM button (otherwise by tapping on the board)
+            public RectTransform slot;
+            public GameObject countPanel, plusIcon, freePanel;
+            public TMP_Text count;
+            public Image iconImage;
+            public int Stock
+            {
+                get => PlayerPrefs.GetInt(stockKey, DefaultStock);
+                set { PlayerPrefs.SetInt(stockKey, Mathf.Max(0, value)); PlayerPrefs.Save(); }
+            }
+        }
+
         public const int BoomerangUnlockLevel = 7;
-        private const string StockKey = "booster_boomerang";
-        private const string IntroKey = "booster_boomerang_intro";
+        private const string BoomerangIntroKey = "booster_boomerang_intro";
         private const int DefaultStock = 99; // no coin shop yet [user]
+        private const string Highlight = "#8929F6"; // LocData booster descriptions
 
         // Original layout (canvas 1080x1920, match height).
         private const float BarHeight = 190f;
@@ -41,19 +63,33 @@ namespace SnackDash.UI
         [SerializeField] private Vector2 tutorialBobOffset = new Vector2(0, -30);
         [SerializeField] private float boardRefitDuration = 0.3f;
 
+        [Header("World effects (original prefabs)")]
+        [SerializeField] private GameObject shovelCirclePrefab;   // GameObject/Booster_Tunnel_CircleToClick
+        [SerializeField] private GameObject shovelHolePrefab;     // GameObject/Booster_Tunnel_Hole
+        [SerializeField] private GameObject magnetFxPrefab;       // Resources/boosters/magnet/FX_Snake_Magnetic
+        [SerializeField] private GameObject undoFxPrefab;         // Resources/boosters/shuffle/Vortex Big2
+        [Tooltip("Booster video: the booster's icon flies from its button to the board before it acts.")]
+        [SerializeField] private float iconFlightDuration = 0.45f;
+
+        private readonly List<Info> _boosters = new List<Info>();
         private GameSession _session;
         private BoardCameraFitter _fitter;
         private Camera _camera;
-        private RectTransform _bar, _boomerangSlot, _aimPanel, _tutorialPanel;
-        private GameObject _freePanel, _countPanel, _plusIcon;
-        private TMP_Text _count;
-        private bool _aiming, _free, _tutorialShown;
+        private Transform _snakeHead;
+        private SnakeView _snake;
+        private RectTransform _root, _bar, _aimPanel, _tutorialPanel, _confirmButton;
+        private TMP_Text _bannerTitle, _bannerText;
+        private Info _aiming;
+        private bool _free, _tutorialShown;
         private readonly Dictionary<int, GameObject> _arrows = new Dictionary<int, GameObject>();
+        private readonly Dictionary<Vector2Int, GameObject> _circles = new Dictionary<Vector2Int, GameObject>();
+        private GameObject _magnetFx, _hole;
 
+        /// <summary>Boomerang stock (tests and older callers).</summary>
         public static int Stock
         {
-            get => PlayerPrefs.GetInt(StockKey, DefaultStock);
-            set { PlayerPrefs.SetInt(StockKey, Mathf.Max(0, value)); PlayerPrefs.Save(); }
+            get => PlayerPrefs.GetInt("booster_boomerang", DefaultStock);
+            set { PlayerPrefs.SetInt("booster_boomerang", Mathf.Max(0, value)); PlayerPrefs.Save(); }
         }
 
         public void Bind(GameSession session, int levelNumber, BoardView board, BoardCameraFitter fitter)
@@ -61,37 +97,48 @@ namespace SnackDash.UI
             _session = session;
             _fitter = fitter;
             _camera = Camera.main;
-            bool unlocked = levelNumber >= BoomerangUnlockLevel;
-            _free = unlocked && PlayerPrefs.GetInt(IntroKey, 0) == 0;
+            _snake = FindObjectOfType<SnakeView>();
+            _snakeHead = _snake != null ? _snake.transform.Find("SnakeHead") : null;
 
-            var root = Canvas(transform, "Boosters", 6);
-            var safe = Stretch(root, "SafeArea");
+            _boosters.Add(new Info { id = Booster.Shovel, name = "SHOVEL", stockKey = "booster_shovel", icon = skin.shovelIcon, unlockLevel = 4,
+                description = $"<color={Highlight}>DIG A TUNNEL</color> TO ESCAPE!\n<color={Highlight}>CLICK A CIRCLE</color> TO SELECT YOUR EXIT POINT" });
+            _boosters.Add(new Info { id = Booster.Boomerang, name = "BOOMERANG", stockKey = "booster_boomerang", icon = skin.boomerangIcon, unlockLevel = BoomerangUnlockLevel,
+                description = $"<color={Highlight}>CLICK ARROW </color>TO DELIVER YOUR FRUITS!" });
+            _boosters.Add(new Info { id = Booster.Undo, name = "UNDO", stockKey = "booster_undo", icon = skin.undoIcon, unlockLevel = 11, confirm = true,
+                description = $"<color={Highlight}>REWINDS</color> YOUR LAST MOVE" });
+            _boosters.Add(new Info { id = Booster.Magnet, name = "MAGNET", stockKey = "booster_magnet", icon = skin.magnetIcon, unlockLevel = 16, confirm = true,
+                description = $"<color={Highlight}>ATTRACT</color> NEARBY FRUITS TO THE CRATES FOR A FEW SWIPES!" });
+            _free = levelNumber >= BoomerangUnlockLevel && PlayerPrefs.GetInt(BoomerangIntroKey, 0) == 0;
+
+            _root = Canvas(transform, "Boosters", 6);
+            var safe = Stretch(_root, "SafeArea");
             var area = Screen.safeArea;
             safe.anchorMin = new Vector2(area.xMin / Screen.width, area.yMin / Screen.height);
             safe.anchorMax = new Vector2(area.xMax / Screen.width, area.yMax / Screen.height);
 
-            _aimPanel = BuildAimPanel(root);
-            _tutorialPanel = Stretch(root, "Tutorial");
+            _aimPanel = BuildAimPanel(_root);
+            _tutorialPanel = Stretch(_root, "Tutorial");
             Image(_tutorialPanel, null, new Color(0f, 0f, 0f, 0.7f));
             _tutorialPanel.gameObject.SetActive(false);
 
             _bar = Rect(safe, "_bottom", Vector2.zero, new Vector2(1, 0), Vector2.zero, new Vector2(0, BarHeight), new Vector2(0.5f, 0));
             float width = 4 * SlotWidth + 3 * Spacing; // settings moved next to the progress bar (HudView)
             float x = -width / 2f + SlotWidth / 2f;
-            Slot("Shovel", x, skin.shovelIcon, 1, null); x += SlotWidth + Spacing;
-            _boomerangSlot = Slot("Boomerang", x, skin.boomerangIcon, 0, unlocked ? null : "LVL. " + BoomerangUnlockLevel); x += SlotWidth + Spacing;
-            Slot("Locked 11", x, null, 0, "LVL. 11"); x += SlotWidth + Spacing;
-            Slot("Locked 16", x, null, 0, "LVL. 16");
-
-            if (unlocked)
+            foreach (var booster in _boosters)
             {
-                var button = _boomerangSlot.Find("Button").gameObject;
+                bool unlocked = levelNumber >= booster.unlockLevel;
+                booster.slot = Slot(booster.name, x, booster.icon, unlocked ? null : "LVL. " + booster.unlockLevel);
+                x += SlotWidth + Spacing;
+                if (!unlocked) continue;
+                var button = booster.slot.Find("Button").gameObject;
                 button.GetComponent<Image>().raycastTarget = true;
-                button.AddComponent<Button>().onClick.AddListener(OnBoomerangTapped);
-                _countPanel = _boomerangSlot.Find("InventoryPanel").gameObject;
-                _count = _countPanel.GetComponentInChildren<TMP_Text>();
-                _plusIcon = _boomerangSlot.Find("PlusIcon").gameObject;
-                _freePanel = _boomerangSlot.Find("BoosterFreePanel").gameObject;
+                var tapped = booster;
+                button.AddComponent<Button>().onClick.AddListener(() => OnTapped(tapped));
+                booster.countPanel = booster.slot.Find("InventoryPanel").gameObject;
+                booster.count = booster.countPanel.GetComponentInChildren<TMP_Text>();
+                booster.plusIcon = booster.slot.Find("PlusIcon").gameObject;
+                booster.freePanel = booster.slot.Find("BoosterFreePanel").gameObject;
+                booster.iconImage = booster.slot.Find("Button/Icon")?.GetComponent<Image>();
             }
 
             foreach (var stop in session.Board.CrateStops)
@@ -100,11 +147,16 @@ namespace SnackDash.UI
                 var arrow = cover != null ? cover.transform.Find("ArrowCLICKABLE_DO_NOT_DELETE") : null;
                 if (arrow != null) _arrows[stop.Key] = arrow.gameObject;
             }
-            session.BoomerangThrown += (column, thrown) => SetAiming(false);
+            session.BoomerangThrown += (column, thrown) => SetAiming(null);
+            session.ShovelDug += OnShovelDug;
+            session.MagnetChanged += OnMagnetChanged;
+            session.Rewound += OnRewound;
         }
 
+        private Info Get(Booster id) => _boosters.Find(b => b.id == id);
+
         /// <summary>One booster button (BoosterButtonX): hexagon, icon, count badge / plus, lock or FREE label.</summary>
-        private RectTransform Slot(string name, float x, Sprite icon, int count, string lockedLabel)
+        private RectTransform Slot(string name, float x, Sprite icon, string lockedLabel)
         {
             var slot = Rect(_bar, "BoosterButton" + name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x, 0), new Vector2(SlotWidth, SlotHeight));
             slot.localScale = Vector3.one * SlotScale;
@@ -117,9 +169,9 @@ namespace SnackDash.UI
             var inventory = Rect(slot, "InventoryPanel", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(51.4f, 5.7f), new Vector2(50, 50));
             var badge = Rect(inventory, "Bg", Vector2.zero, Vector2.one, new Vector2(0.2f, 0), new Vector2(0.6f, 7.8f));
             Image(badge, skin.boosterCountBadge, Color.white);
-            var number = Text(Rect(badge, "NumberText", Vector2.zero, Vector2.one, new Vector2(0, -7.1f), new Vector2(-6, 0)), count.ToString(), skin.font, skin.homeScreenLevelsMaterial, 50, Color.white);
+            var number = Text(Rect(badge, "NumberText", Vector2.zero, Vector2.one, new Vector2(0, -7.1f), new Vector2(-6, 0)), "0", skin.font, skin.homeScreenLevelsMaterial, 50, Color.white);
             number.alignment = TextAlignmentOptions.Center;
-            inventory.gameObject.SetActive(!locked && count > 0);
+            inventory.gameObject.SetActive(false);
 
             var plus = Rect(slot, "PlusIcon", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(51.4f, 5.7f), new Vector2(50, 50));
             Image(plus, skin.boosterPlus, Color.white);
@@ -147,7 +199,7 @@ namespace SnackDash.UI
             return panel;
         }
 
-        /// <summary>Boosters_Pop-up_Tutorial: vignette, banner with the tilted title and the red X.</summary>
+        /// <summary>Boosters_Pop-up_Tutorial: vignette, banner with the tilted title and the red X, CONFIRM below.</summary>
         private RectTransform BuildAimPanel(RectTransform root)
         {
             var panel = Stretch(root, "Boosters_Pop-up_Tutorial");
@@ -159,55 +211,226 @@ namespace SnackDash.UI
             var content = Rect(parent, "Popup Content", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 70.45f), new Vector2(828, 140.9f));
             var contentBack = Rect(content, "Popup Content Background", Vector2.zero, Vector2.one, new Vector2(0, 8.35f), new Vector2(-80, -5.56f));
             Image(Rect(contentBack, "popup content background color", new Vector2(0.0285f, 0), new Vector2(0.9715f, 1), new Vector2(0.4f, 2f), new Vector2(-8.19f, -15.54f)), skin.bannerFrame, Color.white, sliced: true);
-            var sub = Text(Rect(content, "Text (TMP) - sub text", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(2.84f, 72.05f), new Vector2(686, 116.1f)),
-                "<color=#7B3FE4>CLICK ARROW </color>TO DELIVER YOUR FRUITS!", skin.font, skin.plainMaterial, 50, Hex("446890FF"));
-            sub.alignment = TextAlignmentOptions.Center;
-            sub.enableWordWrapping = true; // two lines in the original: "CLICK ARROW TO DELIVER / YOUR FRUITS!"
+            _bannerText = Text(Rect(content, "Text (TMP) - sub text", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(2.84f, 72.05f), new Vector2(686, 116.1f)),
+                "", skin.font, skin.plainMaterial, 50, Hex("446890FF"));
+            _bannerText.alignment = TextAlignmentOptions.Center;
+            _bannerText.enableWordWrapping = true; // the original wraps to two lines
+            _bannerText.enableAutoSizing = true;
+            _bannerText.fontSizeMin = 30;
+            _bannerText.fontSizeMax = 50;
 
             var title = Rect(background, "SP_BG_Title", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-7.3f, -174), new Vector2(585.4f, 178));
             Image(title, skin.titleBanner, Color.white);
-            var header = Text(Rect(background, "Text (TMP) - header", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-9.75f, -176.9f), new Vector2(847.5f, 114)),
-                "BOOMERANG", skin.font, skin.plainMaterial, 72, Color.white);
-            header.alignment = TextAlignmentOptions.Center;
-            header.rectTransform.localRotation = Quaternion.Euler(0, 0, 2.54f);
+            _bannerTitle = Text(Rect(background, "Text (TMP) - header", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-9.75f, -176.9f), new Vector2(847.5f, 114)),
+                "", skin.font, skin.plainMaterial, 72, Color.white);
+            _bannerTitle.alignment = TextAlignmentOptions.Center;
+            _bannerTitle.rectTransform.localRotation = Quaternion.Euler(0, 0, 2.54f);
 
             var close = Rect(background, "View_Close_Button", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-68, -169), new Vector2(86, 86));
             Image(close, skin.closeSquare, Color.white, sliced: true, raycast: true);
             var x = Text(Rect(close, "X (TMP)", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 6.5f), new Vector2(86, 72)), "X", skin.font, skin.redCartoonMaterial, 74, Color.white);
             x.alignment = TextAlignmentOptions.Center;
-            close.gameObject.AddComponent<Button>().onClick.AddListener(() => SetAiming(false));
+            close.gameObject.AddComponent<Button>().onClick.AddListener(() => SetAiming(null));
+
+            // Buttons Area / View_Button_Confirm: the green 440x210 button above the booster bar.
+            var buttons = Rect(panel, "Buttons Area", Vector2.zero, new Vector2(1, 0), new Vector2(0, 257.9f), new Vector2(0, 402.6f), new Vector2(0.5f, 0.6405f));
+            _confirmButton = GreenButton(buttons, "View_Button_Confirm", "CONFIRM", new Vector2(0, 120));
+            _confirmButton.gameObject.AddComponent<Button>().onClick.AddListener(OnConfirm);
             panel.gameObject.SetActive(false);
             return panel;
         }
 
-        private void OnBoomerangTapped()
+        /// <summary>The original big green button: Base, Front, Highlight and Outline sheets with the label.</summary>
+        private RectTransform GreenButton(RectTransform parent, string name, string label, Vector2 position)
         {
-            if (_session.IsMoving || _session.IsDelivering || _session.IsStuck) return;
-            if (!_free && Stock <= 0) return; // buying with coins: later
-            SetAiming(!_aiming);
+            var button = Rect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), position, new Vector2(440, 210));
+            var visual = Rect(button, "Visual_Container", new Vector2(0, 0.5f), new Vector2(1, 0.5f), Vector2.zero, new Vector2(0, 210));
+            var sheets = skin.bigButton;
+            Image(Rect(visual, "Base", new Vector2(0, 0.5f), new Vector2(1, 0.5f), Vector2.zero, new Vector2(-16.06f, 144.22f)), sheets.Length > 0 ? sheets[0] : null, Hex("399F00FF"), sliced: true, raycast: true);
+            Image(Rect(visual, "Front", new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(0, 8.19f), new Vector2(-20.27f, 124.99f)), sheets.Length > 1 ? sheets[1] : null, Hex("4FCD04FF"), sliced: true);
+            Image(Rect(visual, "Highlight", new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(0.97f, -42.49f), new Vector2(-33.86f, 23.62f)), sheets.Length > 2 ? sheets[2] : null, Hex("78F024FF"), sliced: true);
+            Image(Rect(visual, "Outline", new Vector2(0, 0.5f), new Vector2(1, 0.5f), Vector2.zero, new Vector2(-16.06f, 144.22f)), sheets.Length > 3 ? sheets[3] : null, Hex("2D8700FF"), sliced: true);
+            var text = Text(Rect(visual, "Text (TMP)", new Vector2(0, 0.5f), new Vector2(1, 0.5f), Vector2.zero, new Vector2(-119.5f, 66)), label, skin.font, skin.greenOutlineMaterial, 66, Color.white);
+            text.alignment = TextAlignmentOptions.Center;
+            return button;
         }
 
-        private void SetAiming(bool aiming)
+        private void OnTapped(Info booster)
         {
-            if (_aiming == aiming) return;
-            _aiming = aiming;
-            _aimPanel.gameObject.SetActive(aiming);
-            if (aiming) HideTutorial();
+            if (!_session.IsIdle) return;
+            bool free = booster.id == Booster.Boomerang && _free;
+            if (!free && booster.Stock <= 0) return; // buying with coins: later
+            if (booster.id == Booster.Undo && !_session.CanUndo) return;
+            if (booster.id == Booster.Magnet && _session.MagnetActive) return;
+            SetAiming(_aiming == booster ? null : booster);
+        }
+
+        private void SetAiming(Info booster)
+        {
+            if (_aiming == booster) return;
+            _aiming = booster;
+            _aimPanel.gameObject.SetActive(booster != null);
+            ClearCircles();
+            if (booster != null)
+            {
+                HideTutorial();
+                _bannerTitle.text = booster.name;
+                _bannerText.text = booster.description;
+                _confirmButton.gameObject.SetActive(booster.confirm);
+                if (booster.id == Booster.Shovel) ShowCircles();
+            }
             if (_fitter != null)
             {
-                if (aiming) _fitter.FitBetween(BarHeight, 1920f - BannerHeight, boardRefitDuration);
+                if (booster != null) _fitter.FitBetween(BarHeight, 1920f - BannerHeight, boardRefitDuration);
                 else _fitter.FitDefault(boardRefitDuration);
             }
         }
+
+        private void ShowCircles()
+        {
+            if (shovelCirclePrefab == null) return;
+            foreach (var cell in _session.ShovelTargets())
+            {
+                var circle = Instantiate(shovelCirclePrefab, transform);
+                circle.transform.position = BoardView.CellToWorld(cell);
+                _circles[cell] = circle;
+            }
+        }
+
+        private void ClearCircles()
+        {
+            foreach (var circle in _circles.Values) if (circle != null) Destroy(circle);
+            _circles.Clear();
+        }
+
+        /// <summary>CONFIRM (Undo, Magnet): the icon flies into the snake's mouth, then the booster acts.</summary>
+        private void OnConfirm()
+        {
+            var booster = _aiming;
+            if (booster == null || !_session.IsIdle) return;
+            SetAiming(null);
+            StartCoroutine(FlyIcon(booster, () =>
+            {
+                bool used = booster.id == Booster.Undo ? _session.Undo() : _session.UseMagnet();
+                if (used) booster.Stock -= 1;
+            }));
+        }
+
+        private Vector3 BoardCentre()
+        {
+            if (_camera == null) _camera = Camera.main;
+            var ray = _camera.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+            return new Plane(Vector3.forward, Vector3.zero).Raycast(ray, out float d) ? ray.GetPoint(d) : Vector3.zero;
+        }
+
+        /// <summary>BoosterTrailsVFX stand-in: the booster's icon flies from its button into the snake's mouth.</summary>
+        private IEnumerator FlyIcon(Info booster, Action arrived)
+        {
+            var icon = Rect(_root, "Booster Trail FX", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150, 150));
+            Image(icon, booster.icon, Color.white).preserveAspect = true;
+            var canvas = _root.GetComponent<Canvas>();
+            Vector2 start = ScreenToCanvas(RectTransformUtility.WorldToScreenPoint(canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera, booster.slot.position));
+            yield return Tween.Run(iconFlightDuration, Tween.InOutSine, t =>
+            {
+                // Towards the head, which may still be moving.
+                var end = ScreenToCanvas(_camera.WorldToScreenPoint(_snakeHead != null ? _snakeHead.position : BoardCentre()));
+                icon.anchoredPosition = Vector2.Lerp(start, end, t) + Vector2.up * (Mathf.Sin(Mathf.PI * t) * 200f);
+                icon.localScale = Vector3.one * Mathf.Lerp(1f, 1.4f, Mathf.Sin(Mathf.PI * t));
+                icon.localRotation = Quaternion.Euler(0, 0, 360f * t);
+            });
+            Destroy(icon.gameObject);
+            if (_snake != null) _snake.EatBooster(); // it flies into the snake's mouth [user, booster video]
+            arrived();
+        }
+
+        private Vector2 ScreenToCanvas(Vector2 screen)
+        {
+            var canvas = _root.GetComponent<Canvas>();
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(_root, screen,
+                canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera, out var local);
+            return local;
+        }
+
+        // ------------------------------------------------------------------ world effects
+
+        /// <summary>Booster_Tunnel_Hole: TunnelEntrance at the head's stop, TunnelExit at the chosen one; both burst open.</summary>
+        private void OnShovelDug(Vector2Int from, Vector2Int to)
+        {
+            SetAiming(null);
+            var shovel = Get(Booster.Shovel);
+            shovel.Stock -= 1;
+            if (shovelHolePrefab == null) return;
+            if (_hole != null) Destroy(_hole);
+            _hole = Instantiate(shovelHolePrefab, transform);
+            _hole.transform.position = BoardView.CellToWorld(from);
+            var exit = _hole.transform.Find("TunnelExit");
+            if (exit != null) exit.position = BoardView.CellToWorld(to);
+        }
+
+        /// <summary>FX_Snake_Magnetic rides on the head while the magnet works (FX_ActivateMagnetic once at the start).</summary>
+        private GameObject _magnetRing;
+
+        private void FollowHead()
+        {
+            if (_magnetRing == null || _snakeHead == null) return;
+            var p = _snakeHead.localPosition;
+            _magnetRing.transform.localPosition = new Vector3(p.x, p.y, 0f);
+        }
+
+        private void OnMagnetChanged(bool on)
+        {
+            if (!on)
+            {
+                if (_magnetFx != null) Destroy(_magnetFx);
+                if (_magnetRing != null) Destroy(_magnetRing);
+                _magnetFx = null; _magnetRing = null;
+                return;
+            }
+            if (magnetFxPrefab == null || _snakeHead == null) return;
+            _magnetFx = Instantiate(magnetFxPrefab, _snakeHead);
+            _magnetFx.transform.localPosition = Vector3.zero;
+            _magnetFx.transform.localRotation = Quaternion.identity;
+            var activate = _magnetFx.transform.Find("FX_Container/FX_ActivateMagnetic");
+            if (activate != null && activate.TryGetComponent<ParticleSystem>(out var burst)) burst.Play(true);
+            // The ground ring is a URP decal in the original (no decal feature here): a flat purple circle instead.
+            // It sits on the board, not under the FX prefab (whose own scale shrank it), follows the head in
+            // Update, and like the decal it is drawn over the road, the grass and the fruit [user: it was small and covered].
+            if (skin.magnetField == null) return;
+            var ring = new GameObject("Magnet Ring");
+            ring.transform.SetParent(_snakeHead.parent, false);
+            var sprite = ring.AddComponent<SpriteRenderer>();
+            var texture = skin.magnetField;
+            sprite.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f), texture.width);
+            sprite.color = new Color(0.616f, 0.353f, 1f, 0.5f); // MT_FX_Magnet_Projection _ColorA, a bit under its _Alpha 0.75
+            sprite.material = new Material(Shader.Find("UI/Default"));
+            sprite.material.SetInt("unity_GUIZTestMode", (int)UnityEngine.Rendering.CompareFunction.Always);
+            sprite.sortingOrder = 50;
+            ring.transform.localScale = Vector3.one * (GameSession.MagnetRadius * 2f); // the sprite is one cell wide
+            _magnetRing = ring;
+            FollowHead();
+        }
+
+        /// <summary>The booster video: a big swirl over the board as everything rewinds.</summary>
+        private void OnRewound()
+        {
+            if (undoFxPrefab == null) return;
+            var swirl = Instantiate(undoFxPrefab, transform);
+            swirl.transform.position = BoardCentre() + new Vector3(0f, 0f, -2f);
+            foreach (var particles in swirl.GetComponentsInChildren<ParticleSystem>()) particles.Play(true);
+            Destroy(swirl, 2f);
+        }
+
+        // ------------------------------------------------------------------ tutorial (boomerang, Level 7)
 
         /// <summary>BoosterForcedTutorialView: dim everything but the boomerang, purple arrow bobbing over it.</summary>
         private void ShowTutorial()
         {
             _tutorialShown = true;
+            var slot = Get(Booster.Boomerang).slot;
             _tutorialPanel.gameObject.SetActive(true);
-            _boomerangSlot.SetParent(_tutorialPanel, true);
+            slot.SetParent(_tutorialPanel, true);
             var arrow = Rect(_tutorialPanel, "Arrow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(160, 160));
-            arrow.position = _boomerangSlot.position;
+            arrow.position = slot.position;
             arrow.anchoredPosition += new Vector2(0, 215 * SlotScale);
             arrow.localRotation = Quaternion.Euler(0, 0, 180);
             Image(arrow, skin.tutorialArrow, Hex("7F33D4FF"));
@@ -227,39 +450,79 @@ namespace SnackDash.UI
         private void HideTutorial()
         {
             if (!_tutorialPanel.gameObject.activeSelf) return;
-            _boomerangSlot.SetParent(_bar, true);
+            Get(Booster.Boomerang).slot.SetParent(_bar, true);
             _tutorialPanel.gameObject.SetActive(false);
         }
 
         private void Update()
         {
-            if (_session == null || _count == null) return;
-            int stock = Stock;
-            _freePanel.SetActive(_free);
-            _countPanel.SetActive(!_free && stock > 0);
-            _plusIcon.SetActive(!_free && stock <= 0);
-            _count.text = stock.ToString();
+            if (_session == null) return;
+            foreach (var booster in _boosters)
+            {
+                if (booster.count == null) continue;
+                bool free = booster.id == Booster.Boomerang && _free;
+                int stock = booster.Stock;
+                booster.freePanel.SetActive(free);
+                booster.countPanel.SetActive(!free && stock > 0);
+                booster.plusIcon.SetActive(!free && stock <= 0);
+                booster.count.text = stock.ToString();
+                // Undo is grey while it cannot be used (right after a booster, or before a fresh swipe) [user].
+                if (booster.id == Booster.Undo && booster.iconImage != null)
+                    booster.iconImage.sprite = _session.CanUndo ? skin.undoIcon : (skin.undoDisabledIcon != null ? skin.undoDisabledIcon : skin.undoIcon);
+                // ...and the whole button fades, so the two states read apart [user].
+                if (booster.id == Booster.Undo)
+                {
+                    if (!booster.slot.TryGetComponent(out CanvasGroup group)) group = booster.slot.gameObject.AddComponent<CanvasGroup>();
+                    group.alpha = _session.CanUndo ? 1f : 0.45f;
+                }
+            }
 
-            bool idle = !_session.IsMoving && !_session.IsDelivering && !_session.IsStuck && !_session.IsWon;
-            if (_free && !_tutorialShown && !_aiming && idle && _session.Pills.Count == 0 && AnyColumnFeedable()) ShowTutorial();
+            FollowHead();
 
-            bool any = false;
+            // The shovel's holes go once nothing of the snake is underground any more.
+            if (_hole != null && !_session.HeadInTunnel && !AnySegmentUnderground()) { Destroy(_hole); _hole = null; }
+
+            var boomerang = Get(Booster.Boomerang);
+            if (boomerang.count != null && _free && !_tutorialShown && _aiming == null && _session.IsIdle && _session.Pills.Count == 0 && AnyColumnFeedable()) ShowTutorial();
+
+            bool arrows = false;
             foreach (var pair in _arrows)
             {
-                bool show = _aiming && _session.CanBoomerang(pair.Key);
-                any |= show;
+                bool show = _aiming == boomerang && _session.CanBoomerang(pair.Key);
+                arrows |= show;
                 if (pair.Value.activeSelf != show) pair.Value.SetActive(show);
             }
-            if (!any || !UnityEngine.Input.GetMouseButtonDown(0) || IsOverUi()) return;
-            int column = ArrowUnder(UnityEngine.Input.mousePosition);
-            if (column < 0 || !_session.UseBoomerang(column)) return;
-            if (_free)
+            if (_aiming == null || !UnityEngine.Input.GetMouseButtonDown(0) || IsOverUi()) return;
+
+            if (_aiming.id == Booster.Shovel)
             {
-                _free = false;
-                PlayerPrefs.SetInt(IntroKey, 1);
-                PlayerPrefs.Save();
+                var cell = CircleUnder(UnityEngine.Input.mousePosition);
+                if (cell.HasValue) _session.UseShovel(cell.Value);
+                return;
             }
-            else Stock = stock - 1;
+            if (_aiming != boomerang || !arrows) return;
+            int column = ArrowUnder(UnityEngine.Input.mousePosition);
+            if (column < 0 || !_session.CanBoomerang(column)) return;
+            SetAiming(null);
+            // Like the others, the boomerang flies into the snake's mouth before it is thrown [user].
+            StartCoroutine(FlyIcon(boomerang, () =>
+            {
+                if (!_session.UseBoomerang(column)) return;
+                if (_free)
+                {
+                    _free = false;
+                    PlayerPrefs.SetInt(BoomerangIntroKey, 1);
+                    PlayerPrefs.Save();
+                }
+                else boomerang.Stock -= 1;
+            }));
+        }
+
+        private bool AnySegmentUnderground()
+        {
+            for (int i = 0; i < _session.Segments.Count; i++)
+                if (_session.SegmentInTunnel(i)) return true;
+            return false;
         }
 
         private bool AnyColumnFeedable()
@@ -275,6 +538,23 @@ namespace SnackDash.UI
             if (events == null) return false;
             if (UnityEngine.Input.touchCount > 0) return events.IsPointerOverGameObject(UnityEngine.Input.GetTouch(0).fingerId);
             return events.IsPointerOverGameObject();
+        }
+
+        /// <summary>Shovel circle nearest the tap on the board plane, within about a cell.</summary>
+        private Vector2Int? CircleUnder(Vector3 screen)
+        {
+            if (_camera == null) _camera = Camera.main;
+            var ray = _camera.ScreenPointToRay(screen);
+            if (!new Plane(Vector3.forward, Vector3.zero).Raycast(ray, out float distance)) return null;
+            var point = (Vector2)ray.GetPoint(distance);
+            Vector2Int? best = null;
+            float bestDistance = 1f;
+            foreach (var cell in _circles.Keys)
+            {
+                float d = Vector2.Distance(point, cell);
+                if (d < bestDistance) { bestDistance = d; best = cell; }
+            }
+            return best;
         }
 
         /// <summary>Column whose clickable arrow (CapsuleCollider on the delivery point) is under the tap.</summary>

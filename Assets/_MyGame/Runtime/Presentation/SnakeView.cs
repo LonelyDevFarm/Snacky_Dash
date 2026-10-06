@@ -110,6 +110,7 @@ namespace SnackDash.Presentation
             session.BoomerangThrown += OnBoomerangThrown;
             session.SegmentRemoved += OnSegmentThrown;
             session.SecretRevealed += OnSecretRevealed;
+            session.Rewound += OnRewound;
 
             var eyes = _head.Find("Snake_Head/Pivot/Snake_Head_Top");
             _eyesOpen = eyes != null ? eyes.Find("Eyes_Open")?.gameObject : null;
@@ -246,12 +247,78 @@ namespace SnackDash.Presentation
             PlayHeadState(open ? DeliveryStartState : DeliveryEndState);
         }
 
+        /// <summary>The booster's icon reached the head: the snake gulps it (SnakeHead_Controller state).</summary>
+        public void EatBooster() => PlayHeadState("SnakeHead_EatBooster");
+
         private void PlayHeadState(string state)
         {
             if (_headAnimator != null && _headAnimator.isActiveAndEnabled) _headAnimator.Play(state, 0, 0f);
         }
 
-        private void OnPillEaten(Vector2Int cell, PillKind kind, int index)
+        private void OnPillEaten(Vector2Int cell, PillKind kind, int index) => CreateSegment(kind, index, pop: true);
+
+        /// <summary>Undo booster: the body goes back to what the session holds now (no pop).</summary>
+        private void OnRewound()
+        {
+            foreach (var segment in _segments) if (segment.root != null) Destroy(segment.root);
+            _segments.Clear();
+            for (int i = 0; i < _session.Segments.Count; i++) CreateSegment(_session.Segments[i], i, pop: false);
+            // The fruit the swipe ate stays on the tail until the head has run back over it [VFX_hoantac].
+            _rewindDrops.Clear();
+            foreach (var drop in _session.RewindDropped)
+            {
+                CreateSegment(drop.kind, _segments.Count, pop: false);
+                _rewindDrops.Add(drop.along);
+            }
+            // Run back along the way the head came instead of jumping [user].
+            _rewindLeft = 0f;
+            var path = _session.RewindPath;
+            for (int i = 1; i < path.Count; i++) _rewindLeft += Vector2.Distance(path[i - 1], path[i]);
+            if (_blinkRoutine != null) StopCoroutine(_blinkRoutine);
+            _blinkRoutine = null;
+            LateUpdate();
+        }
+
+        // Undo: how far ahead of the restored head (along RewindPath) the snake is still drawn; runs to 0.
+        private float _rewindLeft;
+        // Undo: where along RewindPath each extra tail segment was eaten; it drops off once the head is back there.
+        private readonly List<float> _rewindDrops = new List<float>();
+
+        /// <summary>
+        /// Point <paramref name="behind"/> cells behind the drawn head: while an undo runs the snake back,
+        /// the head is still <see cref="_rewindLeft"/> cells up the way it came (RewindPath).
+        /// </summary>
+        /// <summary>Like <see cref="Sample"/>: is that point inside a tube (the rewind goes back through tunnels too) [user].</summary>
+        private bool SampleHidden(float behind)
+        {
+            float ahead = _rewindLeft - behind;
+            if (ahead <= 0f) return _rewindLeft > 0f ? _session.PathInTunnel(-ahead) : _session.PathInTunnel(behind);
+            var path = _session.RewindPath;
+            var under = _session.RewindUnderground;
+            for (int i = 1; i < path.Count; i++)
+            {
+                float step = Vector2.Distance(path[i - 1], path[i]);
+                if (ahead <= step) return i < under.Count && under[i] && ahead > 0f && ahead < step;
+                ahead -= step;
+            }
+            return false;
+        }
+
+        private Vector2 Sample(float behind)
+        {
+            float ahead = _rewindLeft - behind;
+            if (ahead <= 0f) return behind == 0f && _rewindLeft <= 0f ? _session.HeadPosition : _session.PathPoint(-ahead);
+            var path = _session.RewindPath;
+            for (int i = 1; i < path.Count; i++)
+            {
+                float step = Vector2.Distance(path[i - 1], path[i]);
+                if (ahead <= step && step > 0f) return Vector2.Lerp(path[i - 1], path[i], ahead / step);
+                ahead -= step;
+            }
+            return path.Count > 0 ? path[path.Count - 1] : _session.HeadPosition;
+        }
+
+        private void CreateSegment(PillKind kind, int index, bool pop)
         {
             var root = Instantiate(segmentPrefab, transform);
             root.name = $"Segment {kind}";
@@ -263,7 +330,7 @@ namespace SnackDash.Presentation
             _segments.Insert(index, segment);
             root.transform.localPosition = _session.PathPoint(segment.distance);
 
-            if (visual != null)
+            if (visual != null && pop)
             {
                 visual.localScale = Vector3.zero;
                 var ease = Tween.OutBack(segmentPopOvershoot);
@@ -380,14 +447,22 @@ namespace SnackDash.Presentation
         {
             if (_session == null) return;
 
+            if (_rewindLeft > 0f) _rewindLeft = Mathf.Max(0f, _rewindLeft - GameSession.RewindSpeed * Time.deltaTime);
+            while (_rewindDrops.Count > 0 && _rewindDrops[_rewindDrops.Count - 1] >= _rewindLeft)
+            {
+                _rewindDrops.RemoveAt(_rewindDrops.Count - 1);
+                var last = _segments[_segments.Count - 1];
+                if (last.root != null) Destroy(last.root);
+                _segments.RemoveAt(_segments.Count - 1);
+            }
             var forward = (Vector3)_session.Heading.ToVector();
-            var headPosition = _session.HeadPosition;
+            var headPosition = Sample(0f);
             float headLift = DeckLift(headPosition, _session.Heading.IsHorizontal());
             _head.localPosition = (Vector3)headPosition + forward * _bump + _blockOffset + new Vector3(0f, 0f, -_dropHeight - headLift);
             _head.localRotation = Quaternion.Euler(0f, 0f, HeadAngle(_session.Heading));
             _head.localScale = _headScale;
             UpdateJaw();
-            ShowHead(!_session.HeadInTunnel);
+            ShowHead(_rewindLeft > 0f ? !SampleHidden(0f) : !_session.HeadInTunnel);
 
             float step = spacingSpeed * Time.deltaTime;
             for (int i = 0; i < _segments.Count; i++)
@@ -395,12 +470,12 @@ namespace SnackDash.Presentation
                 var segment = _segments[i];
                 if (segment.frozen) continue;
                 segment.distance = Mathf.MoveTowards(segment.distance, (i + 1) * GameSession.SegmentSpacing, step);
-                Vector3 position = _session.PathPoint(segment.distance);
-                var along = _session.PathPoint(segment.distance - 0.5f) - _session.PathPoint(segment.distance + 0.5f);
+                Vector3 position = Sample(segment.distance);
+                var along = Sample(segment.distance - 0.5f) - Sample(segment.distance + 0.5f);
                 position.z -= DeckLift(position, Mathf.Abs(along.x) >= Mathf.Abs(along.y));
                 segment.root.transform.localPosition = position;
                 // Inside a tunnel the segment is out of sight until it comes out of the other mouth.
-                bool visible = !_session.PathInTunnel(segment.distance);
+                bool visible = !SampleHidden(segment.distance);
                 if (segment.root.activeSelf != visible) segment.root.SetActive(visible);
             }
         }

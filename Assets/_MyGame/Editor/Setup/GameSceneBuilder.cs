@@ -104,6 +104,10 @@ namespace SnackDash.Editor.Setup
             var boosters = ui.AddComponent<SnackDash.UI.BoosterBarView>();
             FillSkin(boosters);
             Set(bootstrap, "boosters", boosters);
+            Set(boosters, "shovelCirclePrefab", Prefab("boosters/Booster_Tunnel_CircleToClick"));
+            Set(boosters, "shovelHolePrefab", Prefab("boosters/Booster_Tunnel_Hole"));
+            Set(boosters, "magnetFxPrefab", Prefab("boosters/FX_Snake_Magnetic"));
+            Set(boosters, "undoFxPrefab", Prefab("boosters/Vortex Big2"));
             var eventSystem = new GameObject("EventSystem");
             eventSystem.AddComponent<UnityEngine.EventSystems.EventSystem>();
             eventSystem.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
@@ -209,6 +213,10 @@ namespace SnackDash.Editor.Setup
             Ref("boosterSlot", Find<Sprite>("S_Boosters_BG (2)_0"));
             Ref("boomerangIcon", Find<Sprite>("S_Icon_Booster_FruitCanon_0"));
             Ref("shovelIcon", Find<Sprite>("S_Icon_Booster_Teleporter_0"));
+            Ref("undoIcon", Find<Sprite>("S_Icon_Booster_Undo_0"));
+            Ref("undoDisabledIcon", Find<Sprite>("S_Icon_Booster_Undo_Disabled_0"));
+            Ref("magnetIcon", Find<Sprite>("S_Icon_Booster_Magnet_0"));
+            Ref("magnetField", Find<Texture2D>("TX_FX_Magnet_Base"));
             Ref("boosterCountBadge", Find<Sprite>("S_BoostersNumber_Bg (1)_0"));
             Ref("boosterPlus", Find<Sprite>("S_BoostersBuy_Bg (2)_0"));
             // Two assets carry the sprite name S_Icon_Lock_0; the scene uses the file S_Icon_Lock_0_0.

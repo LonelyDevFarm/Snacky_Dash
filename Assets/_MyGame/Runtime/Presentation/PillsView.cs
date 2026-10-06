@@ -62,6 +62,29 @@ namespace SnackDash.Presentation
             _session = session;
             session.PillSpawned += (cell, kind) => _pending.Add((cell, kind));
             session.PillEaten += (cell, kind, segment) => Remove(cell);
+            session.PillMagnetized += (cell, kind, column, crate) => Remove(cell);
+            // Undo booster: fruit the swipe ate comes back as the snake runs back over it [user];
+            // fruit of a wave the swipe brought goes again.
+            session.Rewound += () =>
+            {
+                _pending.Clear();
+                foreach (var cell in new List<Vector2Int>(_pills.Keys))
+                    if (!session.Pills.ContainsKey(cell)) Remove(cell);
+                var path = session.RewindPath;
+                float length = 0f;
+                for (int i = 1; i < path.Count; i++) length += Vector2.Distance(path[i - 1], path[i]);
+                foreach (var pill in session.Pills)
+                {
+                    if (_pills.ContainsKey(pill.Key)) continue;
+                    float along = 0f, reached = 0f;
+                    for (int i = 1; i < path.Count; i++)
+                    {
+                        along += Vector2.Distance(path[i - 1], path[i]);
+                        if (Vector2Int.RoundToInt(path[i]) == pill.Key) reached = along;
+                    }
+                    Spawn(pill.Key, pill.Value, Mathf.Max(0f, length - reached) / GameSession.RewindSpeed, inPlace: reached > 0f);
+                }
+            };
         }
 
         private void LateUpdate()
@@ -104,7 +127,7 @@ namespace SnackDash.Presentation
             _pending.Clear();
         }
 
-        private void Spawn(Vector2Int cell, PillKind kind, float delay)
+        private void Spawn(Vector2Int cell, PillKind kind, float delay, bool inPlace = false)
         {
             Remove(cell);
             var go = Instantiate(pillPrefab, transform);
@@ -123,7 +146,7 @@ namespace SnackDash.Presentation
                 pill.waitPosition = WaitPosition(cell);
                 landing = pill.waitPosition;
             }
-            StartCoroutine(JumpIn(pill, landing, delay));
+            StartCoroutine(JumpIn(pill, landing, delay, inPlace));
         }
 
         /// <summary>Secret fruit: the fruit mesh hides under the ? box (PillView puts it in SecreteCollectibleParent).</summary>
@@ -139,17 +162,18 @@ namespace SnackDash.Presentation
             if (burst != null) burst.gameObject.SetActive(false); // the reveal burst plays when eaten (SnakeView)
         }
 
-        private IEnumerator JumpIn(Pill pill, Vector3 landing, float delay)
+        private IEnumerator JumpIn(Pill pill, Vector3 landing, float delay, bool inPlace)
         {
             var go = pill.go;
-            go.transform.localPosition = landing + new Vector3(0f, 0f, spawnZ);
+            // Undo: the fruit is left on the road where the tail drops it, no jump [user, VFX_hoantac].
+            go.transform.localPosition = inPlace ? landing : landing + new Vector3(0f, 0f, spawnZ);
             if (delay > 0f)
             {
                 yield return new WaitForSeconds(delay);
                 if (go == null) yield break; // eaten before it showed up
                 go.SetActive(true);
             }
-            yield return Jump(go, landing + new Vector3(0f, 0f, spawnZ), landing);
+            if (!inPlace) yield return Jump(go, landing + new Vector3(0f, 0f, spawnZ), landing);
             pill.landed = true;
         }
 

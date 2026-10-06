@@ -110,6 +110,17 @@ namespace SnackDash.Gameplay
                 _oneWay[partner] = other.Opposite();
         }
 
+        /// <summary>What a booster undo has to put back: open rocks and the way every arrow points.</summary>
+        internal (HashSet<Vector2Int> closedWalls, Dictionary<Vector2Int, Direction> ways) SaveState() =>
+            (new HashSet<Vector2Int>(_closedWalls), new Dictionary<Vector2Int, Direction>(_oneWay));
+
+        internal void RestoreState((HashSet<Vector2Int> closedWalls, Dictionary<Vector2Int, Direction> ways) state)
+        {
+            _closedWalls.Clear();
+            _closedWalls.UnionWith(state.closedWalls);
+            foreach (var way in state.ways) _oneWay[way.Key] = way.Value;
+        }
+
         /// <summary>Half the length of the bridge deck along its road (TileCov_Bridge_LR mesh: 4.3 cells).</summary>
         public const float BridgeDeckHalfLength = 2.15f;
 
@@ -356,6 +367,12 @@ namespace SnackDash.Gameplay
             && type != TileType.RoadRightLeftNoPill && type != TileType.RoadUpDownNoPill;
 
         public bool IsWalkable(Vector2Int cell) => _cells.ContainsKey(cell);
+
+        /// <summary>Every stop cell (stop squares and crate stops, not bridge crossings).</summary>
+        public IEnumerable<Vector2Int> StopCells
+        {
+            get { foreach (var cell in _cells.Keys) if (IsStop(cell)) yield return cell; }
+        }
 
         /// <summary>Stop squares and crate stops; the crossing under a bridge is not a stop (no way to turn there). Tunnel mouths never are.</summary>
         public bool IsStop(Vector2Int cell) =>
