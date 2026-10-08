@@ -33,5 +33,35 @@ namespace SnackDash.Editor.Setup
             PlayerPrefs.Save();
             Debug.Log("[Test] Tutorials and unlock gifts will show again; level, coins and lives kept.");
         }
+
+        /// <summary>
+        /// Sets the saved level (Home and the next game start there). The Game scene's Test Level only plays a level once
+        /// and leaves the saved progress alone [user: back on Home it was still Level 6].
+        /// </summary>
+        [MenuItem("SnackDash/Test/Set Level...")]
+        public static void SetLevel() => EditorWindow.GetWindow<SetLevelWindow>(true, "Set Level", true);
+
+        private class SetLevelWindow : EditorWindow
+        {
+            private int _level;
+
+            private void OnEnable()
+            {
+                _level = PlayerPrefs.GetInt("SnackDash.LevelIndex", 0) + 1;
+                minSize = maxSize = new Vector2(260f, 70f);
+            }
+
+            private void OnGUI()
+            {
+                _level = Mathf.Max(1, EditorGUILayout.IntField("Level", _level));
+                if (GUILayout.Button("Set"))
+                {
+                    PlayerPrefs.SetInt("SnackDash.LevelIndex", _level - 1);
+                    PlayerPrefs.Save();
+                    Debug.Log($"[Test] Saved level is now {_level} (events open from it: weekly 15, season pass 25, lava 35).");
+                    Close();
+                }
+            }
+        }
     }
 }

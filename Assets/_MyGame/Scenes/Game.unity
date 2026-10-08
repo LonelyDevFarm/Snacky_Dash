@@ -469,6 +469,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 8d7c52af46c4a914fb8d737e78d89614, type: 2}
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
+    eventMaterials: []
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -706,6 +707,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 8d7c52af46c4a914fb8d737e78d89614, type: 2}
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
+    eventMaterials: []
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -940,6 +942,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 8d7c52af46c4a914fb8d737e78d89614, type: 2}
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
+    eventMaterials: []
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -1175,6 +1178,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 8d7c52af46c4a914fb8d737e78d89614, type: 2}
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
+    eventMaterials: []
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -1429,6 +1433,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 8d7c52af46c4a914fb8d737e78d89614, type: 2}
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
+    eventMaterials: []
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -1669,6 +1674,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 8d7c52af46c4a914fb8d737e78d89614, type: 2}
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
+    eventMaterials: []
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -1838,7 +1844,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   levels: {fileID: 11400000, guid: a6d93847381cde2409ff1db462e26139, type: 2}
-  testLevel: {fileID: 11400000, guid: 1d193e3599a27a44e82600ec46cc9fd8, type: 2}
+  testLevel: {fileID: 0}
   database: {fileID: 11400000, guid: 5c7f96f49314b4c449f2f1001c1a16ae, type: 2}
   board: {fileID: 1247804678}
   cameraFitter: {fileID: 1779527104}

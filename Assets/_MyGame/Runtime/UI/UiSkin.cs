@@ -100,6 +100,20 @@ namespace SnackDash.UI
         [UnityEngine.Tooltip("LilitaOne SDF, the Shop's font.")]
         public TMP_FontAsset shopFont;
         [UnityEngine.Tooltip("LilitaOne presets of the Shop, looked up by their original name (UiSkin.ShopMaterial).")]
+        /// <summary>LuckiestGuy presets of the event popups (OriginalAssetImporter.EventFontPresets).</summary>
+        public Material[] eventMaterials;
+
+        /// <summary>UI/Shiny (Shader/UI_Shiny), the sweeping light of UiShiny.</summary>
+        public Shader shinyShader;
+
+        /// <summary>An event preset by its original name, e.g. "LuckiestGuy-Regular weekly orange" (plain when missing).</summary>
+        public Material EventMaterial(string original)
+        {
+            if (eventMaterials != null)
+                foreach (var material in eventMaterials) if (material != null && material.name.EndsWith("(" + original + ")")) return material;
+            return plainMaterial;
+        }
+
         public Material[] shopMaterials;
 
         /// <summary>A Shop preset by its original name, e.g. "LilitaOne-Regular - Buy Btn".</summary>

@@ -61,6 +61,12 @@ namespace SnackDash.Economy
 
         public event Action Changed;
 
+        /// <summary>Something weekly missions count: coins earned or spent, levels won, boosters used, x2, purchases.</summary>
+        public event Action<MissionGoal, int> Goal;
+
+        /// <summary>Tells the missions about something outside the wallet (the x2 on the win screen, a shop pack).</summary>
+        public void Report(MissionGoal goal, int amount = 1) => Goal?.Invoke(goal, amount);
+
         public PlayerEconomy(IStore store, Func<DateTime> now)
         {
             _store = store;
@@ -76,6 +82,7 @@ namespace SnackDash.Economy
             if (amount <= 0) return;
             _store.SetInt("eco_coins", Coins + amount);
             Changed?.Invoke();
+            Goal?.Invoke(MissionGoal.CollectCoins, amount);
         }
 
         public bool TrySpend(int amount)
@@ -83,6 +90,7 @@ namespace SnackDash.Economy
             if (amount < 0 || Coins < amount) return false;
             _store.SetInt("eco_coins", Coins - amount);
             Changed?.Invoke();
+            if (amount > 0) Goal?.Invoke(MissionGoal.SpendCoins, amount);
             return true;
         }
 
@@ -187,6 +195,8 @@ namespace SnackDash.Economy
             if (!LevelInProgress) return;
             LevelInProgress = false;
             LoseLife();
+            _store.SetInt("eco_wins_in_row", 0); // "Win N levels in a row" starts over
+            Goal?.Invoke(MissionGoal.CompleteLevelInStreak, 0);
         }
 
         // ------------------------------------------------------------------ win streak
@@ -208,6 +218,12 @@ namespace SnackDash.Economy
                 _store.SetInt("eco_streak_wins", Math.Min(wins, StreakWinsToFire));
                 if (wins >= StreakWinsToFire) _store.SetInt("eco_streak_fire", 1);
             }
+            int inARow = _store.GetInt("eco_wins_in_row", 0) + 1;
+            _store.SetInt("eco_wins_in_row", inARow);
+            Goal?.Invoke(MissionGoal.CompleteAnyLevel, 1);
+            if (difficulty >= 4) Goal?.Invoke(MissionGoal.CompleteSuperHardLevel, 1);
+            else if (difficulty >= 2) Goal?.Invoke(MissionGoal.CompleteHardLevel, 1);
+            Goal?.Invoke(MissionGoal.CompleteLevelInStreak, inARow);
             Changed?.Invoke();
             return coins;
         }
@@ -217,6 +233,8 @@ namespace SnackDash.Economy
         {
             LevelInProgress = false;
             LoseLife();
+            _store.SetInt("eco_wins_in_row", 0);
+            Goal?.Invoke(MissionGoal.CompleteLevelInStreak, 0);
             if (StreakOnFire)
             {
                 _store.SetInt("eco_streak_fire", 0);
@@ -235,10 +253,24 @@ namespace SnackDash.Economy
 
         public void SetBoosters(string key, int count)
         {
+            int used = Boosters(key) - Math.Max(0, count);
             _store.SetInt(key, Math.Max(0, count));
             Changed?.Invoke();
+            if (used > 0) ReportBoosterUse(key, used);
         }
 
         public void AddBoosters(string key, int count) => SetBoosters(key, Boosters(key) + count);
+
+        private void ReportBoosterUse(string key, int used)
+        {
+            Goal?.Invoke(MissionGoal.SpendAnyBooster, used);
+            switch (key)
+            {
+                case "booster_shovel": Goal?.Invoke(MissionGoal.SpendShovel, used); break;
+                case "booster_boomerang": Goal?.Invoke(MissionGoal.SpendBoomerang, used); break;
+                case "booster_undo": Goal?.Invoke(MissionGoal.SpendUndo, used); break;
+                case "booster_magnet": Goal?.Invoke(MissionGoal.SpendMagnet, used); break;
+            }
+        }
     }
 }

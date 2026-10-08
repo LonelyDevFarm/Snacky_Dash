@@ -139,6 +139,13 @@ namespace SnackDash.Editor.Restore
             "LuckiestGuy-Regular SDF Purple Cartoon Play btn", "LuckiestGuy-Regular SDF Purple Cartoon Inner Shadow", "LuckiestGuy-Regular SDF Red Cartoon Inner Shadow",
         };
 
+        /// <summary>LuckiestGuy presets of the event popups (WeeklyMissionsPopup and its rows), looked up by name (UiSkin.Material).</summary>
+        public static readonly string[] EventFontPresets =
+        {
+            "LuckiestGuy-Regular SDF 2 - purple cartoon - weekly mission", "LuckiestGuy-Regular weekly orange", "LuckiestGuy-Regular weekly blue",
+            "LuckiestGuy-Regular weekly Brown", "LuckiestGuy-Regular Red Cartoon 02", "LuckiestGuy-Regular Brown Cartoon", "LuckiestGuy-Regular Purple Cartoon",
+        };
+
         /// <summary>LilitaOne presets of the Shop (ShopView, its items and section titles).</summary>
         public static readonly string[] ShopFontPresets =
         {
@@ -156,7 +163,7 @@ namespace SnackDash.Editor.Restore
         [MenuItem("SnackDash/Restore/Rebuild TMP Font")]
         public static void RebuildFont()
         {
-            RebuildFont("LuckiestGuy-Regular.ttf", RebuiltFontName, FontPresets);
+            RebuildFont("LuckiestGuy-Regular.ttf", RebuiltFontName, System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Concat(FontPresets, EventFontPresets)));
             RebuildFont("LilitaOne-Regular.ttf", ShopFontName, ShopFontPresets);
         }
 

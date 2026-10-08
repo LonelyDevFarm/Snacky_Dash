@@ -13,6 +13,7 @@ namespace SnackDash.UI
     public class SlicedCapFit : MonoBehaviour
     {
         private Image _image;
+        private float _designed = -1f; // the multiplier the layout gave it (the original's), kept as the least
 
         private void OnEnable() => Fit();
         private void Start() => Fit();
@@ -22,6 +23,7 @@ namespace SnackDash.UI
         {
             if (_image == null) _image = GetComponent<Image>();
             if (_image == null || _image.sprite == null) return;
+            if (_designed < 0f) _designed = _image.pixelsPerUnitMultiplier;
             var rect = ((RectTransform)transform).rect;
             if (rect.width <= 0f || rect.height <= 0f) return;
             var sprite = _image.sprite;
@@ -29,7 +31,8 @@ namespace SnackDash.UI
             var border = sprite.border; // left, bottom, right, top
             float vertical = border.y + border.w > 0f ? border.y + border.w : sprite.rect.height;
             float horizontal = border.x + border.z > 0f ? border.x + border.z : 0f;
-            float multiplier = Mathf.Max(1f, vertical * units / rect.height, horizontal * units / rect.width);
+            // Never under the designed value: forcing 1 thickened the Shop's edges set at 1.3 / 1.7 in the original [user].
+            float multiplier = Mathf.Max(_designed, vertical * units / rect.height, horizontal * units / rect.width);
             if (!Mathf.Approximately(_image.pixelsPerUnitMultiplier, multiplier)) _image.pixelsPerUnitMultiplier = multiplier;
         }
 

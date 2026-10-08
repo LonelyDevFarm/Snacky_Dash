@@ -119,9 +119,9 @@ namespace SnackDash.UI
             float height = 115f + items * itemHeight + (items - 1) * 20f + 15f;
             var section = Rect(_content, name, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -y), new Vector2(SectionWidth, height), new Vector2(0.5f, 1f));
             var head = Rect(section, "SectionTitle", new Vector2(0f, 1f), Vector2.one, new Vector2(0f, -50f), new Vector2(0f, 95f));
-            Image(Rect(head, "Shadow", Vector2.zero, Vector2.one, new Vector2(0f, -25f), new Vector2(-20f, 0f)), _skin.Get("S_CircleShadow"), new Color(0f, 0f, 0f, 0.5f), sliced: true);
+            Image(Rect(head, "Shadow", Vector2.zero, Vector2.one, new Vector2(0f, -25f), new Vector2(-20f, 0f)), _skin.Get("S_CircleShadow"), new Color(0f, 0f, 0f, 0.5f), sliced: true).pixelsPerUnitMultiplier = 1.29f;
             Image(Rect(head, "Frame", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 4f), new Vector2(1200f, 12f)), _skin.Get("S_Shop_Frame"), Color.white, sliced: true);
-            Image(Rect(head, "Background", Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-50f, 0f)), _skin.Get(banner), Color.white, sliced: true);
+            Image(Rect(head, "Background", Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-50f, 0f)), _skin.Get(banner), Color.white, sliced: true).pixelsPerUnitMultiplier = 1.29f;
             AutoSize(ShopText(Rect(head, "Text (TMP)", Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-20f, 0f)), title, material, 55.1f, titleColor), 18f, 55.1f);
             y += height;
             return section;
@@ -131,13 +131,13 @@ namespace SnackDash.UI
         private void BundleCard(RectTransform section, float y, ShopPack pack)
         {
             var card = Rect(section, "BundleShopItem_Bundle_Offer", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -y), new Vector2(ItemWidth, CardHeight), new Vector2(0.5f, 1f));
-            Image(Rect(card, "Background", Vector2.zero, Vector2.one, new Vector2(0f, -7.5f), new Vector2(0f, 15f)), _skin.Get("S_Shop_Bundle_0"), Color.white, sliced: true);
+            Image(Rect(card, "Background", Vector2.zero, Vector2.one, new Vector2(0f, -7.5f), new Vector2(0f, 15f)), _skin.Get("S_Shop_Bundle_0"), Color.white, sliced: true).pixelsPerUnitMultiplier = 1.3f;
 
             // TopLayer (235 high, padding 26 / 25 / 26): MainReward, then the cells (8 apart, 10 from the right).
             const float left = 26f, right = 25f, top = 26f, layer = 235f, mainWidth = 300f;
             var main = Rect(card, "MainReward", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(left, -top), new Vector2(mainWidth, layer - top), new Vector2(0f, 1f));
             var rays = Stretch(main, "RaysAnimation");
-            Image(rays, _skin.Get("S_Rewards_Banner_0"), Hex("F9EECDFF"), sliced: true); // cream under white rays (video)
+            Image(rays, _skin.Get("S_Rewards_Banner_0"), Hex("F9EECDFF"), sliced: true).pixelsPerUnitMultiplier = 0.35f; // cream under white rays (video)
             rays.gameObject.AddComponent<RectMask2D>();
             var spin = Rect(rays, "Rays", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(938.6f, 750.8f));
             spin.localScale = Vector3.one * 0.6f;
@@ -191,8 +191,8 @@ namespace SnackDash.UI
             var cell = Rect(card, "RewardContainer_Bundle_Offers", new Vector2(0f, 1f), new Vector2(0f, 1f), position, size, new Vector2(0f, 1f));
             Image(Stretch(cell, "Background"), _skin.Get("S_Offer_Dark_Beige_Inside_Bg"), Color.white, sliced: true);
             var strip = Rect(cell, "BottomLayer", Vector2.zero, new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, 65f), new Vector2(0.5f, 0f));
-            Image(Rect(strip, "Background", Vector2.zero, Vector2.one, new Vector2(0f, 1.25f), new Vector2(-5f, -2.5f)), _skin.Get("S_Rewards_Banner_0"), Hex("987C4DFF"), sliced: true);
-            Image(Rect(strip, "Blur", Vector2.zero, Vector2.one, new Vector2(0f, 1.25f), new Vector2(-5f, -2.5f)), _skin.Get("S_rewards_Banner_OutlineBlur_0"), Hex("824C1EFF"), sliced: true);
+            Image(Rect(strip, "Background", Vector2.zero, Vector2.one, new Vector2(0f, 1.25f), new Vector2(-5f, -2.5f)), _skin.Get("S_Rewards_Banner_0"), Hex("987C4DFF"), sliced: true).pixelsPerUnitMultiplier = 0.6f;
+            Image(Rect(strip, "Blur", Vector2.zero, Vector2.one, new Vector2(0f, 1.25f), new Vector2(-5f, -2.5f)), _skin.Get("S_rewards_Banner_OutlineBlur_0"), Hex("824C1EFF"), sliced: true).pixelsPerUnitMultiplier = 0.65f;
             AutoSize(ShopText(Rect(strip, "Text (TMP)", Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-10f, 0f)), label, "LilitaOne-Regular - Shop", 52.45f, Cream), 18f, 60f);
             // TopLayer: one icon shows big (the video's lives heart), several sit in the 2-column grid.
             var layer = Rect(cell, "TopLayer", Vector2.zero, Vector2.one, new Vector2(0f, 32.5f), new Vector2(0f, -65f));
@@ -211,7 +211,7 @@ namespace SnackDash.UI
             const float cellWidth = 268.67f, cellHeight = 350f;
             float x = 25f + (index % 3) * (cellWidth + 20f), y = 115f + 10f + (index / 3) * (cellHeight + 20f);
             var card = Rect(section, "CoinPackShopItem", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(cellWidth, cellHeight), new Vector2(0f, 1f));
-            Image(Rect(card, "Shadow", Vector2.zero, Vector2.one, new Vector2(0f, -16.3f), new Vector2(20f, 17.6f)), _skin.Get("S_CircleShadow"), Hex("351600FF"), sliced: true);
+            Image(Rect(card, "Shadow", Vector2.zero, Vector2.one, new Vector2(0f, -16.3f), new Vector2(20f, 17.6f)), _skin.Get("S_CircleShadow"), Hex("351600FF"), sliced: true).pixelsPerUnitMultiplier = 1.51f;
             Image(Stretch(card, "Image"), _skin.Get("CoinContainer"), Color.white);
             var coins = Rect(card, "CoinsContainer", Vector2.zero, Vector2.one, new Vector2(-0.37f, 64.76f), new Vector2(-35.46f, -168.58f));
             Image(Rect(coins, "RewardIcon", Vector2.zero, Vector2.one, new Vector2(0f, 22f), new Vector2(0f, -22f)), _skin.Get(pack.icon), Color.white).preserveAspect = true;
@@ -224,6 +224,7 @@ namespace SnackDash.UI
         {
             var button = Rect(parent, "PurchaseButton", anchor, anchor, position, size, pivot);
             var face = Image(button, _skin.Get("S_Btn_BG"), Color.white, sliced: true, raycast: true);
+            face.pixelsPerUnitMultiplier = 1.7f; // the original's slice scale: at 1 its edge looked thick [user]
             AutoSize(ShopText(Rect(button, "PriceText (TMP)", Vector2.zero, Vector2.one, new Vector2(0f, -1.15f), new Vector2(-26f, -19.2f)), Price, "LilitaOne-Regular - Buy Btn", fontSize, Cream), 18f, fontSize);
             var click = button.gameObject.AddComponent<Button>();
             click.targetGraphic = face;
@@ -238,6 +239,7 @@ namespace SnackDash.UI
             var economy = PlayerEconomy.Shared;
             int before = economy.Coins;
             pack.Grant(economy);
+            economy.Report(MissionGoal.CompletePurchase); // a pack counts as a purchase, no payment here [user]
             SnackDash.Audio.SoundPlayer.Play("CollectCoin");
             if (pack.coins > 0) StartCoroutine(FlyCoins(from, before, economy.Coins));
         }

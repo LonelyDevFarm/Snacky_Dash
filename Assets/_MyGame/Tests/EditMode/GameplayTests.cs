@@ -258,6 +258,72 @@ namespace SnackDash.Tests
         }
 
         [Test]
+        public void WeeklyMissions_CountClaimMilestones()
+        {
+            var now = new System.DateTime(2026, 10, 8, 9, 0, 0, System.DateTimeKind.Utc);
+            var store = new SnackDash.Economy.MemoryStore();
+            var eco = new SnackDash.Economy.PlayerEconomy(store, () => now);
+            var wm = new SnackDash.Economy.WeeklyMissions(store, () => now, eco);
+
+            // Opens at Level 15; the first day counts as a login.
+            wm.StartIfUnlocked(14);
+            Assert.IsFalse(wm.Started);
+            wm.StartIfUnlocked(15);
+            Assert.AreEqual(1, wm.Day);
+            Assert.IsTrue(wm.Claimable(1, 0), "Login 1 Day!");
+            Assert.AreEqual("Win 5 Levels In A Row!", SnackDash.Economy.WeeklyMissions.MissionAt(1, 1).Text);
+
+            // Wins in a row start over after a loss; a done mission stays done.
+            for (int i = 0; i < 4; i++) eco.Win(20, 0);
+            eco.Lose();
+            Assert.AreEqual(0, wm.Progress(1, 1));
+            for (int i = 0; i < 5; i++) eco.Win(20, 2);
+            Assert.IsTrue(wm.Done(1, 1));
+            eco.Lose();
+            Assert.IsTrue(wm.Done(1, 1), "done stays done");
+            Assert.AreEqual(8, wm.Progress(1, 2), "Win 8 Levels! (9 wins, shown up to 8)");
+            Assert.AreEqual(2, wm.Progress(2, 2), "hard wins count for a later day too");
+
+            // Boosters used count by kind; buying does not.
+            eco.AddBoosters("booster_shovel", 3);
+            eco.SetBoosters("booster_shovel", 2);
+            Assert.IsTrue(wm.Done(1, 3), "Use 1 Shovel!");
+            Assert.AreEqual(1, wm.Progress(2, 3), "Use 2 Boosters! counts any booster");
+
+            // A later day cannot be claimed yet; claiming gives the reward and tokens; milestones on the way.
+            Assert.IsTrue(wm.Done(2, 2));
+            Assert.AreEqual(0, wm.Claim(2, 2).Count, "Unlock at Day 2!");
+            Assert.IsFalse(wm.Claimed(2, 2));
+            int coins = eco.Coins;
+            wm.Claim(1, 3); // 50 tokens + 50 coins
+            Assert.AreEqual(coins + 50, eco.Coins);
+            wm.Claim(1, 0); // 20 tokens + infinite lives 15 min
+            Assert.IsTrue(eco.InfiniteLives);
+            var reached = wm.Claim(1, 1); // 50 -> 120
+            Assert.AreEqual(0, reached.Count);
+            reached = wm.Claim(1, 2); // 20 -> 140
+            Assert.AreEqual(140, wm.Points);
+            Assert.AreEqual(0, reached.Count);
+            Assert.AreEqual(2, wm.ClaimableCount, "Earn 250 Coins! (wins and the shovel reward) and day 2 Win 2 Hard Levels!");
+            reached = wm.Claim(1, 4); // 20 -> 160: first milestone (150)
+            CollectionAssert.AreEqual(new[] { 0 }, reached);
+            Assert.AreEqual(1, wm.MilestonesReached);
+
+            // Day 2 opens the next day; a new week starts after seven days.
+            now = now.AddDays(1);
+            wm.Login();
+            Assert.AreEqual(2, wm.Day);
+            Assert.AreEqual(2, wm.Progress(2, 0), "Login 2 Days!");
+            wm.Claim(2, 2); // Win 2 Hard Levels! can be claimed now
+            Assert.IsTrue(wm.Claimed(2, 2));
+            now = now.AddDays(7);
+            wm.StartIfUnlocked(30);
+            Assert.AreEqual(1, wm.Day);
+            Assert.AreEqual(0, wm.Points, "new week");
+            Assert.IsFalse(wm.Claimed(2, 2));
+        }
+
+        [Test]
         public void Boosters_UndoMagnetShovel()
         {
             var level = Load("11012_v5_nt_VO");

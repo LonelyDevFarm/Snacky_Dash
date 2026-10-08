@@ -18,6 +18,10 @@ namespace SnackDash.Bootstrap
 #if !UNITY_EDITOR // stopping Play in the editor is not closing the app
             SnackDash.Economy.PlayerEconomy.Shared.ChargeUncleanExit(); // the app was closed during a level: that life is lost [user]
 #endif
+            // Weekly missions listen to the wallet from the first moment (wins, coins, boosters).
+            var missions = SnackDash.Economy.WeeklyMissions.Shared;
+            missions.StartIfUnlocked(LevelProgress.Index + 1);
+            missions.Login();
         }
     }
 }

@@ -94,10 +94,10 @@ namespace SnackDash.Bootstrap
         {
             if (Level == testLevel) LevelProgress.TestLevelDone = true;
             LevelProgress.Advance(levels, Level);
-            // The next level brings a new mechanic: the win screen shows it UNLOCKED! [user]. After it, CONTINUE goes Home;
-            // otherwise to the next level [user]. Before Level 6 there is no Home yet, so always the next level [user].
+            // The next level brings a new mechanic (boosters do not count): the win screen shows it UNLOCKED! [user].
+            // Once Home exists (Level 6) every CONTINUE goes Home; before that straight to the next level [user, 08/10].
             bool unlocks = SnackDash.UI.UnlockPopups.TryGet(LevelNumber + 1, false, out var unlocked);
-            bool toHome = unlocks && LevelNumber + 1 >= LevelProgress.HomeFromLevel;
+            bool toHome = LevelNumber + 1 >= LevelProgress.HomeFromLevel;
             // Coins: the win (20 / 30 / 40, x2 on a streak on fire) and the combo coins go to the wallet now;
             // x2 on the win screen pays the total once more [user].
             var economy = SnackDash.Economy.PlayerEconomy.Shared;
@@ -108,7 +108,7 @@ namespace SnackDash.Bootstrap
             var reward = new SnackDash.UI.VictoryReward
             {
                 baseCoins = baseCoins, comboCoins = comboCoins, onFire = onFire, level = LevelNumber,
-                doubled = () => economy.AddCoins(baseCoins + comboCoins),
+                doubled = () => { economy.AddCoins(baseCoins + comboCoins); economy.Report(SnackDash.Economy.MissionGoal.WatchRewardedVideo); }, // the ad button, free here [user]
             };
             if (victory != null) victory.Show(toHome ? () => SnackDash.UI.LoadingScreen.Load(SnackDash.UI.LoadingScreen.HomeScene) : (System.Action)RestartLevel, crates != null ? crates.LastCompletionLag : 0f, unlocks ? unlocked : (SnackDash.UI.UnlockPopups.Entry?)null, reward);
             else RestartLevel();

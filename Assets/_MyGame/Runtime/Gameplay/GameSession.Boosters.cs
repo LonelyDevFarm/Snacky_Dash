@@ -187,7 +187,17 @@ namespace SnackDash.Gameplay
             while (_magnetTimer >= MagnetPullInterval)
             {
                 _magnetTimer -= MagnetPullInterval;
-                if (!PullNearestFruit()) break;
+                // Every fruit in reach goes, nearest first [user: all in range, Level 16]. One per interval was too
+                // few: at 26 cells/s the lane under the head used every pull and the lanes beside it were missed.
+                int pulled = 0;
+                while (true)
+                {
+                    int before = _pills.Count;
+                    if (!PullNearestFruit()) break;
+                    pulled++;
+                    if (_pills.Count >= before) break; // the last one brought the next wave: it lands first
+                }
+                if (pulled == 0) break;
             }
         }
 

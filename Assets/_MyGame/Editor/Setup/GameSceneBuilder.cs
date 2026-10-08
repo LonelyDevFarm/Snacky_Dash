@@ -138,6 +138,10 @@ namespace SnackDash.Editor.Setup
             UiPrefab<SnackDash.UI.LoseFlowView>("GameOver", 10, (view, root) => view.BuildGameOver(root));
             UiPrefab<SnackDash.UI.VictoryView>("Victory", 20, (view, root) => view.BuildVictory(root));
             UiPrefab<SnackDash.UI.HudView>("HUD", 5, (view, root) => view.BuildHud(root));
+            UiPrefab<SnackDash.UI.HomeView>("Home", 10, (view, root) => view.BuildLayout(root));
+            PanelPrefab("WeeklyMissionsPopup", SnackDash.UI.WeeklyMissionsPopup.BuildLayout);
+            PanelPrefab("WeeklyMissionsRules", SnackDash.UI.WeeklyMissionsRules.BuildLayout);
+            PanelPrefab("WeeklyBadgeFtue", SnackDash.UI.WeeklyBadgeFtue.BuildLayout);
             AssetDatabase.SaveAssets();
         }
 
@@ -156,6 +160,31 @@ namespace SnackDash.Editor.Setup
             var prefab = PrefabUtility.SaveAsPrefabAsset(root.gameObject, path);
             Object.DestroyImmediate(root.gameObject);
             Object.DestroyImmediate(host);
+            Debug.Log($"[Setup] Created UI prefab {path}");
+            return prefab;
+        }
+
+        /// <summary>
+        /// A prefab of a panel opened inside another canvas (no canvas of its own, stretched over its parent), built with
+        /// the Home skin; made only when missing so hand edits stay [user].
+        /// </summary>
+        private static GameObject PanelPrefab(string name, System.Action<RectTransform, SnackDash.UI.UiSkin> build)
+        {
+            var path = UiPrefabFolder + name + ".prefab";
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) return existing;
+            System.IO.Directory.CreateDirectory(UiPrefabFolder);
+            var host = new GameObject("UI prefab builder").AddComponent<SnackDash.UI.HomeView>();
+            FillSkin(host);
+            var skin = (SnackDash.UI.UiSkin)typeof(SnackDash.UI.HomeView).GetField("skin", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(host);
+            var root = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.one;
+            root.sizeDelta = Vector2.zero;
+            build(root, skin);
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root.gameObject, path);
+            Object.DestroyImmediate(root.gameObject);
+            Object.DestroyImmediate(host.gameObject);
             Debug.Log($"[Setup] Created UI prefab {path}");
             return prefab;
         }
@@ -263,6 +292,11 @@ namespace SnackDash.Editor.Setup
             Ref("splash", Find<Texture2D>("unity_static_splash"));
             Sprites("named", NamedSprites);
             Ref("shopFont", Find<TMPro.TMP_FontAsset>(Restore.OriginalAssetImporter.ShopFontName));
+            Ref("shinyShader", AssetDatabase.LoadAssetAtPath<Shader>("Assets/_MyGame/Shader/UI_Shiny.shader"));
+            var eventMaterials = skin.FindPropertyRelative("eventMaterials");
+            eventMaterials.arraySize = Restore.OriginalAssetImporter.EventFontPresets.Length;
+            for (int i = 0; i < eventMaterials.arraySize; i++)
+                eventMaterials.GetArrayElementAtIndex(i).objectReferenceValue = Preset(Restore.OriginalAssetImporter.EventFontPresets[i]);
             var shopMaterials = skin.FindPropertyRelative("shopMaterials");
             shopMaterials.arraySize = Restore.OriginalAssetImporter.ShopFontPresets.Length;
             for (int i = 0; i < shopMaterials.arraySize; i++)
@@ -282,12 +316,19 @@ namespace SnackDash.Editor.Setup
             "S_Chest_Icon_Widget_0", "S_Bg_Widget_0", "S_Bow_Widget_Corner_0", "S_Lava Quest_Widget_0", "S_Icon_GoldenTicket_0", "S_Icon_NoAds", "S_Lock_Icon_0", "S_Clock_Icon_Widget_0",
             "S_Shop_Icon_0", "S_Home_Icon_0", "Shadow_Round", "Shadow_Round_sharp", "Button_Green_256", "Button_Blue_256", "S_Btn_Green_UI_0", "S_Icon_Support", "Pictogram_Home",
             "S_Button_Round_Green_Underlay", "S_Button_Round_Gray_Underlay",
-            "S_Icon_Heart_Large_0", "S_Icon_Infinite_0", "S_Icon_Heart_bg_0", "S_Icon_Heart_0", "S_Button_Orange", "S_Button_Green", "S_Play_ads_Icon_0", "S_Icon_Coin_Single_0",
+            "S_Icon_Heart_Large_0", "S_Icon_Infinite_0", "S_Heart_Infinity_Icon_0", "S_Icon_Heart_bg_0", "S_Icon_Heart_0", "S_Button_Orange", "S_Button_Green", "S_Play_ads_Icon_0", "S_Icon_Coin_Single_0",
             "JU-Texture-Common-Coin", "S_Icon_Coin_Single", "S_Crate_Icon", "SpeechBubble_MainOutline", "SpeechBubble_MainInner", "SpeechBubble_PointerOutline", "SpeechBubble_PointerInner", "S_Shop_Header_Bg", "S_Close_Btn", "S_CircleShadow", "S_Shop_Frame", "S_Header_Purple_Bg", "S_Header_Orange_Bg", "S_Shop_Bundle_0", "S_Rewards_Banner_0", "GlowRays",
             "S_Offer_Stars_Small_Pack", "S_Offer_Stars_Medium_Pack", "S_Offer_Stars_Large_Pack", "S_Offer_Stars_XL_Pack", "S_Offer_Stars_XXL_Pack", "S_Offer_Blueberries_Overlay_Bg",
             "S_Btn_BG", "S_Offer_Dark_Beige_Inside_Bg", "S_rewards_Banner_OutlineBlur_0", "CoinContainer", "S_Icon_Heart_Infinit_Lives",
             "S_Bg_CoreStreak_Progress_Yellow_Corner_0", "S_Bg_CoreStreak_Progress_Yellow_0", "S_Bg_CoreStreak_Progress_Yellow_Corner-1_0", "S_Bg_CoreStreak_Progress_Orange_0", "S_Gradient_Vertical", "S_Gradient_Radial",
             "S_1000_Coins", "S_5 000_Coins", "S_10 000_Coins", "S_25 000_Coins", "S_50 000_Coins", "S_100 000_Coins",
+            // WEEKLY ADVENTURE (WeeklyMissionsPopup, its chest and rules screens)
+            "Coin", "Glow_Circle01", "PictoIcon_Check_2", "S_Background_Timer_0", "S_Chest_Illustration_0", "S_Icon_Booster_FruitCanon", "S_Icon_Booster_Magnet", "S_Icon_Booster_Teleporter", "S_Icon_Booster_Undo",
+            "S_Icon_Cancel", "S_Icon_CompleteHardLevels_0", "S_Icon_CompleteLevelStreak_0", "S_Icon_CompleteLevels_0", "S_Icon_CompleteSuperHardLevels_0", "S_Icon_EarnCoins_0", "S_Icon_Info", "S_Icon_Lock_0",
+            "S_Icon_Login_0", "S_Icon_MakeAPurchase_0", "S_Icon_Notification_0", "S_Icon_SpendCoins_0", "S_Icon_Timer_01_0", "S_Icon_UseAnyBooster_0", "S_Icon_WatchAds_0", "S_Path_0", "S_Progress_Illustration_0",
+            "S_ProgressionBar_Fill_Yellow", "S_Snake_Head_Illustration_0", "S_Weekly_Background_Claimable_Gold_V2_0", "S_Weekly_Background_Claimable_Green_0", "S_Weekly_Background_Day_Dark_0", "S_Weekly_Background_Day_Light",
+            "S_Weekly_Background_InProfgress_0", "S_Weekly_Background_InProfgress_Gold_V2_0", "S_Weekly_SafariHat_0", "S_Weekly_Target_0", "Tex_WeeklyMissions_Background 1_0", "Tex_WeeklyMissions_Background_Progression",
+            "Tex_WeeklyMissions_Headaer_0", "generic_round_128", "image 1585_0", "S_Weekly_Chests_M_0", "S_Weekly_Chests_M_1", "S_Weekly_Chests_M_2", "S_Weekly_Chests_M_3", "S_Icon_Timer_02_0", "S_Icon_Timer_03_0", "S_Background_SpeechBubble_01", "S_Hand_Tutorial",
             "S_Icon_Music_Enabled", "S_Icon_Music_Disabled", "S_Icon_Haptics_Enabled", "S_Icon_Haptics_Disabled", "S_Icon_Sound_Enabled", "S_Icon_Sound_Disabled",
         };
 
@@ -309,6 +350,10 @@ namespace SnackDash.Editor.Setup
             FillSkin(home);
             Set(home, "levels", AssetDatabase.LoadAssetAtPath<LevelList>("Assets/_MyGame/Data/Levels/LevelList.asset"));
             Set(home, "sounds", AssetDatabase.LoadAssetAtPath<SnackDash.Audio.SoundLibrary>("Assets/_MyGame/Data/SoundLibrary.asset"));
+            Set(home, "prefab", UiPrefab<SnackDash.UI.HomeView>("Home", 10, (view, root) => view.BuildLayout(root))); // made once, then edited by hand [user]
+            Set(home, "weeklyPrefab", PanelPrefab("WeeklyMissionsPopup", SnackDash.UI.WeeklyMissionsPopup.BuildLayout));
+            Set(home, "weeklyRulesPrefab", PanelPrefab("WeeklyMissionsRules", SnackDash.UI.WeeklyMissionsRules.BuildLayout));
+            Set(home, "weeklyBadgeFtuePrefab", PanelPrefab("WeeklyBadgeFtue", SnackDash.UI.WeeklyBadgeFtue.BuildLayout));
             var eventSystem = new GameObject("EventSystem");
             eventSystem.AddComponent<UnityEngine.EventSystems.EventSystem>();
             eventSystem.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
