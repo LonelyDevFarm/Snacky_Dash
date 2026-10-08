@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using SnackDash.Economy;
 using SnackDash.Gameplay;
 using SnackDash.Presentation;
 using TMPro;
@@ -17,7 +18,7 @@ namespace SnackDash.UI
     /// Prefabs from the Build* methods here, then free to edit by hand); without one the layout is
     /// built in code. The Show* methods find the parts by name and add texts, buttons and motion.
     /// Layout values come from the original LoseInBoardPopup / LosePopup / LoseScreenFailedPopup
-    /// RectTransforms and phone screenshots. Snip costs come from SnipOffer (0 coins for now).
+    /// RectTransforms and phone screenshots. Snip costs 900 coins (SnipOffer, PlayerEconomy).
     /// </summary>
     public class LoseFlowView : MonoBehaviour
     {
@@ -48,15 +49,13 @@ namespace SnackDash.UI
         private const float TopContainerHeight = 145f;
 
         private GameSession _session;
-        private Wallet _wallet;
         private Action _restart;
         private BoardCameraFitter _cameraFitter;
         private GameObject _open;
 
-        public void Bind(GameSession session, Wallet wallet, Action restart, BoardCameraFitter cameraFitter)
+        public void Bind(GameSession session, Action restart, BoardCameraFitter cameraFitter)
         {
             _session = session;
-            _wallet = wallet;
             _restart = restart;
             _cameraFitter = cameraFitter;
             session.TailBitten += snipCount => ShowNoWayOut();
@@ -69,6 +68,9 @@ namespace SnackDash.UI
 
         /// <summary>True while the snip is forced (Level 3 tutorial): NO WAY OUT shows no GIVE UP.</summary>
         public Func<bool> ForcedSnip { get; set; }
+
+        /// <summary>900 coins; FREE on Level 3, the snip tutorial, until that level is passed [user].</summary>
+        private int SnipCost => ForcedSnip != null && ForcedSnip() ? 0 : snipOffer.CurrentCost;
 
         private void ShowNoWayOut() => StartCoroutine(NoWayOut());
 
@@ -87,7 +89,7 @@ namespace SnackDash.UI
             SetGroup(group, 0f, false);
 
             // Value: "<sprite index=0> price" in the original (coin icon, then the price; FREE when it costs nothing).
-            int cost = snipOffer.CurrentCost;
+            int cost = SnipCost;
             SetText(root, "Body/Bottom_Container/View_Button_Snip/Tex_Container/Value", cost == 0 ? "FREE" : cost.ToString());
             CoinBeside(root.Find("Body/Bottom_Container/View_Button_Snip/Tex_Container/Value"));
             // The Level 3 lose tutorial makes the player snip: no GIVE UP [user].
@@ -142,7 +144,12 @@ namespace SnackDash.UI
 
         private void Snip()
         {
-            if (!snipOffer.TryUse(_wallet, _session)) return;
+            if (PlayerEconomy.Shared.Coins < SnipCost)
+            {
+                ShopView.Open(null, skin, 0f, () => { }); // short of coins: the Shop on its own canvas, its X comes back here [user]
+                return;
+            }
+            if (!snipOffer.TryUse(PlayerEconomy.Shared, _session, SnipCost)) return;
             Close();
             if (_cameraFitter != null) _cameraFitter.FitDefault(boardRefitDuration);
         }
@@ -161,7 +168,7 @@ namespace SnackDash.UI
 
             var price = (RectTransform)root.Find("Popup Parent/PlayOn Revive Button/Coin Text (TMP)");
             var priceText = price.GetComponent<TMP_Text>();
-            priceText.text = snipOffer.CurrentCost.ToString();
+            priceText.text = SnipCost.ToString();
             price.sizeDelta = new Vector2(priceText.preferredWidth, price.sizeDelta.y); // the original fits the rect to the text
             OnClick(root, "Popup Parent/PlayOn Revive Button", Snip);
             OnClick(root, "Popup Parent/Cancel Button", ShowGameOver);
@@ -271,6 +278,7 @@ namespace SnackDash.UI
 
         private void ShowGameOver()
         {
+            PlayerEconomy.Shared.Lose(); // the level is lost: a life, and the streak if on fire [user]
             var root = Open(prefabs.gameOver, "GameOver", BuildGameOver);
             OnClick(root, "Popup Parent/Try Again Button", () => { Close(); _restart?.Invoke(); });
             StartCoroutine(Pop((RectTransform)root.Find("Popup Parent")));
@@ -360,8 +368,11 @@ namespace SnackDash.UI
                 coin = Rect(value, "Coin", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56f, 56f));
                 Image(coin, skin.coinIcon, Color.white).preserveAspect = true;
             }
+            // FREE (the Level 3 snip tutorial) reads like a booster's FREE: the word alone, centred, no coin [user].
+            bool free = label.text == "FREE";
+            coin.gameObject.SetActive(!free);
             float width = label.GetPreferredValues(label.text).x;
-            label.rectTransform.anchoredPosition = new Vector2(30f, label.rectTransform.anchoredPosition.y);
+            label.rectTransform.anchoredPosition = new Vector2(free ? 0f : 30f, label.rectTransform.anchoredPosition.y);
             coin.anchoredPosition = new Vector2(-width / 2f - 34f, 4f);
         }
 

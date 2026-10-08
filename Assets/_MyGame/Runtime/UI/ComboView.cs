@@ -41,13 +41,27 @@ namespace SnackDash.UI
         private Coroutine _shown;
         private string _lastWord;
 
-        public void Bind(GameSession session, CratesView crates)
+        /// <summary>Combo coins won in this level so far (paid out with the win; HUD tag and win screen show them).</summary>
+        public int LevelCoins { get; private set; }
+
+        private HudView _hud;
+        private int _coinChain; // crates filled since the snake last moved (session side)
+
+        public void Bind(GameSession session, CratesView crates, HudView hud = null)
         {
             _session = session;
+            _hud = hud;
             _root = Canvas(transform, "Combo", 7);
-            session.MoveStarted += direction => EndRun();
-            // A crate fills (session) well before its flash (view): count the ones still to show.
-            session.CrateCompleted += (column, crate) => _pending++;
+            session.MoveStarted += direction => { EndRun(); _coinChain = 0; };
+            // A crate fills (session) well before its flash (view): count the ones still to show. The coins are counted
+            // here, as the crates fill, so the last combo of the level is in the total even though the level is won
+            // before its praise has played [user: only one combo was paid].
+            session.CrateCompleted += (column, crate) =>
+            {
+                _pending++;
+                _coinChain++;
+                if (_coinChain >= 2) LevelCoins += _coinChain - 1;
+            };
             crates.CompletionEffectStarted += column => { _pending = Mathf.Max(0, _pending - 1); _at = Below(column); OnCrateDone(); };
         }
 
@@ -80,10 +94,35 @@ namespace SnackDash.UI
 
         private void EndRun()
         {
-            if (_chain >= 2) { Show(_lastWord, "TOTAL +" + _total, // the last word stays for the total (video)
-                _chain >= tier3From); SoundPlayer.Play("Combo_GiveTotal"); }
+            if (_chain >= 2)
+            {
+                Show(_lastWord, "TOTAL +" + _total, _chain >= tier3From); // the last word stays for the total (video)
+                SoundPlayer.Play("Combo_GiveTotal");
+                StartCoroutine(FlyToHud(_total));
+            }
             _chain = 0;
             _total = 0;
+        }
+
+        /// <summary>Video: with the total a coin rises from it to the HUD coin tag, whose count then goes up.</summary>
+        private IEnumerator FlyToHud(int coins)
+        {
+            var target = _hud != null ? _hud.CoinTag : null;
+            if (target == null || skin.coinIcon == null) { if (_hud != null) _hud.ShowComboCoins(coins); yield break; }
+            yield return new WaitForSeconds(0.35f);
+            var coin = Rect(_root, "FlyingCoin", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), _at + new Vector2(0f, 45f), new Vector2(70f, 70f));
+            Image(coin, skin.coinIcon, Color.white).preserveAspect = true;
+            Vector2 start = coin.anchoredPosition;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(_root, RectTransformUtility.WorldToScreenPoint(null, target.position), null, out var end);
+            yield return Tween.Run(0.55f, Tween.InQuad, t =>
+            {
+                if (coin == null) return;
+                coin.anchoredPosition = Vector2.Lerp(start, end, t) + new Vector2(0f, Mathf.Sin(Mathf.PI * t) * 120f);
+                coin.localScale = Vector3.one * Mathf.Lerp(1f, 0.7f, t);
+            });
+            if (coin != null) Destroy(coin.gameObject);
+            SoundPlayer.Play("CollectCoin");
+            _hud.ShowComboCoins(coins); // this combo alone [user]
         }
 
         private string Word(int chain)

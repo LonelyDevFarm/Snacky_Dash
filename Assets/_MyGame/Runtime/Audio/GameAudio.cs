@@ -34,10 +34,12 @@ namespace SnackDash.Audio
 
             session.MoveStarted += direction => { _eatStreak = 0; Play("Swipe"); };
             // Three eat sounds; rising through them within one run is an inference from the names.
-            session.PillEaten += (cell, kind, index) => Play("GetPill" + Mathf.Min(++_eatStreak, 3));
-            session.SegmentDelivered += (index, kind, column) => Play("ShootToCrate");
+            // Haptics [user: none when eating, stopping or delivering on the phone; the original eats with haptics, PillManager.EatPill].
+            session.PillEaten += (cell, kind, index) => { Play("GetPill" + Mathf.Min(++_eatStreak, 3)); Haptics.Selection(); };
+            session.Stopped += cell => Haptics.Light();
+            session.SegmentDelivered += (index, kind, column) => { Play("ShootToCrate"); Haptics.Tick(); };
             // Completion sounds go with the crate's flash, which follows the full-crate hold.
-            crates.CompletionEffectStarted += column => { Play("Complete_Crate"); Play("CrateConfetti"); Haptics.Light(); };
+            crates.CompletionEffectStarted += column => { Play("Complete_Crate"); Play("CrateConfetti"); Haptics.Medium(); };
             session.PillSpawned += (cell, kind) => PlayOncePerFrame("SpawnPill");
             session.Won += () => { Play("Confetti"); Haptics.Heavy(); };
             session.TailBitten += count => { Play("HitTail"); Haptics.Medium(); };

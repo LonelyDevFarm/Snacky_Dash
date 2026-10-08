@@ -113,6 +113,7 @@ namespace SnackDash.Presentation
                 far = Mathf.Max(far, distance);
             }
             RefreshOccupancy();
+            float last = -1f;
             foreach (var (cell, kind) in _pending)
             {
                 if (!_session.Pills.ContainsKey(cell)) continue; // eaten in the frame it spawned
@@ -123,8 +124,10 @@ namespace SnackDash.Presentation
                     delay = waveDelay + waveSpread * t;
                 }
                 Spawn(cell, kind, delay);
+                last = Mathf.Max(last, delay);
             }
             _pending.Clear();
+            if (last >= 0f) _session.LockInput(last + jumpDuration); // no swipe until every fruit has landed [user]
         }
 
         private void Spawn(Vector2Int cell, PillKind kind, float delay, bool inPlace = false)
@@ -173,6 +176,8 @@ namespace SnackDash.Presentation
                 if (go == null) yield break; // eaten before it showed up
                 go.SetActive(true);
             }
+            while (SnackDash.UI.LoadingScreen.Busy) yield return null; // the start fruit jump in once the loading screen has lifted
+            if (go == null) yield break;
             if (!inPlace) yield return Jump(go, landing + new Vector3(0f, 0f, spawnZ), landing);
             pill.landed = true;
         }

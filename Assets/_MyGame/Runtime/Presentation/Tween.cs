@@ -15,6 +15,7 @@ namespace SnackDash.Presentation
         public static float InOutSine(float t) => -(Mathf.Cos(Mathf.PI * t) - 1f) * 0.5f;
         public static float InQuad(float t) => t * t;
         public static float OutQuad(float t) => 1f - (1f - t) * (1f - t);
+        public static float InOutCubic(float t) => t < 0.5f ? 4f * t * t * t : 1f - Mathf.Pow(-2f * t + 2f, 3f) * 0.5f;
 
         public static Func<float, float> OutBack(float overshoot) => t =>
         {
@@ -25,14 +26,24 @@ namespace SnackDash.Presentation
         public static Func<float, float> InBack(float overshoot) => t => t * t * ((overshoot + 1f) * t - overshoot);
 
         /// <summary>Calls <paramref name="step"/> with eased progress 0..1 over <paramref name="duration"/> seconds.</summary>
-        public static IEnumerator Run(float duration, Func<float, float> ease, Action<float> step)
+        public static IEnumerator Run(float duration, Func<float, float> ease, Action<float> step) => Run(duration, ease, step, false);
+
+        /// <param name="unscaled">Runs on real time, for UI that must move while the game is paused (timeScale 0).</param>
+        public static IEnumerator Run(float duration, Func<float, float> ease, Action<float> step, bool unscaled)
         {
-            for (float time = 0f; time < duration; time += Time.deltaTime)
+            for (float time = 0f; time < duration; time += unscaled ? Time.unscaledDeltaTime : Time.deltaTime)
             {
-                step(ease(time / duration));
+                if (!Step(step, ease(time / duration))) yield break;
                 yield return null;
             }
-            step(ease(1f));
+            Step(step, ease(1f));
+        }
+
+        /// <summary>One step; false once what it animates has been destroyed (a popup closed mid-tween), which ends the tween.</summary>
+        private static bool Step(Action<float> step, float t)
+        {
+            try { step(t); return true; }
+            catch (MissingReferenceException) { return false; }
         }
 
         /// <summary>Goes to <paramref name="peak"/> and back to 1 over two halves (a "punch").</summary>

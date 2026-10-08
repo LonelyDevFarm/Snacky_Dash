@@ -1,49 +1,25 @@
 using System;
-using UnityEngine;
+using SnackDash.Economy;
 
 namespace SnackDash.Gameplay
 {
-    /// <summary>Coins owned by the player. Persistence and earning come with the coin economy (later).</summary>
-    public sealed class Wallet
-    {
-        public int Coins { get; private set; }
-
-        public event Action<int> Changed;
-
-        public Wallet(int coins = 0) => Coins = coins;
-
-        public void Add(int amount)
-        {
-            Coins += amount;
-            Changed?.Invoke(Coins);
-        }
-
-        public bool TrySpend(int amount)
-        {
-            if (amount < 0 || Coins < amount) return false;
-            Coins -= amount;
-            Changed?.Invoke(Coins);
-            return true;
-        }
-    }
-
     /// <summary>
-    /// Price of "Snip Tail" (continue after biting the tail), rising with each use in a level.
-    /// The original charged 900 coins, then 1900 (video Man_Lose); this project keeps the price at 0
-    /// until the coin economy exists, so set baseCost / costIncrease here when it does.
+    /// "Snip Tail" (continue after biting the tail): always <see cref="PlayerEconomy.SnipPrice"/> coins [user]
+    /// (the original raised it each use, 900 then 1900, from remote config).
     /// </summary>
     [Serializable]
     public class SnipOffer
     {
-        [Tooltip("Original: 900.")] public int baseCost;
-        [Tooltip("Original: +1000 per use.")] public int costIncrease;
-
         public int UsesThisLevel { get; private set; }
-        public int CurrentCost => baseCost + costIncrease * UsesThisLevel;
+        public int CurrentCost => PlayerEconomy.SnipPrice;
 
-        public bool TryUse(Wallet wallet, GameSession session)
+        /// <summary>False when the snake is not stuck or the coins are short (the caller opens the Shop).</summary>
+        public bool TryUse(PlayerEconomy economy, GameSession session) => TryUse(economy, session, CurrentCost);
+
+        /// <param name="cost">The price this time (0 on the Level 3 snip tutorial).</param>
+        public bool TryUse(PlayerEconomy economy, GameSession session, int cost)
         {
-            if (!session.IsStuck || !wallet.TrySpend(CurrentCost)) return false;
+            if (!session.IsStuck || !economy.TrySpend(cost)) return false;
             UsesThisLevel++;
             return session.Snip();
         }

@@ -97,6 +97,7 @@ namespace SnackDash.Editor.Restore
                 level.timeLimitSeconds = Float(TopLevel(lines, "_timeLimitSeconds"));
                 level.speedOverride = Float(TopLevel(lines, "<speedPlayer>k__BackingField"));
                 level.wallHealth = Int(TopLevel(lines, "destructibleWallHealth"));
+                level.difficulty = Int(TopLevel(lines, "<difficulty>k__BackingField"));
                 level.wallGroupHealths = ParseWallGroups(Block(lines, "  destructibleWallGroupHealths:"));
                 EditorUtility.SetDirty(level);
 

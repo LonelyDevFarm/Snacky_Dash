@@ -75,7 +75,12 @@ namespace SnackDash.UI
         public static void Pressable(Transform root)
         {
             foreach (var button in root.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+            {
+                // The dip is the feedback; Unity's colour tint would leave a button tinted after a press (selected /
+                // highlighted state), which turned the settings gear pale [user].
+                button.transition = UnityEngine.UI.Selectable.Transition.None;
                 if (button.GetComponent<PressFeedback>() == null) button.gameObject.AddComponent<PressFeedback>();
+            }
         }
 
         public static Color Hex(string rgba) => ColorUtility.TryParseHtmlString("#" + rgba, out var color) ? color : Color.white;

@@ -68,6 +68,7 @@ namespace SnackDash.UI
         public void Bind(GameSession session, int levelNumber)
         {
             _session = session;
+            session.Stopped += cell => { if (session.Board.CrateColumnAt(cell) < 0) TryOpenPending(); }; // at a crate the delivery comes first
             _level = levelNumber;
             Build();
             // NEW ITEM! each time the level starts until it is passed; NEW BOOSTER! once [user].
@@ -98,6 +99,7 @@ namespace SnackDash.UI
             bool canClose = false;
             StartCoroutine(After(cardTapDelay, () =>
             {
+                if (tap == null) return; // the card was closed already
                 tap.gameObject.SetActive(true);
                 canClose = true;
                 StartCoroutine(Bounce(tap));
@@ -197,11 +199,15 @@ namespace SnackDash.UI
                 _newBatchShown = true;
                 _pending = NewBatchMessage;
             }
-            if (_pending != null && !_open && _session.IsIdle && !_session.ForcedSwipe.HasValue && !_session.InputBlocked)
-            {
-                Open(_pending);
-                _pending = null;
-            }
+            TryOpenPending();
+        }
+
+        /// <summary>A waiting message opens once the snake is idle; also tried the moment it stops, before a buffered swipe runs [user].</summary>
+        private void TryOpenPending()
+        {
+            if (_pending == null || _open || !_session.IsIdle || _session.ForcedSwipe.HasValue || _session.InputBlocked || _session.InputLocked) return;
+            Open(_pending);
+            _pending = null;
         }
 
         // ------------------------------------------------------------------ messages
@@ -272,13 +278,14 @@ namespace SnackDash.UI
             float[] scales = { 0.5f, 1.1f, 0.9f, 1.06f, 1f };
             for (float t = 0f; t < 0.5f; t += Time.deltaTime)
             {
+                if (target == null) yield break; // closed while it was still bouncing
                 int i = 1;
                 while (i < times.Length - 1 && t > times[i]) i++;
                 float k = Mathf.InverseLerp(times[i - 1], times[i], t);
                 target.localScale = Vector3.one * Mathf.Lerp(scales[i - 1], scales[i], Mathf.SmoothStep(0f, 1f, k));
                 yield return null;
             }
-            target.localScale = Vector3.one;
+            if (target != null) target.localScale = Vector3.one;
         }
 
         /// <summary>
@@ -289,7 +296,7 @@ namespace SnackDash.UI
         {
             while (_hand != null && _hand.gameObject.activeSelf)
             {
-                for (float t = 0f; t < 1f && _hand.gameObject.activeSelf; t += Time.deltaTime)
+                for (float t = 0f; t < 1f && _hand != null && _trail != null && _hand.gameObject.activeSelf; t += Time.deltaTime)
                 {
                     float x;
                     if (t < 0.1f) x = Mathf.Lerp(0f, 3.1f, t / 0.1f);

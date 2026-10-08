@@ -42,6 +42,31 @@ namespace SnackDash.UI
 
         private const int RayCount = 10;
 
+        /// <summary>
+        /// The win screen's "NEW ITEM" bar (IngredientUnlockConfig_FTUE_AB): it fills from levelToStartShowingUp to
+        /// levelToUnlock, and the mechanic comes on the level after. Icon = skin.mechanicIcons index.
+        /// </summary>
+        private static readonly (int show, int unlock, int icon)[] Bar =
+        {
+            (0, 4, 0), (4, 8, 1), (8, 13, 2), (13, 20, 3), (20, 25, 4), (25, 30, 5), (30, 40, 6), (40, 50, 7),
+        };
+
+        /// <summary>The bar after winning <paramref name="level"/>: fill before and after the win, and its icon; false when no mechanic is coming.</summary>
+        public static bool NewItemBar(int level, out float from, out float to, out int icon)
+        {
+            foreach (var b in Bar)
+                if (level > b.show && level <= b.unlock)
+                {
+                    from = (level - 1 - b.show) / (float)(b.unlock - b.show);
+                    to = (level - b.show) / (float)(b.unlock - b.show);
+                    icon = b.icon;
+                    return true;
+                }
+            from = to = 0f;
+            icon = 0;
+            return false;
+        }
+
         public static bool TryGet(int level, bool booster, out Entry entry)
         {
             foreach (var e in All)
@@ -180,6 +205,7 @@ namespace SnackDash.UI
 
             var color = background.color;
             yield return Tween.Run(0.2f, Tween.Linear, t => background.color = new Color(color.r, color.g, color.b, alpha * t));
+            if (root == null) yield break; // closed while it came in
             var titleEnd = title.anchoredPosition;
             var titleStart = titleEnd + new Vector2(260f, 80f);
             yield return Tween.Run(0.3f, Tween.OutBack(2f), t =>
@@ -188,6 +214,7 @@ namespace SnackDash.UI
                 title.localScale = Vector3.one * t;
                 title.localRotation = Quaternion.Euler(0f, 0f, 12f * (1f - t));
             });
+            if (root == null) yield break;
             host.StartCoroutine(Tween.Run(0.4f, Tween.OutQuad, t =>
             {
                 if (flash == null) return;
@@ -195,17 +222,22 @@ namespace SnackDash.UI
                 flashImage.color = new Color(flashImage.color.r, flashImage.color.g, flashImage.color.b, 1f - t);
             }));
             yield return new WaitForSeconds(0.1f);
+            if (root == null) yield break; // closed while it came in
             yield return Tween.Run(0.35f, Tween.OutBack(2.5f), t =>
             {
                 card.localScale = ribbon.localScale = Vector3.one * t;
                 card.localRotation = Quaternion.Euler(0f, 0f, -15f * (1f - t));
             });
+            if (root == null) yield break;
             sparkles.gameObject.SetActive(true);
             host.StartCoroutine(Twinkle(sparkles));
             host.StartCoroutine(Tween.Run(0.4f, Tween.Linear, t => { if (rays != null) rays.alpha = t; }));
             yield return new WaitForSeconds(0.3f);
+            if (root == null) yield break; // closed while it came in
             yield return Tween.Run(0.25f, Tween.OutBack(3f), t => name.localScale = Vector3.one * t);
+            if (root == null) yield break; // closed while it came in
             yield return Tween.Run(0.25f, Tween.OutBack(2f), t => bubble.localScale = Vector3.one * t);
+            if (root == null) yield break; // closed while it came in
         }
 
         private static IEnumerator Spin(RectTransform rays)

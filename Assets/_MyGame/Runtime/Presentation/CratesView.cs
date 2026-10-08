@@ -45,6 +45,12 @@ namespace SnackDash.Presentation
         [SerializeField] private float boomerangFlightDuration = 0.5f;
         [SerializeField] private float boomerangArcHeight = 3f;
         [SerializeField] private GameObject vortexPrefab;
+        [Header("Extra crate (ExtraCrateVfxConfig)")]
+        [Tooltip("Crates/Particle_Extra_Crate: bursts on the crate when the extra column opens.")]
+        [SerializeField] private GameObject extraUnlockVfx;
+        [Tooltip("Crates/ExtraCrate_Trail_FX: flies from the screen to the crate before it opens.")]
+        [SerializeField] private GameObject extraTrailPrefab;
+        [SerializeField] private float extraTrailDuration = 1f;
         [Tooltip("Footage: the fruit lands large and settles into its slot over ~6 frames.")]
         [SerializeField] private float landingScale = 1.6f;
         [SerializeField] private float landingDuration = 0.2f;
@@ -94,6 +100,7 @@ namespace SnackDash.Presentation
                 }
             for (int column = 0; column < session.Columns.Count; column++) Rebuild(column, false);
             session.SegmentDelivered += OnDelivered;
+            session.ExtraColumnUnlocked += OnExtraUnlocked;
             session.SegmentSnipped += OnSnipped;
             session.TailSnipped += keep => { _snipOrder = 0; _boomerang = false; };
             session.BoomerangThrown += (column, thrown) => { _snipOrder = 0; _boomerang = true; };
@@ -152,6 +159,45 @@ namespace SnackDash.Presentation
             FlyToCrate(start, kind, columnIndex, crateIndex, delay, _boomerang);
         }
 
+        /// <summary>Where a column's crate stands (world), e.g. for the TAP TO UNLOCK bubble.</summary>
+        public Vector3 ColumnWorldPosition(int column) =>
+            _session.Board.CrateAnchors.TryGetValue(column, out var anchor) ? transform.TransformPoint(CratePosition(anchor)) : transform.position;
+
+        /// <summary>
+        /// ExtraCrate_Trail_FX [ExtraCrateVfxConfig]: from just below the middle of the screen (viewport offset 0, -0.1)
+        /// to the extra crate in 1 s, growing in over the first 35 % (from 0.5) and ending at 0.35 of its size.
+        /// </summary>
+        public IEnumerator PlayExtraTrail(int column)
+        {
+            var camera = Camera.main;
+            var end = ColumnWorldPosition(column);
+            if (extraTrailPrefab == null || camera == null) yield break;
+            var ray = camera.ViewportPointToRay(new Vector3(0.5f, 0.4f, 0f));
+            var plane = new Plane(-camera.transform.forward, end);
+            var start = plane.Raycast(ray, out float distance) ? ray.GetPoint(distance) : end;
+            var trail = Instantiate(extraTrailPrefab, start, Quaternion.identity, transform);
+            var scale = trail.transform.localScale;
+            yield return Tween.Run(extraTrailDuration, Tween.Linear, t =>
+            {
+                if (trail == null) return;
+                trail.transform.position = Vector3.Lerp(start, end, Tween.InOutSine(t));
+                float size = t < 0.35f ? Mathf.Lerp(0.5f, 1f, t / 0.35f) : Mathf.Lerp(1f, 0.35f, (t - 0.35f) / 0.65f);
+                trail.transform.localScale = scale * size;
+            });
+            if (trail != null) Destroy(trail, 1f); // its particles fade out
+        }
+
+        /// <summary>Particle_Extra_Crate on the crate (offset 0, 0, -0.5), the new stack pops in, the others show their share.</summary>
+        private void OnExtraUnlocked(int extraColumn)
+        {
+            if (extraUnlockVfx != null)
+            {
+                var vfx = Instantiate(extraUnlockVfx, ColumnWorldPosition(extraColumn) + new Vector3(0f, 0f, -0.5f), Quaternion.identity, transform);
+                Destroy(vfx, 3f);
+            }
+            for (int column = 0; column < _session.Columns.Count; column++) Rebuild(column, column == extraColumn);
+        }
+
         /// <summary>Magnet booster: the fruit flies from its cell into the crate it was given (the boomerang's flight).</summary>
         private void OnMagnetized(Vector2Int cell, PillKind kind, int columnIndex, int crateIndex) =>
             FlyToCrate(BoardView.CellToWorld(cell), kind, columnIndex, crateIndex, 0f, true);
@@ -194,11 +240,14 @@ namespace SnackDash.Presentation
         /// </summary>
         private IEnumerator Fly(PillKind kind, System.Func<Transform> target, Vector3 start, float delay, bool vanish = false, bool boomerang = false, System.Action landed = null)
         {
-            if (delay > 0f) yield return new WaitForSeconds(delay);
-            var slot = target();
-            if (slot == null) { landed?.Invoke(); yield break; }
+            // The fruit shows at once where it was (a snipped tail's body goes, its fruit stay) and waits its turn there
+            // [video Man_Lose; user: they came up out of the ground].
             var fruit = Instantiate(pillPrefab, transform);
             PillVisual.SetKind(fruit, kind);
+            fruit.transform.position = start;
+            if (delay > 0f) yield return new WaitForSeconds(delay);
+            var slot = target();
+            if (slot == null) { Destroy(fruit); landed?.Invoke(); yield break; }
             GameObject wind = boomerang && vortexPrefab != null ? Instantiate(vortexPrefab, fruit.transform) : null;
             yield return Tween.Run(boomerang ? boomerangFlightDuration : flightDuration, Tween.Linear, t =>
             {
@@ -249,22 +298,25 @@ namespace SnackDash.Presentation
         {
             float ready = Time.time + NormalCompletionWait;
             float start = Mathf.Max(ready, _columnFreeAt.TryGetValue(columnIndex, out float free) ? free : 0f);
-            _columnFreeAt[columnIndex] = start + appearDuration + fullCrateHold;
+            _columnFreeAt[columnIndex] = start + exitDuration + appearDuration + fullCrateHold;
             _lastEffectLag = Mathf.Max(0f, start - ready);
             yield return new WaitForSeconds(start - Time.time);
             CompletionEffectStarted?.Invoke(columnIndex);
+            GameObject finished = null;
             if (_columns.TryGetValue(columnIndex, out var crates) && crates.Count > 0)
             {
-                var finished = crates[0];
+                finished = crates[0];
                 crates.RemoveAt(0);
-                StartCoroutine(Exit(finished));
             }
-            _pendingSwaps[columnIndex]--;
+            _pendingSwaps[columnIndex]--; // with the removal, so fruit in flight aim at the next crate (still below)
+            // The full crate goes first, then the stack rises: together the next crate rode up over it [user].
+            if (finished != null) yield return Exit(finished);
             Rebuild(columnIndex, true);
         }
 
         private IEnumerator Exit(GameObject crate)
         {
+            CameraShake.CrateExit(); // Exit Camera Shake [Box_Crate_9_VO BoxFeedbackView]
             var confetti = crate.transform.Find("Confetti_Crates");
             if (confetti != null)
             {
@@ -287,10 +339,13 @@ namespace SnackDash.Presentation
             if (!_session.Board.CrateAnchors.TryGetValue(columnIndex, out var anchor)) return;
             var column = _session.Columns[columnIndex];
             var basePosition = CratePosition(anchor);
+            // From the crate on show, not the session's: when several crates of a column fill in one go, the full ones
+            // still waiting for their turn to leave stay on top (skipping them lost a crate and its fruit) [user].
+            int top = column.CurrentIndex - (_pendingSwaps.TryGetValue(columnIndex, out int pending) ? pending : 0);
 
             for (int k = 0; k < VisibleCratesPerColumn; k++)
             {
-                int crateIndex = column.CurrentIndex + k;
+                int crateIndex = top + k;
                 if (crateIndex >= column.Crates.Count) break;
                 var definition = column.Crates[crateIndex];
                 var crate = Instantiate(crate9Prefab, transform); // every crate holds 9 (see GameSession.CrateCapacity)

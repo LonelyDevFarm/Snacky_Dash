@@ -1,7 +1,10 @@
+// The exporter only left a placeholder for the original "UI/Additive" (opaque, no blending): particles and trails
+// using it (ExtraCrate_Trail_FX's MAT_FX_Trail_Soft) drew solid squares. Rebuilt as a plain additive shader:
+// texture x vertex colour x tint, added on top (SrcAlpha One), no depth write, both faces, UI stencil kept.
 Shader "UI/Additive" {
 	Properties {
 		_MainTex ("Sprite Texture", 2D) = "white" {}
-		_Color ("Tint", Vector) = (1,1,1,1)
+		_Color ("Tint", Color) = (1,1,1,1)
 		_StencilComp ("Stencil Comparison", Float) = 8
 		_Stencil ("Stencil ID", Float) = 0
 		_StencilOp ("Stencil Operation", Float) = 0
@@ -10,56 +13,56 @@ Shader "UI/Additive" {
 		_ColorMask ("Color Mask", Float) = 15
 		_ClipRect ("Clip Rect", Vector) = (-32767,-32767,32767,32767)
 	}
-	//DummyShaderTextExporter
-	SubShader{
-		Tags { "RenderType"="Opaque" }
-		LOD 200
+	SubShader {
+		Tags { "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" "PreviewType"="Plane" "CanUseSpriteAtlas"="True" }
+		Stencil {
+			Ref [_Stencil]
+			Comp [_StencilComp]
+			Pass [_StencilOp]
+			ReadMask [_StencilReadMask]
+			WriteMask [_StencilWriteMask]
+		}
+		Cull Off
+		Lighting Off
+		ZWrite Off
+		ZTest LEqual
+		Blend SrcAlpha One
+		ColorMask [_ColorMask]
 
-		Pass
-		{
-			HLSLPROGRAM
+		Pass {
+			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
+			#include "UnityCG.cginc"
 
-			float4x4 unity_ObjectToWorld;
-			float4x4 unity_MatrixVP;
-			float4 _MainTex_ST;
-
-			struct Vertex_Stage_Input
-			{
-				float4 pos : POSITION;
+			struct appdata {
+				float4 vertex : POSITION;
+				float4 color : COLOR;
 				float2 uv : TEXCOORD0;
 			};
 
-			struct Vertex_Stage_Output
-			{
-				float2 uv : TEXCOORD0;
+			struct v2f {
 				float4 pos : SV_POSITION;
-			};
-
-			Vertex_Stage_Output vert(Vertex_Stage_Input input)
-			{
-				Vertex_Stage_Output output;
-				output.uv = (input.uv.xy * _MainTex_ST.xy) + _MainTex_ST.zw;
-				output.pos = mul(unity_MatrixVP, mul(unity_ObjectToWorld, input.pos));
-				return output;
-			}
-
-			Texture2D<float4> _MainTex;
-			SamplerState sampler_MainTex;
-			float4 _Color;
-
-			struct Fragment_Stage_Input
-			{
+				fixed4 color : COLOR;
 				float2 uv : TEXCOORD0;
 			};
 
-			float4 frag(Fragment_Stage_Input input) : SV_TARGET
-			{
-				return _MainTex.Sample(sampler_MainTex, input.uv.xy) * _Color;
+			sampler2D _MainTex;
+			float4 _MainTex_ST;
+			fixed4 _Color;
+
+			v2f vert(appdata v) {
+				v2f o;
+				o.pos = UnityObjectToClipPos(v.vertex);
+				o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+				o.color = v.color * _Color;
+				return o;
 			}
 
-			ENDHLSL
+			fixed4 frag(v2f i) : SV_Target {
+				return tex2D(_MainTex, i.uv) * i.color;
+			}
+			ENDCG
 		}
 	}
 }

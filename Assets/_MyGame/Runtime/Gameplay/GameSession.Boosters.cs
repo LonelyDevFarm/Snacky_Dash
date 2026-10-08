@@ -36,8 +36,8 @@ namespace SnackDash.Gameplay
         public bool IsRewinding => _rewindTime > 0f;
         private float _rewindTime;
 
-        /// <summary>How fast views run the snake back on undo (cells per second; VFX_hoantac measured about 12, the user found that a bit slow and 20 too fast; settled on 18).</summary>
-        public const float RewindSpeed = 18f;
+        /// <summary>How fast views run the snake back on undo (cells per second; VFX_hoantac measured about 12, the user found that a bit slow and 20 too fast; settled on 18; on the phone 18 still looked fast, then 14 felt slow, now 16 [user 08/10]).</summary>
+        public const float RewindSpeed = 16f;
 
         private sealed class Snapshot
         {

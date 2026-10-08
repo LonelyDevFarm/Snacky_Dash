@@ -13,8 +13,8 @@ namespace SnackDash.UI
     /// shows it): orange zigzag header with SETTINGS and an X, Music / Haptics / Sound switches (green
     /// with the Enabled icon, grey with the Disabled one), the language row (English only), HELP &amp;
     /// SUPPORT, BACK TO HOME in a level, TERMS &amp; PRIVACY. Help, Terms and the language arrows are for
-    /// show [user]. BACK TO HOME asks "ARE YOU SURE?" (ConfirmQuitLevelPopup) without the lives part
-    /// [user: no lives yet].
+    /// show [user]. BACK TO HOME asks "ARE YOU SURE?" with "YOU WILL LOSE 1 LIFE!"
+    /// (LivesPopup.ConfirmLeave).
     /// </summary>
     public static class SettingsPopup
     {
@@ -57,7 +57,7 @@ namespace SnackDash.UI
             BigButton(root, skin, -960f, "SupportButton", "Button_Green_256", "S_Icon_Support", Color.white, "HELP & SUPPORT", new Color(0.024f, 0.463f, 0.051f), null);
             if (backToHome != null)
                 BigButton(root, skin, -1165f, "MainMenuButton", "Button_Blue_256", "Pictogram_Home", new Color(0f, 0.29f, 0.576f), "BACK TO HOME", new Color(0f, 0.294f, 0.584f),
-                    () => Confirm(canvas, skin, backToHome));
+                    () => LivesPopup.ConfirmLeave(canvas, skin, backToHome));
 
             var terms = Text(Rect(root, "Terms&Privacy (TMP)", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 135f), new Vector2(860f, 68f)), "TERMS & PRIVACY", skin.font, skin.plainMaterial, 55f, new Color(0.97f, 0.97f, 0.97f));
             terms.raycastTarget = false;
@@ -98,31 +98,6 @@ namespace SnackDash.UI
             var button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = face;
             if (onClick != null) button.onClick.AddListener(() => onClick());
-        }
-
-        /// <summary>ConfirmQuitLevelPopup without the lives: "ARE YOU SURE?", X, CONTINUE (leaves the level).</summary>
-        private static void Confirm(RectTransform canvas, UiSkin skin, Action leave)
-        {
-            var root = Stretch(canvas, "ConfirmQuitLevelPopup");
-            Image(root, skin.Get("gdpr_rounded_square"), new Color(0.035f, 0.137f, 0.204f, 0.88f), sliced: true, raycast: true);
-            var content = Rect(root, "Content", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(792f, 700f));
-            Image(Rect(content, "BG", Vector2.zero, Vector2.one, new Vector2(0f, -16f), new Vector2(0f, -120f)), skin.Get("S_BG_Pop-up_Frame_0"), Color.white, sliced: true);
-            var title = Rect(content, "Title", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-16f, -110f), new Vector2(645.6f, 215.5f));
-            Image(title, skin.Get("S_BG_Title (1)_0"), Color.white);
-            Text(Rect(title, "Text", Vector2.zero, Vector2.one, new Vector2(0f, 1.6f), new Vector2(-53f, -92.4f)), "ARE YOU SURE?", skin.font, skin.blueUnderlayMaterial, 72f, Color.white);
-            var close = Rect(content, "CloseButton", Vector2.one, Vector2.one, new Vector2(-17.7f, -95f), new Vector2(117.6f, 117.1f));
-            Image(close, skin.Get("S_Close_Btn_0"), Color.white, raycast: true);
-            close.gameObject.AddComponent<Button>().onClick.AddListener(() => UnityEngine.Object.Destroy(root.gameObject));
-            var body = Rect(content, "Body", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 10f), new Vector2(-30f, 230f));
-            Image(Stretch(body, "BG"), skin.Get("S_BG_Pop-up_0"), Color.white, sliced: true);
-            var text = Text(Stretch(body, "Text"), "YOU WILL LEAVE\nTHIS LEVEL!", skin.font, skin.plainMaterial, 56f, new Color(1f, 0.286f, 0.271f));
-            text.enableWordWrapping = true;
-            var cont = Rect(content, "ContinueButton", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 120f), new Vector2(510f, 208f));
-            Image(cont, skin.Get("S_Green_btn_0"), Color.white, raycast: true);
-            Text(Rect(cont, "Text", Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-68f, -45f)), "CONTINUE", skin.font, skin.greenOutlineMaterial, 55f, Color.white);
-            cont.gameObject.AddComponent<Button>().onClick.AddListener(() => leave());
-            CentreOnLetters(root);
-            Pressable(root);
         }
     }
 }

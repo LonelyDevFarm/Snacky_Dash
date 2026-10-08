@@ -46,7 +46,6 @@ namespace SnackDash.Bootstrap
         public int LevelNumber => levels != null ? levels.levels.IndexOf(Level) + 1 : 0;
 
         /// <summary>Coins; persistence and earning arrive with the coin economy (Snip is free for now).</summary>
-        public Wallet Wallet { get; } = new Wallet();
 
         public void RestartLevel() =>
             UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.buildIndex >= 0
@@ -67,14 +66,17 @@ namespace SnackDash.Bootstrap
             pills.Bind(Session);
             crates.Bind(Session);
             if (gameAudio != null) gameAudio.Bind(Session, crates);
-            if (loseFlow != null) loseFlow.Bind(Session, Wallet, RestartLevel, cameraFitter);
+            if (loseFlow != null) loseFlow.Bind(Session, RestartLevel, cameraFitter);
             if (hud != null) hud.Bind(Session, LevelNumber);
             if (boosters != null) boosters.Bind(Session, LevelNumber, board, cameraFitter);
             if (tutorial != null) tutorial.Bind(Session, LevelNumber);
-            if (combo != null) combo.Bind(Session, crates);
+            if (combo != null) combo.Bind(Session, crates, hud);
+            if (hud != null) hud.gameObject.AddComponent<SnackDash.UI.ExtraCrateView>().Bind(Session, crates, hud.Skin); // the extra crate, where the level has one
             if (tutorial != null && loseFlow != null) loseFlow.BeforeNoWayOut = tutorial.LoseTutorial;
             if (tutorial != null && loseFlow != null) loseFlow.ForcedSnip = () => tutorial.ForcedSnip;
-            if (tutorial != null && boosters != null) boosters.HideWhen = () => tutorial.HidesBoosterBar;
+            // The bar hides under the tutorials that ask for it and whenever the snake is stuck (NO WAY OUT / GIVE UP), so
+            // it never covers SNIP TAIL! [user].
+            if (boosters != null) boosters.HideWhen = () => (Session != null && Session.IsStuck) || (tutorial != null && tutorial.HidesBoosterBar);
             input.Swiped += (direction, fingerHeld) => Session.RequestMove(direction, fingerHeld);
             Session.Won += OnWon;
 
@@ -85,15 +87,30 @@ namespace SnackDash.Bootstrap
             cameraFitter.Fit(bounds);
 
             Session.Begin();
+            SnackDash.Economy.PlayerEconomy.Shared.LevelInProgress = true; // closing the app now costs a life
         }
 
         private void OnWon()
         {
             if (Level == testLevel) LevelProgress.TestLevelDone = true;
             LevelProgress.Advance(levels, Level);
-            // The next level brings a new mechanic: the win screen shows it UNLOCKED! [user]. After it, CONTINUE goes Home; otherwise to the next level [user].
+            // The next level brings a new mechanic: the win screen shows it UNLOCKED! [user]. After it, CONTINUE goes Home;
+            // otherwise to the next level [user]. Before Level 6 there is no Home yet, so always the next level [user].
             bool unlocks = SnackDash.UI.UnlockPopups.TryGet(LevelNumber + 1, false, out var unlocked);
-            if (victory != null) victory.Show(unlocks ? () => SnackDash.UI.LoadingScreen.Load(SnackDash.UI.LoadingScreen.HomeScene) : (System.Action)RestartLevel, crates != null ? crates.LastCompletionLag : 0f, unlocks ? unlocked : (SnackDash.UI.UnlockPopups.Entry?)null);
+            bool toHome = unlocks && LevelNumber + 1 >= LevelProgress.HomeFromLevel;
+            // Coins: the win (20 / 30 / 40, x2 on a streak on fire) and the combo coins go to the wallet now;
+            // x2 on the win screen pays the total once more [user].
+            var economy = SnackDash.Economy.PlayerEconomy.Shared;
+            bool onFire = economy.StreakOnFire;
+            int comboCoins = combo != null ? combo.LevelCoins : 0;
+            int baseCoins = economy.Win(LevelNumber, Level.difficulty);
+            economy.AddCoins(comboCoins);
+            var reward = new SnackDash.UI.VictoryReward
+            {
+                baseCoins = baseCoins, comboCoins = comboCoins, onFire = onFire, level = LevelNumber,
+                doubled = () => economy.AddCoins(baseCoins + comboCoins),
+            };
+            if (victory != null) victory.Show(toHome ? () => SnackDash.UI.LoadingScreen.Load(SnackDash.UI.LoadingScreen.HomeScene) : (System.Action)RestartLevel, crates != null ? crates.LastCompletionLag : 0f, unlocks ? unlocked : (SnackDash.UI.UnlockPopups.Entry?)null, reward);
             else RestartLevel();
         }
 

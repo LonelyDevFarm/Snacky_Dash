@@ -61,6 +61,8 @@ namespace SnackDash.LevelSystem
         public float speedOverride;
         [Tooltip("Original destructibleWallHealth: crates to complete before a rock row breaks.")]
         public int wallHealth;
+        [Tooltip("Original LevelDataSO difficulty: 0 normal, 2 hard, 4 super hard (win reward 20 / 30 / 40 coins).")]
+        public int difficulty;
         [Tooltip("Original destructibleWallGroupHealths: rock rows with their own health (found by a cell).")]
         public List<WallGroupHealth> wallGroupHealths = new List<WallGroupHealth>();
     }

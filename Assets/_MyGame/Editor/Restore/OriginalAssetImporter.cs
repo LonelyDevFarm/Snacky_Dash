@@ -127,6 +127,7 @@ namespace SnackDash.Editor.Restore
 
         public const string RebuiltFontFolder = "Assets/_MyGame/Art/Fonts/Rebuilt/";
         public const string RebuiltFontName = "LuckiestGuy SDF";
+        public const string ShopFontName = "LilitaOne SDF";
 
         // Original TMP material presets used by the popups (LoseInBoardPopup / LoseScreenFailedPopup).
         public static readonly string[] FontPresets =
@@ -135,40 +136,54 @@ namespace SnackDash.Editor.Restore
             "LuckiestGuy-Regular SDF Dark Red", "LuckiestGuy-Regular SDF Blue Underlay", "LuckiestGuy-Regular SDF Green Cartoon",
             "LuckiestGuy-Regular Atlas Material", "LuckiestGuy-Regular SDF Red Cartoon", "LuckiestGuy-Regular SDF Red Cartoon Play btn",
             "LuckiestGuy-Regular Brown Level Number", "LuckiestGuy-Regular HomeScreen Levels", "LuckiestGuy-Regular Progress Bar",
+            "LuckiestGuy-Regular SDF Purple Cartoon Play btn", "LuckiestGuy-Regular SDF Purple Cartoon Inner Shadow", "LuckiestGuy-Regular SDF Red Cartoon Inner Shadow",
+        };
+
+        /// <summary>LilitaOne presets of the Shop (ShopView, its items and section titles).</summary>
+        public static readonly string[] ShopFontPresets =
+        {
+            "LilitaOne-Regular - Shop", "LilitaOne-Regular - Buy Btn", "LilitaOne-Regular - Shop - Title", "LilitaOne-Regular - Shop - Title 2",
+            "LilitaOne-Regular - Shop - Bundles Title", "LilitaOne-Regular - Shop - Coins Title",
         };
 
         /// <summary>
         /// The exported "LuckiestGuy-Regular SDF" font asset comes from Unity 6's TextMeshPro and
         /// crashes this editor (TMP 3.0.7) when its text is drawn. Builds a fresh dynamic font asset from
-        /// the TTF and recreates each original material preset on it, copying colours, outline,
+        /// the TTF and recreates each original material preset on it (LuckiestGuy for the game, LilitaOne for the Shop), copying colours, outline,
         /// underlay values and keywords. Running it again only adds the presets that are missing, so
         /// references to the font and existing presets stay valid.
         /// </summary>
         [MenuItem("SnackDash/Restore/Rebuild TMP Font")]
         public static void RebuildFont()
         {
-            var ttf = AssetDatabase.LoadAssetAtPath<Font>("Assets/_MyGame/Art/Fonts/LuckiestGuy-Regular.ttf");
-            if (ttf == null) { Debug.LogError("[Restore] LuckiestGuy-Regular.ttf not found"); return; }
+            RebuildFont("LuckiestGuy-Regular.ttf", RebuiltFontName, FontPresets);
+            RebuildFont("LilitaOne-Regular.ttf", ShopFontName, ShopFontPresets);
+        }
+
+        private static void RebuildFont(string ttfName, string fontName, string[] presets)
+        {
+            var ttf = AssetDatabase.LoadAssetAtPath<Font>("Assets/_MyGame/Art/Fonts/" + ttfName);
+            if (ttf == null) { Debug.LogError("[Restore] " + ttfName + " not found"); return; }
             Directory.CreateDirectory(RebuiltFontFolder);
 
-            var fontPath = RebuiltFontFolder + RebuiltFontName + ".asset";
+            var fontPath = RebuiltFontFolder + fontName + ".asset";
             var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>(fontPath);
             if (font == null)
             {
                 font = TMPro.TMP_FontAsset.CreateFontAsset(ttf, 90, 9, UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA, 1024, 1024,
                     TMPro.AtlasPopulationMode.Dynamic, true);
-                font.name = RebuiltFontName;
+                font.name = fontName;
                 AssetDatabase.CreateAsset(font, fontPath);
-                font.atlasTextures[0].name = RebuiltFontName + " Atlas";
+                font.atlasTextures[0].name = fontName + " Atlas";
                 AssetDatabase.AddObjectToAsset(font.atlasTextures[0], font);
-                font.material.name = RebuiltFontName + " Material";
+                font.material.name = fontName + " Material";
                 AssetDatabase.AddObjectToAsset(font.material, font);
             }
 
             int made = 0;
-            foreach (var preset in FontPresets)
+            foreach (var preset in presets)
             {
-                var presetPath = RebuiltFontFolder + RebuiltFontName + " (" + preset + ").mat";
+                var presetPath = RebuiltFontFolder + fontName + " (" + preset + ").mat";
                 if (AssetDatabase.LoadAssetAtPath<Material>(presetPath) != null) continue;
                 var original = FindByName<Material>(preset);
                 var material = new Material(original != null ? original.shader : font.material.shader);
@@ -191,7 +206,7 @@ namespace SnackDash.Editor.Restore
                     material.shaderKeywords = original.shaderKeywords;
                 }
                 material.SetTexture("_MainTex", font.atlasTextures[0]);
-                material.name = RebuiltFontName + " (" + preset + ")";
+                material.name = fontName + " (" + preset + ")";
                 AssetDatabase.CreateAsset(material, presetPath);
                 made++;
             }

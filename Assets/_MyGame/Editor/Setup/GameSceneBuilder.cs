@@ -197,6 +197,9 @@ namespace SnackDash.Editor.Setup
             Ref("plainMaterial", Preset("LuckiestGuy-Regular Atlas Material"));
             Ref("redCartoonMaterial", Preset("LuckiestGuy-Regular SDF Red Cartoon"));
             Ref("redCartoonInnerMaterial", Preset("LuckiestGuy-Regular SDF Red Cartoon Play btn"));
+            Ref("purpleCartoonPlayMaterial", Preset("LuckiestGuy-Regular SDF Purple Cartoon Play btn"));
+            Ref("purpleInnerShadowMaterial", Preset("LuckiestGuy-Regular SDF Purple Cartoon Inner Shadow"));
+            Ref("redInnerShadowMaterial", Preset("LuckiestGuy-Regular SDF Red Cartoon Inner Shadow"));
             Ref("brownLevelMaterial", Preset("LuckiestGuy-Regular Brown Level Number"));
             Ref("hudBar", Find<Sprite>("S_CoreTopUI_Main_0"));
             Ref("hudLevelHolder", Find<Sprite>("S_CoreTopUI_LevelHolder_0"));
@@ -237,7 +240,7 @@ namespace SnackDash.Editor.Setup
             Ref("cardRibbon", Find<Sprite>("S_OnboardingScreen_Flag"));
             Ref("speechBubble", Find<Sprite>("S_Background_SpeechBubble_02"));
             Ref("speechTriangle", Find<Sprite>("S_Background_Triangle_0"));
-            Sprites("mechanicIcons", "S_Icon_Bridge_2_0", "S_Icon_Gate_0", "S_Icon_Tunnel2_0", "S_Icon_Rocks_0", "S_Icon_SecretColectable_0", "S_Icon_SwitchingArrow_0");
+            Sprites("mechanicIcons", "S_Icon_Bridge_2_0", "S_Icon_Gate_0", "S_Icon_Tunnel2_0", "S_Icon_Rocks_0", "S_Icon_SecretColectable_0", "S_Icon_SwitchingArrow_0", "S_Icon_Curtain_0", "S_Icon_RisingBlock_0");
             Ref("ribbonGreen", Find<Sprite>("S_Ribbon_Green"));
             Ref("glow", Find<Sprite>("Glow"));
             Ref("fxRay", Find<Texture2D>("lightray3"));
@@ -259,6 +262,11 @@ namespace SnackDash.Editor.Setup
             Ref("progressBarMaterial", Preset("LuckiestGuy-Regular Progress Bar"));
             Ref("splash", Find<Texture2D>("unity_static_splash"));
             Sprites("named", NamedSprites);
+            Ref("shopFont", Find<TMPro.TMP_FontAsset>(Restore.OriginalAssetImporter.ShopFontName));
+            var shopMaterials = skin.FindPropertyRelative("shopMaterials");
+            shopMaterials.arraySize = Restore.OriginalAssetImporter.ShopFontPresets.Length;
+            for (int i = 0; i < shopMaterials.arraySize; i++)
+                shopMaterials.GetArrayElementAtIndex(i).objectReferenceValue = Find<Material>(Restore.OriginalAssetImporter.ShopFontName + " (" + Restore.OriginalAssetImporter.ShopFontPresets[i] + ")");
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -269,11 +277,17 @@ namespace SnackDash.Editor.Setup
             "S_Active_Tab_3_0", "S_BG_Pop-up_0", "S_BG_Pop-up_Frame_0", "S_BG_Title (1)_0", "S_Bow_Widget (2)_0", "S_Close_Btn_0", "S_Green_btn_0",
             "S_Button_Sheet_0", "S_Button_Sheet_1", "S_Button_Sheet_2", "S_Button_Sheet_3", "S_Coin_CoreStreak_0", "S_Flame_CoreStreak_0",
             "S_StreakBar_Thin_0", "S_Streakbar_Shadow_0", "S_Bg_CoreStreak_Progress_Unfilled_Corner_0", "S_Bg_CoreStreak_Progress_Unfilled_0",
-            "S_Counter_Bg_0", "S_Coin_Icon", "S_Heart_Icon_0", "S_Plus_Icon_0", "S_Settings_Icon_0", "S_Notification_Icon_Widget_0",
+            "S_Counter_Bg_0", "S_Coin_Icon", "S_CoinBackground_Gold_0", "Coin_Icon_03_0", "Coin_Icon_02_0", "ProgressBar_BG", "ProgressBar_ProgressPart", "ProgressBar_Top", "Icon_RV", "S_Heart_Icon_0", "S_Plus_Icon_0", "S_Settings_Icon_0", "S_Notification_Icon_Widget_0",
             "S_Illustration_HomeScreen_Upper", "S_Illustration_HomeScreen_Down", "S_Icon_LoadingScreen_Eyes", "S_Icon_LoadingScreen_Slot",
             "S_Chest_Icon_Widget_0", "S_Bg_Widget_0", "S_Bow_Widget_Corner_0", "S_Lava Quest_Widget_0", "S_Icon_GoldenTicket_0", "S_Icon_NoAds", "S_Lock_Icon_0", "S_Clock_Icon_Widget_0",
             "S_Shop_Icon_0", "S_Home_Icon_0", "Shadow_Round", "Shadow_Round_sharp", "Button_Green_256", "Button_Blue_256", "S_Btn_Green_UI_0", "S_Icon_Support", "Pictogram_Home",
             "S_Button_Round_Green_Underlay", "S_Button_Round_Gray_Underlay",
+            "S_Icon_Heart_Large_0", "S_Icon_Infinite_0", "S_Icon_Heart_bg_0", "S_Icon_Heart_0", "S_Button_Orange", "S_Button_Green", "S_Play_ads_Icon_0", "S_Icon_Coin_Single_0",
+            "JU-Texture-Common-Coin", "S_Icon_Coin_Single", "S_Crate_Icon", "SpeechBubble_MainOutline", "SpeechBubble_MainInner", "SpeechBubble_PointerOutline", "SpeechBubble_PointerInner", "S_Shop_Header_Bg", "S_Close_Btn", "S_CircleShadow", "S_Shop_Frame", "S_Header_Purple_Bg", "S_Header_Orange_Bg", "S_Shop_Bundle_0", "S_Rewards_Banner_0", "GlowRays",
+            "S_Offer_Stars_Small_Pack", "S_Offer_Stars_Medium_Pack", "S_Offer_Stars_Large_Pack", "S_Offer_Stars_XL_Pack", "S_Offer_Stars_XXL_Pack", "S_Offer_Blueberries_Overlay_Bg",
+            "S_Btn_BG", "S_Offer_Dark_Beige_Inside_Bg", "S_rewards_Banner_OutlineBlur_0", "CoinContainer", "S_Icon_Heart_Infinit_Lives",
+            "S_Bg_CoreStreak_Progress_Yellow_Corner_0", "S_Bg_CoreStreak_Progress_Yellow_0", "S_Bg_CoreStreak_Progress_Yellow_Corner-1_0", "S_Bg_CoreStreak_Progress_Orange_0", "S_Gradient_Vertical", "S_Gradient_Radial",
+            "S_1000_Coins", "S_5 000_Coins", "S_10 000_Coins", "S_25 000_Coins", "S_50 000_Coins", "S_100 000_Coins",
             "S_Icon_Music_Enabled", "S_Icon_Music_Disabled", "S_Icon_Haptics_Enabled", "S_Icon_Haptics_Disabled", "S_Icon_Sound_Enabled", "S_Icon_Sound_Disabled",
         };
 

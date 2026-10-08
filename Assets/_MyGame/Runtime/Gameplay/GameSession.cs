@@ -9,7 +9,7 @@ namespace SnackDash.Gameplay
     /// Deterministic core loop of one level, independent of GameObjects.
     ///
     /// Rules (source in brackets):
-    /// - A swipe starts the snake; it runs at 30 cells/s [PlayerView._moveSpeed], follows corners
+    /// - A swipe starts the snake; it runs at 26 cells/s (30 in the original [PlayerView._moveSpeed], slowed [user]), follows corners
     ///   automatically and stops on Stop cells (the small dark squares at junctions; blockers make
     ///   no difference) and crate stops, or when the road ends [Player, video, user].
     /// - Swipes made while moving are buffered; only the latest one is kept and applied on the next
@@ -38,7 +38,7 @@ namespace SnackDash.Gameplay
     /// </summary>
     public sealed partial class GameSession
     {
-        public const float DefaultCellsPerSecond = 30f;
+        public const float DefaultCellsPerSecond = 26f; // the original runs 30 [PlayerView._moveSpeed]; slowed to 26 [user]
         public const float SegmentSpacing = 1f;
         public const float DeliveryInterval = 0.048f;
 
@@ -59,8 +59,11 @@ namespace SnackDash.Gameplay
 
         public sealed class CrateColumn
         {
-            public readonly IReadOnlyList<CrateDefinition> Crates;
-            private readonly int[] _filled;
+            private List<CrateDefinition> _crates;
+            private List<int> _filled;
+            public IReadOnlyList<CrateDefinition> Crates => _crates;
+            /// <summary>The extra crate column: locked (empty, a wooden floor) until bought [ExtraCrateController].</summary>
+            public bool IsExtra { get; }
             public int CurrentIndex { get; internal set; }
             /// <summary>Fruit already in the current crate.</summary>
             public int Filled => IsComplete ? 0 : _filled[CurrentIndex];
@@ -71,14 +74,30 @@ namespace SnackDash.Gameplay
             public int FilledIn(int crateIndex) => _filled[crateIndex];
             internal void Add(int crateIndex) => _filled[crateIndex]++;
             internal bool IsFull(int crateIndex) => _filled[crateIndex] >= Crates[crateIndex].requiredCount;
-            internal int[] SaveFilled() => (int[])_filled.Clone();
-            internal void Restore(int[] filled, int current) { filled.CopyTo(_filled, 0); CurrentIndex = current; }
+            internal int[] SaveFilled() => _filled.ToArray();
+            internal void Restore(int[] filled, int current) { for (int i = 0; i < filled.Length; i++) _filled[i] = filled[i]; CurrentIndex = current; }
 
-            internal CrateColumn(IReadOnlyList<CrateDefinition> crates)
+            internal CrateColumn(IReadOnlyList<CrateDefinition> crates, bool isExtra = false)
             {
-                Crates = SplitIntoCratesOf9(crates);
-                _filled = new int[Crates.Count];
+                _crates = SplitIntoCratesOf9(crates);
+                _filled = new List<int>(new int[_crates.Count]);
+                IsExtra = isExtra;
             }
+
+            /// <summary>The crates still to fill (the current one and those under it), with the fruit already in them.</summary>
+            internal List<(CrateDefinition crate, int filled)> TakeRemaining()
+            {
+                var remaining = new List<(CrateDefinition, int)>();
+                for (int i = CurrentIndex; i < _crates.Count; i++) remaining.Add((_crates[i], _filled[i]));
+                if (CurrentIndex < _crates.Count)
+                {
+                    _crates.RemoveRange(CurrentIndex, _crates.Count - CurrentIndex);
+                    _filled.RemoveRange(CurrentIndex, _filled.Count - CurrentIndex);
+                }
+                return remaining;
+            }
+
+            internal void Append(CrateDefinition crate, int filled) { _crates.Add(crate); _filled.Add(filled); }
 
             /// <summary>
             /// v1.14.1 data still has 18/27 crates (old Box_Crate_18/27 visuals); v1.15 keeps only the
@@ -177,10 +196,10 @@ namespace SnackDash.Gameplay
         private int _boomerangLeft;    // planned fruit still to throw
 
         /// <summary>Lv7 video stepped at 15 fps: one boomerang fruit takes off per frame (~0.067 s), </summary>
-        public const float BoomerangInterval = 0.07f;
+        public const float BoomerangInterval = 0.1f; // 0.07 from the video felt too fast on the phone [user 08/10: slower by a few tenths]
 
-        /// <summary>Wait between the last fruit of a full crate and the first of the next (one flight, CratesView 0.5 s).</summary>
-        public const float BoomerangCrateGap = 0.5f;
+        /// <summary>Wait between the last fruit of a full crate and the first of the next (about one flight, CratesView boomerangFlightDuration 0.55 s in Game.unity).</summary>
+        public const float BoomerangCrateGap = 0.65f;
 
         public Vector2 HeadPosition { get; private set; }
         public Vector2Int CurrentCell { get; private set; }
@@ -200,6 +219,52 @@ namespace SnackDash.Gameplay
         public IReadOnlyList<PillKind> Segments => _segments;
         public IReadOnlyDictionary<Vector2Int, PillKind> Pills => _pills;
         public IReadOnlyList<CrateColumn> Columns { get; }
+
+        /// <summary>The extra crate column (-1 when the level has none); locked until bought (TAP TO UNLOCK, 700 coins).</summary>
+        public int ExtraColumn { get; }
+        public bool ExtraLocked { get; private set; }
+        public event Action<int> ExtraColumnUnlocked; // the extra column
+
+        /// <summary>Something to share out: the snake is idle and some column still has crates waiting under its top one.</summary>
+        public bool CanUnlockExtra
+        {
+            get
+            {
+                if (!ExtraLocked || !IsIdle) return false;
+                foreach (var column in Columns) if (!column.IsExtra && !column.IsComplete && column.CurrentIndex + 1 < column.Crates.Count) return true;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Opens the extra column and deals the crates still to fill out again [ExtraCrateReshuffleService; the exact rule is
+        /// not in the files: inferred from the user's Level 30 screenshots, which it matches]. All of them, the ones on top
+        /// included, in the order they would come up (one level down across the columns, then the next), go one by one
+        /// to the new column first, then the open columns in turn (Level 30: the new column yellow, orange, red; the old one
+        /// yellow, red, green). Fruit already in a crate goes with it. Undo is cleared (the stacks no longer match).
+        /// </summary>
+        public bool UnlockExtraColumn()
+        {
+            if (!CanUnlockExtra) return false;
+            var open = new List<CrateColumn>();
+            var waiting = new List<List<(CrateDefinition crate, int filled)>>();
+            foreach (var column in Columns)
+                if (!column.IsExtra && !column.IsComplete) { open.Add(column); waiting.Add(column.TakeRemaining()); }
+            var pool = new List<(CrateDefinition crate, int filled)>();
+            for (int depth = 0; ; depth++)
+            {
+                bool any = false;
+                foreach (var list in waiting) if (depth < list.Count) { pool.Add(list[depth]); any = true; }
+                if (!any) break;
+            }
+            var targets = new List<CrateColumn> { Columns[ExtraColumn] };
+            targets.AddRange(open);
+            for (int i = 0; i < pool.Count; i++) targets[i % targets.Count].Append(pool[i].crate, pool[i].filled);
+            ExtraLocked = false;
+            _beforeLastMove = null;
+            ExtraColumnUnlocked?.Invoke(ExtraColumn);
+            return true;
+        }
         public BoardGraph Board => _board;
 
         public GameSession(BoardGraph board, TiledMap map, LevelDefinition level)
@@ -211,8 +276,10 @@ namespace SnackDash.Gameplay
             _speed = level.speedOverride > 0f ? level.speedOverride : DefaultCellsPerSecond;
 
             var columns = new List<CrateColumn>();
-            foreach (var column in level.columns) columns.Add(new CrateColumn(column.crates));
+            foreach (var column in level.columns) columns.Add(new CrateColumn(column.crates, column.isExtra));
             Columns = columns;
+            ExtraColumn = columns.FindIndex(c => c.IsExtra);
+            ExtraLocked = ExtraColumn >= 0;
 
             // Rock rows: the level health, or the row's own when one of its cells is listed.
             foreach (var group in board.WallGroups)
@@ -241,6 +308,23 @@ namespace SnackDash.Gameplay
         /// <summary>Tutorial message on screen: swipes are ignored until it is tapped away.</summary>
         public bool InputBlocked { get; set; }
 
+        private float _lockLeft;
+
+        /// <summary>
+        /// An effect is playing (the snake dropping in, fruit jumping onto the road, a crate being swapped): swipes and
+        /// boosters wait for it, so a swipe can no longer cut it short [user]. Timed rather than released by the effect,
+        /// so an effect that is destroyed half-way cannot leave the input locked.
+        /// </summary>
+        public void LockInput(float seconds) => _lockLeft = Mathf.Max(_lockLeft, seconds);
+
+        public bool InputLocked => _lockLeft > 0f;
+
+        /// <summary>
+        /// A forced booster tutorial is up: swipes are ignored (not even buffered) while boosters still work, until
+        /// the player has used the booster [user: a fast swipe on Level 4 moved the snake past the shovel tutorial].
+        /// </summary>
+        public bool SwipesHeld { get; set; }
+
         /// <param name="fingerHeld">
         /// True for a further flick of a finger that stayed down: while moving it is ignored, so a
         /// held finger only steers again once the snake has stopped [user, tested on the original],
@@ -250,6 +334,8 @@ namespace SnackDash.Gameplay
         {
             if (IsWon || IsStuck || IsDelivering || IsRewinding) return false; // no input until an undo has run back [user]
             if (InputBlocked) return false; // a tutorial message is up
+            if (_lockLeft > 0f) return false; // an effect is still playing: not even buffered
+            if (SwipesHeld) return false; // a forced booster tutorial waits for the booster
             if (ForcedSwipe.HasValue && direction != ForcedSwipe.Value) return false; // Level 1 tutorial: only the shown way [user]
             if (IsMoving)
             {
@@ -279,6 +365,7 @@ namespace SnackDash.Gameplay
 
         public void Tick(float deltaTime)
         {
+            if (_lockLeft > 0f) _lockLeft = Mathf.Max(0f, _lockLeft - deltaTime);
             if (IsWon || IsStuck) return;
             if (_rewindTime > 0f) _rewindTime = Mathf.Max(0f, _rewindTime - deltaTime);
             TickMagnet(deltaTime);
@@ -333,6 +420,7 @@ namespace SnackDash.Gameplay
         public bool Snip()
         {
             if (!IsStuck) return false;
+            ForgetUndo(); // like a booster: undo waits for the next swipe, it never brings snipped fruit back [user]
             int keep = SnipKeep;
             int removed = _segments.Count - keep;
 

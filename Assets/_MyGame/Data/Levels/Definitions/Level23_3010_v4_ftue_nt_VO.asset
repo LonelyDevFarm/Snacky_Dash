@@ -71,6 +71,7 @@ MonoBehaviour:
   timeLimitSeconds: 325
   speedOverride: 0
   wallHealth: 6
+  difficulty: 0
   wallGroupHealths:
   - seedCell: {x: 1, y: 1}
     health: 3

@@ -58,12 +58,13 @@ namespace SnackDash.UI
             var root = Build(canvas, skin);
             var group = root.GetComponent<CanvasGroup>();
             group.alpha = 0f;
-            yield return Tween.Run(Fade, Tween.Linear, t => group.alpha = t);
+            // Fades run on real time (the level may have been paused by the settings).
+            yield return Tween.Run(Fade, Tween.Linear, t => group.alpha = t, true);
             float start = Time.unscaledTime;
             var load = SceneManager.LoadSceneAsync(scene);
             while (!load.isDone) yield return null;
             while (Time.unscaledTime - start < MinSeconds) yield return null;
-            yield return Tween.Run(Fade, Tween.Linear, t => group.alpha = 1f - t);
+            yield return Tween.Run(Fade, Tween.Linear, t => group.alpha = 1f - t, true);
             _current = null;
             Destroy(gameObject);
         }

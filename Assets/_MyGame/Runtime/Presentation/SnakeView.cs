@@ -30,7 +30,7 @@ namespace SnackDash.Presentation
         [SerializeField] private float bumpForwardDuration = 0.08f;
         [SerializeField] private float bumpReturnDuration = 0.05f;
         [SerializeField] private float spawnDropHeight = 15f;
-        [SerializeField] private float spawnDuration = 1f;
+        [SerializeField] private float spawnDuration = 0.6f; // the original 1 s looked slow [user]
 
         [Header("TailFeelHandler / TailSegmentFeedbacksView")]
         [SerializeField] private float spacingSpeed = 20f;
@@ -104,7 +104,7 @@ namespace SnackDash.Presentation
             session.DeliveryEnded += column => SetMouth(false);
             session.CrateCompleted += (column, crate) => SetMouth(false);
             session.SegmentDelivered += (index, kind, column) => SetMouth(true);
-            session.TailBitten += count => { _blinkRoutine = StartCoroutine(BlinkSnipped(count)); SetStunned(true); };
+            session.TailBitten += count => { _blinkRoutine = StartCoroutine(BlinkSnipped(count)); SetStunned(true); CameraShake.Hit(); }; // Hit Camera Shake [PlayerView.HandleTailHit]
             session.TailSnipped += OnTailSnipped;
             session.MoveBlocked += OnMoveBlocked;
             session.BoomerangThrown += OnBoomerangThrown;
@@ -124,12 +124,16 @@ namespace SnackDash.Presentation
 
             // Spawn: the head drops onto the board [PlayerView._spawnDropHeight / _spawnDuration].
             // Ease is inferred (falling, then the landing squash).
-            StartCoroutine(SpawnDrop());
+            StartCoroutine(SpawnDrop()); // no swipe before it has landed and squashed [user]
             LateUpdate();
         }
 
         private IEnumerator SpawnDrop()
         {
+            // Behind the loading screen the drop would play unseen: wait for it to lift, input locked meanwhile [user].
+            _dropHeight = spawnDropHeight;
+            while (SnackDash.UI.LoadingScreen.Busy) { _session.LockInput(0.1f); yield return null; }
+            _session.LockInput(spawnDuration + scaleDuration);
             yield return Tween.Run(spawnDuration, Tween.InQuad, t => _dropHeight = spawnDropHeight * (1f - t));
             PlayScale(stopStretch);
         }
@@ -250,6 +254,12 @@ namespace SnackDash.Presentation
         /// <summary>The booster's icon reached the head: the snake gulps it (SnakeHead_Controller state).</summary>
         public void EatBooster() => PlayHeadState("SnakeHead_EatBooster");
 
+        /// <summary>
+        /// When the bite in SnakeHead_EatBooster is done: the jaw shuts at 0.53 s and the head's gulp peaks at 0.63-0.67 s;
+        /// the rest of its 1.35 s is the glow fading, which the booster need not wait for [user: no wait after the bite].
+        /// </summary>
+        public const float EatBoosterSwallowed = 0.67f;
+
         private void PlayHeadState(string state)
         {
             if (_headAnimator != null && _headAnimator.isActiveAndEnabled) _headAnimator.Play(state, 0, 0f);
@@ -304,6 +314,25 @@ namespace SnackDash.Presentation
             return false;
         }
 
+        /// <summary>During an undo: the direction the head moved along the stretch of RewindPath it is drawn on.</summary>
+        private Direction RewindHeading()
+        {
+            float ahead = _rewindLeft;
+            var path = _session.RewindPath;
+            for (int i = 1; i < path.Count; i++)
+            {
+                float step = Vector2.Distance(path[i - 1], path[i]);
+                if (ahead <= step && step > 0f)
+                {
+                    var d = path[i] - path[i - 1];
+                    if (Mathf.Abs(d.x) >= Mathf.Abs(d.y)) return d.x >= 0f ? Direction.Right : Direction.Left;
+                    return d.y >= 0f ? Direction.Up : Direction.Down;
+                }
+                ahead -= step;
+            }
+            return _session.Heading;
+        }
+
         private Vector2 Sample(float behind)
         {
             float ahead = _rewindLeft - behind;
@@ -353,8 +382,14 @@ namespace SnackDash.Presentation
         }
 
         /// <summary>World position of tail segment <paramref name="index"/> (0 = right behind the head).</summary>
-        public Vector3 SegmentWorldPosition(int index) =>
-            index >= 0 && index < _segments.Count ? _segments[index].root.transform.position : HeadWorldPosition;
+        /// <summary>Where segment <paramref name="index"/>'s fruit sits (raised on the body, not the road under it).</summary>
+        public Vector3 SegmentWorldPosition(int index)
+        {
+            if (index < 0 || index >= _segments.Count) return HeadWorldPosition;
+            var root = _segments[index].root.transform;
+            var pill = root.Find("GameObject/PillMaster_VO");
+            return pill != null ? pill.position : root.position;
+        }
 
         private void SetFlash(GameObject segment, float strength)
         {
@@ -455,11 +490,14 @@ namespace SnackDash.Presentation
                 if (last.root != null) Destroy(last.root);
                 _segments.RemoveAt(_segments.Count - 1);
             }
-            var forward = (Vector3)_session.Heading.ToVector();
+            // While an undo runs back, the head keeps facing the way it went on that stretch of the swipe and only takes
+            // the restored heading once it is back [user: it turned to the old heading at once].
+            var heading = _rewindLeft > 0f ? RewindHeading() : _session.Heading;
+            var forward = (Vector3)heading.ToVector();
             var headPosition = Sample(0f);
-            float headLift = DeckLift(headPosition, _session.Heading.IsHorizontal());
+            float headLift = DeckLift(headPosition, heading.IsHorizontal());
             _head.localPosition = (Vector3)headPosition + forward * _bump + _blockOffset + new Vector3(0f, 0f, -_dropHeight - headLift);
-            _head.localRotation = Quaternion.Euler(0f, 0f, HeadAngle(_session.Heading));
+            _head.localRotation = Quaternion.Euler(0f, 0f, HeadAngle(heading));
             _head.localScale = _headScale;
             UpdateJaw();
             ShowHead(_rewindLeft > 0f ? !SampleHidden(0f) : !_session.HeadInTunnel);

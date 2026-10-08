@@ -15,6 +15,9 @@ namespace SnackDash.Bootstrap
             Application.targetFrameRate = 60;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             Screen.orientation = ScreenOrientation.Portrait;
+#if !UNITY_EDITOR // stopping Play in the editor is not closing the app
+            SnackDash.Economy.PlayerEconomy.Shared.ChargeUncleanExit(); // the app was closed during a level: that life is lost [user]
+#endif
         }
     }
 }

@@ -23,7 +23,7 @@ namespace SnackDash.UI
     /// - First use of each booster (BoosterData _forcedTutorialEntry): when its moment comes the screen
     ///   dims, only that booster stays and a purple arrow bobs over it (once); the unlock gift shows FREE
     ///   until it is used [user].
-    /// Stock: 99 each until there is a shop [user].
+    /// Stock lives in PlayerEconomy: 0 to start, 3 when a booster unlocks, bought 3 at a time or from Shop packs [user].
     /// </summary>
     public class BoosterBarView : MonoBehaviour
     {
@@ -40,19 +40,16 @@ namespace SnackDash.UI
             public GameObject countPanel, plusIcon, freePanel;
             public TMP_Text count;
             public Image iconImage;
-            public bool free;      // the unlock gift: FREE until it is used once [user]
-            public string FreeKey => id == Booster.Boomerang ? BoomerangIntroKey : stockKey + "_intro";
+            public bool free;      // FREE on its unlock level until that level is passed [user]
             public string TutorialKey => stockKey + "_tutorial";
             public int Stock
             {
-                get => PlayerPrefs.GetInt(stockKey, DefaultStock);
-                set { PlayerPrefs.SetInt(stockKey, Mathf.Max(0, value)); PlayerPrefs.Save(); }
+                get => SnackDash.Economy.PlayerEconomy.Shared.Boosters(stockKey);
+                set => SnackDash.Economy.PlayerEconomy.Shared.SetBoosters(stockKey, value);
             }
         }
 
         public const int BoomerangUnlockLevel = 7;
-        private const string BoomerangIntroKey = "booster_boomerang_intro";
-        private const int DefaultStock = 99; // no coin shop yet [user]
         private const string Highlight = "#8929F6"; // LocData booster descriptions
 
         // Original layout (canvas 1080x1920, match height).
@@ -72,8 +69,8 @@ namespace SnackDash.UI
         [SerializeField] private GameObject shovelHolePrefab;     // GameObject/Booster_Tunnel_Hole
         [SerializeField] private GameObject magnetFxPrefab;       // Resources/boosters/magnet/FX_Snake_Magnetic
         [SerializeField] private GameObject undoFxPrefab;         // Resources/boosters/shuffle/Vortex Big2
-        [Tooltip("Booster video: the booster's icon flies from its button to the board before it acts.")]
-        [SerializeField] private float iconFlightDuration = 0.45f;
+        [Tooltip("The booster trail (BoosterTrailsVFX layout = Crates/ExtraCrate_Trail_FX with the booster icon).")]
+        [SerializeField] private GameObject trailPrefab;
 
         private readonly List<Info> _boosters = new List<Info>();
         private GameSession _session;
@@ -96,8 +93,8 @@ namespace SnackDash.UI
         /// <summary>Boomerang stock (tests and older callers).</summary>
         public static int Stock
         {
-            get => PlayerPrefs.GetInt("booster_boomerang", DefaultStock);
-            set { PlayerPrefs.SetInt("booster_boomerang", Mathf.Max(0, value)); PlayerPrefs.Save(); }
+            get => SnackDash.Economy.PlayerEconomy.Shared.Boosters("booster_boomerang");
+            set => SnackDash.Economy.PlayerEconomy.Shared.SetBoosters("booster_boomerang", value);
         }
 
         public void Bind(GameSession session, int levelNumber, BoardView board, BoardCameraFitter fitter)
@@ -116,7 +113,17 @@ namespace SnackDash.UI
                 description = $"<color={Highlight}>REWINDS</color> YOUR LAST MOVE" });
             _boosters.Add(new Info { id = Booster.Magnet, name = "MAGNET", stockKey = "booster_magnet", icon = skin.magnetIcon, unlockLevel = 16, confirm = true,
                 description = $"<color={Highlight}>ATTRACT</color> NEARBY FRUITS TO THE CRATES FOR A FEW SWIPES!" });
-            foreach (var b in _boosters) b.free = levelNumber >= b.unlockLevel && PlayerPrefs.GetInt(b.FreeKey, 0) == 0;
+            foreach (var b in _boosters)
+            {
+                // The unlock level: FREE until that level is passed, and the unlock gives 3 once [user].
+                b.free = levelNumber == b.unlockLevel;
+                if (b.free && PlayerPrefs.GetInt(b.stockKey + "_gift", 0) == 0)
+                {
+                    SnackDash.Economy.PlayerEconomy.Shared.AddBoosters(b.stockKey, SnackDash.Economy.PlayerEconomy.BoosterPack);
+                    PlayerPrefs.SetInt(b.stockKey + "_gift", 1);
+                    PlayerPrefs.Save();
+                }
+            }
 
             _root = Canvas(transform, "Boosters", 6);
             var safe = Stretch(_root, "SafeArea");
@@ -158,6 +165,7 @@ namespace SnackDash.UI
             session.BoomerangThrown += (column, thrown) => SetAiming(null);
             session.ShovelDug += OnShovelDug;
             session.MagnetChanged += OnMagnetChanged;
+            session.Stopped += cell => { if (session.Board.CrateColumnAt(cell) < 0) TryStartTutorial(); }; // at a crate the delivery comes first
             session.Rewound += OnRewound;
         }
 
@@ -277,8 +285,12 @@ namespace SnackDash.UI
 
         private void OnTapped(Info booster)
         {
-            if (!_session.IsIdle || _session.InputBlocked || _session.ForcedSwipe.HasValue) return; // not over a tutorial message
-            if (!booster.free && booster.Stock <= 0) return; // buying with coins: later
+            if (!_session.IsIdle || _session.InputBlocked || _session.InputLocked || _session.ForcedSwipe.HasValue) return; // not over a tutorial message or an effect
+            if (!booster.free && booster.Stock <= 0)
+            {
+                BoosterBuyPopup.Open(_root, skin, booster.name, booster.description, booster.icon, booster.stockKey, null); // the + : buy 3 for 1800 [user]
+                return;
+            }
             if (booster.id == Booster.Undo && !_session.CanUndo) return;
             if (booster.id == Booster.Magnet && _session.MagnetActive) return;
             SetAiming(_aiming == booster ? null : booster);
@@ -342,23 +354,71 @@ namespace SnackDash.UI
             return new Plane(Vector3.forward, Vector3.zero).Raycast(ray, out float d) ? ray.GetPoint(d) : Vector3.zero;
         }
 
-        /// <summary>BoosterTrailsVFX stand-in: the booster's icon flies from its button into the snake's mouth.</summary>
+        /// <summary>
+        /// BoosterPreUseAnimationCoordinator + BoosterTrailsVFX (original Game.unity), for every booster: the booster's trail
+        /// (ExtraCrate_Trail_FX's layout with the booster icon: icon particle, soft trail, sparkles) flies on the world plane
+        /// z = -2 from its button to a point 1.4 in front of the snake's head in 0.5 s, X on InOutCubic and Y on OutQuad (it
+        /// rises first, then comes over), shrinking from 1 to 0.35; the snake starts eating 0.3 s before it arrives; then it
+        /// sinks into the head in 0.2 s (linear, to 0) and the booster acts. Input is locked meanwhile.
+        /// </summary>
         private IEnumerator FlyIcon(Info booster, Action arrived)
         {
-            var icon = Rect(_root, "Booster Trail FX", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150, 150));
-            Image(icon, booster.icon, Color.white).preserveAspect = true;
+            const float flyDuration = 0.5f, flyZ = -2f, startScale = 1f, endScale = 0.35f, sinkDuration = 0.2f, eatLead = 0.3f;
+            var approachOffset = new Vector3(0f, 1.4f, 0f);
+            if (_camera == null) _camera = Camera.main;
+            // The booster acts right after the bite (the eat starts eatLead before arrival), one after the other with no
+            // pause [user: at the sink it was too early, after the whole clip too late].
+            float chew = _snake != null ? Mathf.Max(0f, SnakeView.EatBoosterSwallowed - eatLead - sinkDuration) : 0f;
+            _session.LockInput(flyDuration + sinkDuration + chew + 0.1f);
             var canvas = _root.GetComponent<Canvas>();
-            Vector2 start = ScreenToCanvas(RectTransformUtility.WorldToScreenPoint(canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera, booster.slot.position));
-            yield return Tween.Run(iconFlightDuration, Tween.InOutSine, t =>
+            Vector2 screen = RectTransformUtility.WorldToScreenPoint(canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera, booster.slot.position);
+            Vector3 OnPlane(Vector3 point) => new Vector3(point.x, point.y, flyZ);
+            var ray = _camera.ScreenPointToRay(screen);
+            var start = new Plane(Vector3.forward, new Vector3(0f, 0f, flyZ)).Raycast(ray, out float distance) ? ray.GetPoint(distance) : OnPlane(BoardCentre());
+            Vector3 Head() => _snakeHead != null ? _snakeHead.position : BoardCentre();
+            Vector3 Approach() => OnPlane(_snakeHead != null ? _snakeHead.TransformPoint(approachOffset) : BoardCentre());
+
+            var trail = trailPrefab != null ? Instantiate(trailPrefab, start, Quaternion.identity) : null;
+            var baseScale = trail != null ? trail.transform.localScale : Vector3.one;
+            if (trail != null)
+                foreach (var ps in trail.GetComponentsInChildren<ParticleSystem>(true))
+                {
+                    var sheet = ps.textureSheetAnimation;
+                    if (sheet.enabled && sheet.mode == ParticleSystemAnimationMode.Sprites && sheet.spriteCount > 0 && ps.name.EndsWith("Sprite")) sheet.SetSprite(0, booster.icon);
+                }
+
+            bool eating = false;
+            for (float time = 0f; time < flyDuration; time += Time.deltaTime)
             {
-                // Towards the head, which may still be moving.
-                var end = ScreenToCanvas(_camera.WorldToScreenPoint(_snakeHead != null ? _snakeHead.position : BoardCentre()));
-                icon.anchoredPosition = Vector2.Lerp(start, end, t) + Vector2.up * (Mathf.Sin(Mathf.PI * t) * 200f);
-                icon.localScale = Vector3.one * Mathf.Lerp(1f, 1.4f, Mathf.Sin(Mathf.PI * t));
-                icon.localRotation = Quaternion.Euler(0, 0, 360f * t);
-            });
-            Destroy(icon.gameObject);
-            if (_snake != null) _snake.EatBooster(); // it flies into the snake's mouth [user, booster video]
+                float t = time / flyDuration;
+                var end = Approach();
+                if (trail != null)
+                {
+                    trail.transform.position = new Vector3(Mathf.Lerp(start.x, end.x, Tween.InOutCubic(t)), Mathf.Lerp(start.y, end.y, Tween.OutQuad(t)), flyZ);
+                    trail.transform.localScale = baseScale * Mathf.Lerp(startScale, endScale, t);
+                }
+                if (!eating && time >= flyDuration - eatLead) { eating = true; if (_snake != null) _snake.EatBooster(); }
+                yield return null;
+            }
+            if (!eating && _snake != null) _snake.EatBooster();
+            var from = Approach();
+            for (float time = 0f; time < sinkDuration; time += Time.deltaTime)
+            {
+                float t = time / sinkDuration;
+                if (trail != null)
+                {
+                    trail.transform.position = Vector3.Lerp(from, Head(), t);
+                    trail.transform.localScale = baseScale * Mathf.Lerp(endScale, 0f, t);
+                }
+                yield return null;
+            }
+            if (trail != null)
+            {
+                foreach (var ps in trail.GetComponentsInChildren<ParticleSystem>()) ps.Stop(false, ParticleSystemStopBehavior.StopEmitting);
+                trail.transform.localScale = Vector3.zero;
+                Destroy(trail, 1f); // the trail and sparkles fade out
+            }
+            if (chew > 0f) yield return new WaitForSeconds(chew);
             arrived();
         }
 
@@ -457,13 +517,21 @@ namespace SnackDash.UI
             }
         }
 
-        /// <summary>A use: the unlock gift first (FREE), then the stock.</summary>
+        /// <summary>A use: FREE on the unlock level (the stock stays), otherwise one from the stock.</summary>
         private void Spend(Info booster)
         {
-            if (!booster.free) { booster.Stock -= 1; return; }
-            booster.free = false;
-            PlayerPrefs.SetInt(booster.FreeKey, 1);
-            PlayerPrefs.Save();
+            if (!booster.free) booster.Stock -= 1;
+        }
+
+        /// <summary>
+        /// The forced first use, once its booster is ready. Also run the moment the snake stops (before a buffered swipe
+        /// is applied), so a fast swipe cannot carry the snake past it [user].
+        /// </summary>
+        private void TryStartTutorial()
+        {
+            if (_tutorialShown || _aiming != null || !_session.IsIdle || _session.InputBlocked || _session.InputLocked || _session.ForcedSwipe.HasValue) return;
+            foreach (var booster in _boosters)
+                if (booster.count != null && booster.free && PlayerPrefs.GetInt(booster.TutorialKey, 0) == 0 && TutorialReady(booster)) { ShowTutorial(booster); break; }
         }
 
         /// <summary>BoosterForcedTutorialView: dim everything but the booster, purple arrow bobbing over it. Once [user].</summary>
@@ -471,35 +539,44 @@ namespace SnackDash.UI
         {
             _tutorialShown = true;
             _tutorialBooster = booster;
+            _session.SwipesHeld = true; // only the booster now
             PlayerPrefs.SetInt(booster.TutorialKey, 1);
             PlayerPrefs.Save();
             var slot = booster.slot;
             _tutorialPanel.gameObject.SetActive(true);
             _tutorialPanel.SetAsLastSibling(); // over the bar, so only the lifted slot stays lit
-            slot.SetParent(_tutorialPanel, true);
-            var arrow = Rect(_tutorialPanel, "Arrow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(160, 160));
-            arrow.position = slot.position;
-            arrow.anchoredPosition += new Vector2(0, 215 * SlotScale);
+            // The slot stays in the bar (moving it to the panel lost its place when the screen changed size) and is
+            // drawn above the dim by a nested canvas; the arrow rides on it, in panel units (215 above, 160 big).
+            var lift = slot.GetComponent<Canvas>();
+            if (lift == null) lift = slot.gameObject.AddComponent<Canvas>();
+            lift.overrideSorting = true;
+            lift.sortingOrder = _root.GetComponent<Canvas>().sortingOrder + 1;
+            if (slot.GetComponent<GraphicRaycaster>() == null) slot.gameObject.AddComponent<GraphicRaycaster>();
+            var arrow = Rect(slot, "Arrow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 215), new Vector2(160, 160) / SlotScale);
             arrow.localRotation = Quaternion.Euler(0, 0, 180);
             Image(arrow, skin.tutorialArrow, Hex("7F33D4FF"));
-            StartCoroutine(Bob(arrow));
+            StartCoroutine(Bob(arrow, 1f / SlotScale));
         }
 
-        private IEnumerator Bob(RectTransform arrow)
+        private IEnumerator Bob(RectTransform arrow, float scale = 1f)
         {
             var start = arrow.anchoredPosition;
+            var offset = tutorialBobOffset * scale;
             while (arrow != null && arrow.gameObject.activeInHierarchy)
             {
-                yield return Tween.Run(tutorialBobDuration, Tween.InOutSine, t => { if (arrow != null) arrow.anchoredPosition = start + tutorialBobOffset * t; });
-                yield return Tween.Run(tutorialBobDuration, Tween.InOutSine, t => { if (arrow != null) arrow.anchoredPosition = start + tutorialBobOffset * (1f - t); });
+                yield return Tween.Run(tutorialBobDuration, Tween.InOutSine, t => { if (arrow != null) arrow.anchoredPosition = start + offset * t; });
+                yield return Tween.Run(tutorialBobDuration, Tween.InOutSine, t => { if (arrow != null) arrow.anchoredPosition = start + offset * (1f - t); });
             }
         }
 
         private void HideTutorial()
         {
             if (!_tutorialPanel.gameObject.activeSelf) return;
-            _tutorialBooster.slot.SetParent(_bar, true);
-            var arrow = _tutorialPanel.Find("Arrow");
+            _session.SwipesHeld = false;
+            var slot = _tutorialBooster.slot;
+            var lift = slot.GetComponent<Canvas>();
+            if (lift != null) lift.overrideSorting = false; // back under the bar's own order
+            var arrow = slot.Find("Arrow");
             if (arrow != null) Destroy(arrow.gameObject);
             _tutorialPanel.gameObject.SetActive(false);
         }
@@ -537,9 +614,7 @@ namespace SnackDash.UI
             if (_hole != null && !_session.HeadInTunnel && !AnySegmentUnderground()) { Destroy(_hole); _hole = null; }
 
             var boomerang = Get(Booster.Boomerang);
-            if (!_tutorialShown && _aiming == null && _session.IsIdle && !_session.InputBlocked && !_session.ForcedSwipe.HasValue)
-                foreach (var booster in _boosters)
-                    if (booster.count != null && booster.free && PlayerPrefs.GetInt(booster.TutorialKey, 0) == 0 && TutorialReady(booster)) { ShowTutorial(booster); break; }
+            TryStartTutorial();
 
             bool arrows = false;
             foreach (var pair in _arrows)
@@ -553,7 +628,11 @@ namespace SnackDash.UI
             if (_aiming.id == Booster.Shovel)
             {
                 var cell = CircleUnder(UnityEngine.Input.mousePosition);
-                if (cell.HasValue) _session.UseShovel(cell.Value);
+                if (!cell.HasValue) return;
+                // The shovel too flies into the snake before it digs (Shovel Trail FX in the original) [user].
+                var shovel = _aiming;
+                SetAiming(null);
+                StartCoroutine(FlyIcon(shovel, () => _session.UseShovel(cell.Value)));
                 return;
             }
             if (_aiming != boomerang || !arrows) return;

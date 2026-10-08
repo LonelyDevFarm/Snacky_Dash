@@ -96,4 +96,5 @@ MonoBehaviour:
   timeLimitSeconds: 475
   speedOverride: 0
   wallHealth: 3
+  difficulty: 0
   wallGroupHealths: []

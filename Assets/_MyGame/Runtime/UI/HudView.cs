@@ -21,6 +21,7 @@ namespace SnackDash.UI
     public class HudView : MonoBehaviour
     {
         [SerializeField] private UiSkin skin = new UiSkin();
+        public UiSkin Skin => skin;
         [Tooltip("Layout prefab (Prefabs/UI/HUD); built in code when empty. Milestone markers are added at runtime.")]
         [SerializeField] private GameObject prefab;
         [Tooltip("Fill speed of the progress bar, in bar lengths per second (smoothing; not measured).")]
@@ -28,6 +29,8 @@ namespace SnackDash.UI
         [SerializeField] private float markerCompleteDelay = 0.15f;
         [Tooltip("The settings popup has BACK TO HOME from this level on [user: from Level 6].")]
         [SerializeField] private int backToHomeFromLevel = 6;
+        [Tooltip("How long a combo's +N stays on the coin tag before it hides.")]
+        [SerializeField] private float coinTagHold = 1.2f;
 
         private readonly List<(float fraction, int fruit, GameObject pending)> _markers = new List<(float, int, GameObject)>();
         private GameSession _session;
@@ -42,8 +45,56 @@ namespace SnackDash.UI
             if (_settingsCanvas == null) _settingsCanvas = UiBuilder.Canvas(transform, "Settings", 50);
             if (_settingsCanvas.childCount > 0) return;
             Time.timeScale = 0f;
-            System.Action home = levelNumber >= backToHomeFromLevel ? () => LoadingScreen.Load(LoadingScreen.HomeScene, skin) : (System.Action)null;
+            System.Action home = levelNumber >= backToHomeFromLevel ? () => { SnackDash.Economy.PlayerEconomy.Shared.Lose(); LoadingScreen.Load(LoadingScreen.HomeScene, skin); } : (System.Action)null; // leaving costs a life [user]
             SettingsPopup.Open(_settingsCanvas, skin, home, () => Time.timeScale = 1f);
+        }
+
+        /// <summary>Where combo coins fly to; shown only while a combo's coins land (ShowComboCoins).</summary>
+        public RectTransform CoinTag { get; private set; }
+        private TMPro.TMP_Text _coinTagText;
+
+        private Coroutine _coinTagShow;
+
+        /// <summary>
+        /// One combo's coins [user]: the tag pops up with "+N" for that combo alone, stays a moment and goes again;
+        /// the level total is only added up on the win screen.
+        /// </summary>
+        public void ShowComboCoins(int coins)
+        {
+            if (CoinTag == null || coins <= 0) return;
+            if (_coinTagShow != null) StopCoroutine(_coinTagShow);
+            _coinTagShow = StartCoroutine(CoinTagRoutine(coins));
+        }
+
+        private IEnumerator CoinTagRoutine(int coins)
+        {
+            if (_coinTagText != null) _coinTagText.text = "+" + coins;
+            if (!CoinTag.gameObject.activeSelf)
+            {
+                CoinTag.gameObject.SetActive(true);
+                yield return Tween.Run(0.25f, Tween.OutBack(3f), t => CoinTag.localScale = Vector3.one * t);
+            }
+            else yield return Tween.Punch(0.12f, t => CoinTag.localScale = Vector3.one * (1f + 0.25f * t));
+            yield return new WaitForSeconds(coinTagHold);
+            yield return Tween.Run(0.2f, Tween.InBack(2f), t => CoinTag.localScale = Vector3.one * (1f - t));
+            CoinTag.gameObject.SetActive(false);
+            CoinTag.localScale = Vector3.one;
+            _coinTagShow = null;
+        }
+
+        private RectTransform BuildCoinTag(RectTransform bar)
+        {
+            var tag = Rect(bar, "ComboHolder", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, -16f), new Vector2(111.45f, 48.43f));
+            Image(tag, skin.Get("S_CoinBackground_Gold_0"), Color.white, sliced: true).pixelsPerUnitMultiplier = 5.31f; // the original's: small round caps
+            // LvlNumber_Txt: the original box is 0 high (TMP still draws it); here as high as the tag so auto-size works,
+            // moved onto the middle of the orange part right of the coin (measured on a screenshot) [user: "lệch"].
+            var label = Text(Rect(tag, "LvlNumber_Txt", Vector2.zero, Vector2.one, new Vector2(-4f, 5f), new Vector2(-50.97f, 0f)), "+0", skin.font, skin.plainMaterial, 28.6f, Color.white);
+            label.alignment = TMPro.TextAlignmentOptions.Midline;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 18f;
+            label.fontSizeMax = 28.6f;
+            Image(Rect(tag, "Coin_Img", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-67.1f, 1.66f), new Vector2(59.3f, 57.4f)), skin.coinIcon, Color.white).preserveAspect = true;
+            return tag;
         }
 
         public void Bind(GameSession session, int levelNumber)
@@ -71,6 +122,17 @@ namespace SnackDash.UI
             const string bar = "SafeArea/_top/Panel_InGame_HUD/ProgressBar/";
             root.Find(bar + "LvlHolder_Img/LvlNumber_Txt").GetComponent<TMPro.TMP_Text>().text = "LEVEL " + levelNumber;
             _fill = (RectTransform)root.Find(bar + "Slider/FillArea/Fill");
+
+            // ComboHolder (original Panel_InGame_HUD: S_CoinBackground_Gold_0 111 x 48, coin left, "+N"), under the
+            // right end of the bar as in the video. Made here when the HUD prefab has none.
+            var progressBar = (RectTransform)root.Find("SafeArea/_top/Panel_InGame_HUD/ProgressBar");
+            CoinTag = progressBar != null ? progressBar.Find("ComboHolder") as RectTransform : null;
+            if (CoinTag == null && progressBar != null) CoinTag = BuildCoinTag(progressBar);
+            if (CoinTag != null)
+            {
+                _coinTagText = CoinTag.GetComponentInChildren<TMPro.TMP_Text>();
+                CoinTag.gameObject.SetActive(false); // it pops up when a combo's coins arrive [user]
+            }
 
             // Settings: pauses the level; BACK TO HOME from Level 6 on (earlier levels have none) [user].
             LoadingScreen.Skin = skin;

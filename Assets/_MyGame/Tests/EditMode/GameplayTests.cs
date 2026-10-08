@@ -61,6 +61,16 @@ namespace SnackDash.Tests
             session.Begin();
             Assert.AreEqual(2, session.Pills.Count);
 
+            // An effect playing (snake drop, fruit jumping in) locks swipes, not even buffered, until its time is up.
+            session.LockInput(0.3f);
+            Assert.IsFalse(session.RequestMove(Direction.Right), "locked while an effect plays");
+            session.Tick(0.31f);
+            Assert.IsFalse(session.InputLocked);
+            // A forced booster tutorial holds swipes until the booster is used.
+            session.SwipesHeld = true;
+            Assert.IsFalse(session.RequestMove(Direction.Right), "held by a booster tutorial");
+            session.SwipesHeld = false;
+
             // Run to the crate stop eating both pills; the tail trails one cell apart.
             Assert.IsTrue(session.RequestMove(Direction.Right));
             session.Tick(0.2f);
@@ -121,6 +131,7 @@ namespace SnackDash.Tests
             // Snip: the cut fruit goes into the strawberry crate below the banana one, not the board.
             Assert.IsTrue(session.Snip());
             Assert.IsFalse(session.IsStuck);
+            Assert.IsFalse(session.CanUndo, "no undo right after a snip: it waits for the next swipe");
             Assert.AreEqual(1, session.Segments.Count);
             Assert.AreEqual(0, session.Pills.Count);
             Assert.AreEqual(0, session.Columns[0].CurrentIndex, "a crate filled below the top waits its turn");
@@ -182,6 +193,68 @@ namespace SnackDash.Tests
             Assert.AreEqual(start, session.CurrentCell);
             Assert.IsFalse(session.RequestMove(Direction.Left), "cannot reverse into the tail");
             Assert.IsTrue(session.RequestMove(Direction.Up));
+        }
+
+        /// <summary>Coins, lives and the win streak as the user set them (FINDINGS 07/10).</summary>
+        [Test]
+        public void Economy_CoinsLivesStreak()
+        {
+            var now = new System.DateTime(2026, 10, 7, 12, 0, 0, System.DateTimeKind.Utc);
+            var eco = new SnackDash.Economy.PlayerEconomy(new SnackDash.Economy.MemoryStore(), () => now);
+
+            // Coins: 1800 to start, 20 / 30 / 40 for a win, spending never below zero.
+            Assert.AreEqual(1800, eco.Coins);
+            Assert.AreEqual(20, eco.Win(5, 0));
+            Assert.AreEqual(30, eco.Win(6, 2));
+            Assert.AreEqual(40, eco.Win(7, 4));
+            Assert.AreEqual(1890, eco.Coins);
+            Assert.IsTrue(eco.TrySpend(1800));
+            Assert.IsFalse(eco.TrySpend(100), "not enough coins");
+
+            // Lives: a loss costs one, one comes back every 30 minutes, never above 5.
+            Assert.AreEqual(5, eco.Lives);
+            eco.Lose(); eco.Lose();
+            Assert.AreEqual(3, eco.Lives);
+            Assert.AreEqual(30, (int)eco.NextLifeIn.TotalMinutes);
+            now = now.AddMinutes(31);
+            Assert.AreEqual(4, eco.Lives);
+            now = now.AddHours(5);
+            Assert.AreEqual(5, eco.Lives, "back to full, not above");
+            eco.AddLife();
+            Assert.AreEqual(5, eco.Lives);
+            for (int i = 0; i < 5; i++) eco.Lose();
+            Assert.IsFalse(eco.CanPlay, "no lives left");
+            eco.AddInfiniteLives(System.TimeSpan.FromMinutes(30));
+            Assert.IsTrue(eco.CanPlay, "infinite lives");
+            eco.Lose();
+            Assert.AreEqual(5, eco.Lives, "no life lost while infinite, full when it ends");
+
+            // Closing the app during a level costs its life on the next start.
+            now = now.AddHours(3);
+            eco.LevelInProgress = true;
+            eco.ChargeUncleanExit();
+            Assert.AreEqual(4, eco.Lives);
+
+            // Streak: from Level 23, 5 wins (a loss in between does not reset) set it on fire, x2 coins;
+            // a loss on fire resets it.
+            eco.Win(22, 0);
+            Assert.AreEqual(0, eco.StreakWins, "no streak before Level 23");
+            eco.Win(23, 0); eco.Win(24, 0); eco.Lose(); eco.Win(25, 0); eco.Win(26, 0);
+            Assert.IsFalse(eco.StreakOnFire);
+            eco.Win(27, 0);
+            Assert.IsTrue(eco.StreakOnFire);
+            Assert.AreEqual(60, eco.Win(28, 2), "double while on fire");
+            eco.Lose();
+            Assert.IsFalse(eco.StreakOnFire);
+            Assert.AreEqual(0, eco.StreakWins);
+
+            // Shop packs: coins, infinite lives and boosters.
+            int coins = eco.Coins;
+            SnackDash.Economy.ShopCatalog.Bundles[1].Grant(eco); // Medium: 7500, 2h, shovel + boomerang x2
+            Assert.AreEqual(coins + 7500, eco.Coins);
+            Assert.IsTrue(eco.InfiniteLives);
+            Assert.AreEqual(SnackDash.Economy.PlayerEconomy.StartBoosterStock + 2, eco.Boosters("booster_shovel"));
+            Assert.AreEqual(SnackDash.Economy.PlayerEconomy.StartBoosterStock, eco.Boosters("booster_undo"));
         }
 
         [Test]
@@ -281,6 +354,22 @@ namespace SnackDash.Tests
             session.SetSeed(1);
             session.Begin();
             if (!map.HasLayer("spawn1")) AssertRandomLayout(session, level.batches[0]);
+            if (session.ExtraColumn >= 0)
+            {
+                // Extra crate: locked and empty, then bought at the start; no crate is lost and the level stays winnable.
+                Assert.IsTrue(session.ExtraLocked);
+                Assert.AreEqual(0, session.Columns[session.ExtraColumn].Crates.Count);
+                int crates = session.Columns.Sum(c => c.Crates.Count);
+                Assert.IsTrue(session.UnlockExtraColumn());
+                Assert.IsFalse(session.ExtraLocked);
+                Assert.AreEqual(crates, session.Columns.Sum(c => c.Crates.Count), "the crates are shared out, none lost");
+                Assert.Greater(session.Columns[session.ExtraColumn].Crates.Count, 0);
+                if (name.EndsWith("11070_v4_ftue_nt_VO")) // Level 30, as on the user's screenshots: new column yellow, orange, red...
+                {
+                    CollectionAssert.AreEqual(new[] { 2, 5, 0, 4, 5, 0 }, session.Columns[session.ExtraColumn].Crates.Select(c => (int)c.kind).ToArray());
+                    CollectionAssert.AreEqual(new[] { 2, 0, 4, 5, 5 }, session.Columns[0].Crates.Select(c => (int)c.kind).ToArray(), "the old column: yellow, red, green...");
+                }
+            }
             foreach (var gate in session.Board.OneWayGates)
             {
                 var way = gate.Value;

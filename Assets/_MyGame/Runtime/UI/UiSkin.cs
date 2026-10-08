@@ -19,6 +19,9 @@ namespace SnackDash.UI
         public Material redCartoonMaterial;        // LuckiestGuy-Regular SDF Red Cartoon
         public Material redCartoonInnerMaterial;   // LuckiestGuy-Regular SDF Red Cartoon Play btn
         public Material brownLevelMaterial;        // LuckiestGuy-Regular Brown Level Number
+        public Material purpleCartoonPlayMaterial; // LuckiestGuy-Regular SDF Purple Cartoon Play btn (Home Hard button)
+        public Material purpleInnerShadowMaterial; // LuckiestGuy-Regular SDF Purple Cartoon Inner Shadow ("Hard")
+        public Material redInnerShadowMaterial;    // LuckiestGuy-Regular SDF Red Cartoon Inner Shadow ("Super Hard")
 
         // In-game HUD (Panel_InGame_HUD in Game.unity)
         public Sprite hudBar;                        // S_CoreTopUI_Main_0
@@ -91,6 +94,19 @@ namespace SnackDash.UI
         {
             if (named == null) return null;
             foreach (var sprite in named) if (sprite != null && sprite.name == name) return sprite;
+            return null;
+        }
+
+        [UnityEngine.Tooltip("LilitaOne SDF, the Shop's font.")]
+        public TMP_FontAsset shopFont;
+        [UnityEngine.Tooltip("LilitaOne presets of the Shop, looked up by their original name (UiSkin.ShopMaterial).")]
+        public Material[] shopMaterials;
+
+        /// <summary>A Shop preset by its original name, e.g. "LilitaOne-Regular - Buy Btn".</summary>
+        public Material ShopMaterial(string original)
+        {
+            if (shopMaterials == null) return null;
+            foreach (var material in shopMaterials) if (material != null && material.name.EndsWith("(" + original + ")")) return material;
             return null;
         }
     }

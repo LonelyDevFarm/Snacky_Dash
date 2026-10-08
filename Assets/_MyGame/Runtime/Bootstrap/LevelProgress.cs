@@ -12,6 +12,9 @@ namespace SnackDash.Bootstrap
     {
         private const string Key = "SnackDash.LevelIndex";
 
+        /// <summary>Home exists from this level on: before it the game goes from level to level [user].</summary>
+        public const int HomeFromLevel = 6;
+
         public static int Index
         {
             get => PlayerPrefs.GetInt(Key, 0);
