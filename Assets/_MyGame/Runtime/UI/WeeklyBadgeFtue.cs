@@ -18,14 +18,18 @@ namespace SnackDash.UI
     public class WeeklyBadgeFtue : MonoBehaviour
     {
         private const string SeenKey = "wm_badge_ftue_seen";
+        public const string SnackyPassSeenKey = "sp_badge_ftue_seen";
 
         public static bool Seen => PlayerPrefs.GetInt(SeenKey, 0) != 0;
+        public static bool SeenFor(string key) => PlayerPrefs.GetInt(key, 0) != 0;
+
+        private string _seenKey = SeenKey;
 
         private RectTransform _hand;
         private Vector2 _handRest, _handWay;
         private Vector3 _handScale;
 
-        public static void Open(RectTransform canvas, UiSkin skin, RectTransform widget, GameObject prefab, Action open)
+        public static void Open(RectTransform canvas, UiSkin skin, RectTransform widget, GameObject prefab, Action open, string seenKey = SeenKey, Action<RectTransform, UiSkin> build = null)
         {
             RectTransform root;
             if (prefab != null)
@@ -36,36 +40,47 @@ namespace SnackDash.UI
             else
             {
                 root = Stretch(canvas, "WeeklyMissionBadgeFtue");
-                BuildLayout(root, skin);
+                if (build != null) build(root, skin); else BuildLayout(root, skin);
             }
             var view = root.GetComponent<WeeklyBadgeFtue>();
             if (view == null) view = root.gameObject.AddComponent<WeeklyBadgeFtue>();
+            view._seenKey = seenKey;
             view.Bind(root, widget, open);
         }
 
         // ================================================================== layout (saved as the prefab)
 
         public static void BuildLayout(RectTransform root, UiSkin skin)
+            => Layout(root, skin, "WEEKLY ADVENTURE\n<color=#9358D6>UNLOCKED!</color>", new Vector2(303f, 57f), new Vector2(158f, -121f), Vector2.zero, 0.647f, false);
+
+        /// <summary>SeasonPassBadgeFtue: the bubble on the left (-256, 76), the hand under it (Tap -155, -121; holder -22, 17).</summary>
+        public static void BuildSnackyPassLayout(RectTransform root, UiSkin skin)
+            => Layout(root, skin, "Snacky Pass\n<color=#9358D6>unlocked!</color>", new Vector2(-256f, 76f), new Vector2(-155f, -121f), new Vector2(-22f, 17f), 0.647f, true); // dims as the prefab says, at once (the video stayed bright; covering the coins is fine) [user]
+
+        private static void Layout(RectTransform root, UiSkin skin, string words, Vector2 bubbleAt, Vector2 tapAt, Vector2 holderAt, float dim, bool mirror)
         {
             if (root.GetComponent<WeeklyBadgeFtue>() == null) root.gameObject.AddComponent<WeeklyBadgeFtue>();
-            Image(Stretch(root, "Background"), null, new Color(0f, 0f, 0f, 0.647f), raycast: true);
+            Image(Stretch(root, "Background"), null, new Color(0f, 0f, 0f, dim), raycast: true);
             var content = Rect(root, "Content", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(100f, 100f));
             Rect(content, "Widget_Unlocked", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(221.1f, 227.8f)); // the widget's copy goes here
 
             // Speech Bubble (303, 57): the white bubble with its point on the left, two lines.
-            var bubble = Rect(content, "Speech Bubble", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(303f, 57f), new Vector2(400f, 120f));
+            var bubble = Rect(content, "Speech Bubble", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), bubbleAt, new Vector2(400f, 120f));
             Image(Stretch(bubble, "background"), skin.Get("S_Background_SpeechBubble_01"), Color.white, sliced: true).pixelsPerUnitMultiplier = 2.35f;
+            // On the left of its widget the bubble and the hand are mirrored: tail and finger point right, at the widget (sk2 10.5 s).
+            if (mirror) bubble.Find("background").localScale = new Vector3(-1f, 1f, 1f);
             var text = Text(Rect(bubble, "Text (TMP)", Vector2.zero, Vector2.one, new Vector2(10f, 0f), new Vector2(-40f, -20f)),
-                "WEEKLY ADVENTURE\n<color=#9358D6>UNLOCKED!</color>", skin.font, skin.plainMaterial, 40f, new Color(0.369f, 0.498f, 0.678f));
+                words, skin.font, skin.plainMaterial, 40f, new Color(0.369f, 0.498f, 0.678f));
             text.richText = true;
             text.enableAutoSizing = true;
             text.fontSizeMin = 24f;
             text.fontSizeMax = 40f;
 
             // Tap (158, -121): the hand, 0.7, turned 30 degrees, its finger on the widget.
-            var tap = Rect(content, "Tap", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(158f, -121f), Vector2.zero);
-            var holder = Rect(tap, "Hand Holder", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(100f, 100f));
+            var tap = Rect(content, "Tap", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), tapAt, Vector2.zero);
+            var holder = Rect(tap, "Hand Holder", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), holderAt, new Vector2(100f, 100f));
             holder.localScale = Vector3.one * 0.7f;
+            if (mirror) holder.localScale = new Vector3(-0.7f, 0.7f, 1f);
             var hand = Rect(holder, "Hand", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(256f, 256f));
             hand.localRotation = Quaternion.Euler(0f, 0f, 30f);
             Image(hand, skin.Get("S_Hand_Tutorial"), Color.white).preserveAspect = true;
@@ -76,7 +91,7 @@ namespace SnackDash.UI
 
         private void Bind(RectTransform root, RectTransform widget, Action open)
         {
-            PlayerPrefs.SetInt(SeenKey, 1);
+            PlayerPrefs.SetInt(_seenKey, 1);
             PlayerPrefs.Save();
             var content = (RectTransform)root.Find("Content");
             content.position = widget.position;

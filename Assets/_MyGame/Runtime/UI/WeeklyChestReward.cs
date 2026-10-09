@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using SnackDash.Economy;
 using SnackDash.Presentation;
 using UnityEngine;
@@ -23,18 +24,26 @@ namespace SnackDash.UI
         {
             var root = Stretch(parent, "ChestRewardPopupView");
             var view = root.gameObject.AddComponent<WeeklyChestReward>();
-            view.StartCoroutine(view.Play(root, skin, popup, milestone, from, done));
+            Action<RectTransform> title = header => { WeeklyMissionsPopup.Title(header, skin); WeeklyMissionsPopup.Ribbon(header, skin, "Rewards"); };
+            view.StartCoroutine(view.Play(root, skin, title, popup.ChestSprite(milestone), popup.Extras(WeeklyMissionsData.Milestones[milestone].reward, "x"), from, done, true));
         }
 
-        private IEnumerator Play(RectTransform root, UiSkin skin, WeeklyMissionsPopup popup, int milestone, Vector3 from, Action done)
+        /// <summary>The same screen for another event's chest (Snacky Pass): its own title, no path; the chest grows from where it was.</summary>
+        public static void OpenChest(RectTransform parent, UiSkin skin, Action<RectTransform> title, Sprite chest, List<(Sprite icon, string amount)> rewards, Vector3 from, Action done)
+        {
+            var root = Stretch(parent, "ChestRewardPopupView");
+            var view = root.gameObject.AddComponent<WeeklyChestReward>();
+            view.StartCoroutine(view.Play(root, skin, title, chest, rewards, from, done, false));
+        }
+
+        private IEnumerator Play(RectTransform root, UiSkin skin, Action<RectTransform> title, Sprite chestSprite, List<(Sprite icon, string amount)> rewards, Vector3 from, Action done, bool withPath)
         {
             var cover = Image(Stretch(root, "Background"), null, new Color(0f, 0f, 0f, 0f), raycast: true);
             cover.gameObject.AddComponent<Button>().onClick.AddListener(() => _tapped = true);
 
             var header = Rect(root, "Header", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -250f), new Vector2(881.13f, 144.3f));
             header.localScale = Vector3.one * 0.933f;
-            WeeklyMissionsPopup.Title(header, skin);
-            WeeklyMissionsPopup.Ribbon(header, skin, "Rewards");
+            title(header);
             var headerGroup = header.gameObject.AddComponent<CanvasGroup>();
 
             // The dashed path (S_Path_0, filled) and the target ring at its end.
@@ -45,11 +54,13 @@ namespace SnackDash.UI
             dashes.fillOrigin = (int)UnityEngine.UI.Image.OriginVertical.Top;
             dashes.fillAmount = 0f;
             var target = Image(Rect(root, "Sp_Target", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -161.4f), new Vector2(150f, 150f)), skin.Get("S_Weekly_Target_0"), new Color(1f, 1f, 1f, 0f));
+            path.gameObject.SetActive(withPath);
+            target.gameObject.SetActive(withPath);
 
             var rays = Rect(root, "Chest Back Rays", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -140.6f), new Vector2(700f, 700f));
             var raysImage = Image(rays, skin.Get("GlowRays"), new Color(1f, 0.8f, 0.3f, 0f));
             var chest = Rect(root, "S_Chest", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(500f, 500f));
-            var chestImage = Image(chest, popup.ChestSprite(milestone), Color.white);
+            var chestImage = Image(chest, chestSprite, Color.white);
             chestImage.preserveAspect = true;
             chest.position = from;
             chest.localScale = Vector3.one * 0.2f;
@@ -84,12 +95,14 @@ namespace SnackDash.UI
             }, true);
             SnackDash.Audio.Haptics.Medium();
             SnackDash.Audio.SoundPlayer.Play("CollectCoin");
-            var rewards = popup.Extras(WeeklyMissionsData.Milestones[milestone].reward, "x");
             var items = new RectTransform[rewards.Count];
             for (int i = 0; i < items.Length; i++)
             {
-                float x = (i - (items.Length - 1) * 0.5f) * 220f;
-                items[i] = Rect(root, "RewardView " + i, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x, 0f), new Vector2(170f, 170f));
+                // One row of up to four; more go in rows of three (a Snacky Pass chest holds up to six).
+                int perRow = items.Length <= 4 ? items.Length : 3, rowIndex = i / perRow, inRow = Mathf.Min(perRow, items.Length - rowIndex * perRow);
+                float x = (i % perRow - (inRow - 1) * 0.5f) * 220f;
+                float y = items.Length <= 4 ? 0f : 130f - rowIndex * 260f;
+                items[i] = Rect(root, "RewardView " + i, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x, y), new Vector2(170f, 170f));
                 Image(Stretch(items[i], "Icon"), rewards[i].icon, Color.white).preserveAspect = true;
                 Text(Rect(items[i], "Amount", Vector2.zero, new Vector2(1f, 0f), new Vector2(0f, -20f), new Vector2(0f, 80f)), rewards[i].amount.ToUpperInvariant(), skin.font, skin.EventMaterial("LuckiestGuy-Regular Brown Cartoon"), 60f, Color.white);
                 items[i].localScale = Vector3.zero;

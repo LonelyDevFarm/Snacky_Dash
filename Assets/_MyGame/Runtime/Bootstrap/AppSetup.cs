@@ -22,6 +22,8 @@ namespace SnackDash.Bootstrap
             var missions = SnackDash.Economy.WeeklyMissions.Shared;
             missions.StartIfUnlocked(LevelProgress.Index + 1);
             missions.Login();
+            // Snacky Pass counts the tickets of every win too.
+            SnackDash.Economy.SeasonPass.Shared.StartIfUnlocked(LevelProgress.Index + 1);
         }
     }
 }

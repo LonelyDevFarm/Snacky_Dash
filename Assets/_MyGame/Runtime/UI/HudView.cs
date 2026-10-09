@@ -31,6 +31,15 @@ namespace SnackDash.UI
         [SerializeField] private int backToHomeFromLevel = 6;
         [Tooltip("How long a combo's +N stays on the coin tag before it hides.")]
         [SerializeField] private float coinTagHold = 1.2f;
+        [Header("Win streak on fire (View_StreakActive_HUD)")]
+        [Tooltip("S_Flame_CoreStreak_0, S_Level_Number_BG_0_0 and Mat_UI_Streak_Glow.")]
+        [SerializeField] private Sprite streakFlame;
+        [SerializeField] private Sprite streakGlowSprite;
+        [SerializeField] private Material streakGlow;
+        [Tooltip("TX_FX_Sparkle, S_FX_SmallGlow_01_0 and MT_FX_UI_Particle_Additive: its sparks.")]
+        [SerializeField] private Sprite streakSpark;
+        [SerializeField] private Sprite streakEmber;
+        [SerializeField] private Material streakParticles;
 
         private readonly List<(float fraction, int fruit, GameObject pending)> _markers = new List<(float, int, GameObject)>();
         private GameSession _session;
@@ -47,6 +56,27 @@ namespace SnackDash.UI
             Time.timeScale = 0f;
             System.Action home = levelNumber >= backToHomeFromLevel ? () => { SnackDash.Economy.PlayerEconomy.Shared.Lose(); LoadingScreen.Load(LoadingScreen.HomeScene, skin); } : (System.Action)null; // leaving costs a life [user]
             SettingsPopup.Open(_settingsCanvas, skin, home, () => Time.timeScale = 1f);
+        }
+
+        /// <summary>
+        /// View_StreakActive_HUD (original Game.unity): while the streak is on fire a flame (S_Flame_CoreStreak_0, its foot cut off by
+        /// a mask) burns behind the snake head at the bar's left end, over a flickering orange glow (Mat_UI_Streak_Glow) [user].
+        /// </summary>
+        private void StreakOnFire(RectTransform progressBar)
+        {
+            if (streakFlame == null || progressBar.Find("View_StreakActive_HUD") != null) return;
+            var view = UiBuilder.Rect(progressBar, "View_StreakActive_HUD", Vector2.zero, Vector2.zero, new Vector2(-5f, 56.6f), new Vector2(140f, 84f));
+            view.localScale = new Vector3(0.69f, 0.886f, 0.797f);
+            var snake = progressBar.Find("Snacky");
+            if (snake != null) view.SetSiblingIndex(snake.GetSiblingIndex()); // just under the head
+            var fx = UiBuilder.Rect(view, "Streak_FX_Container", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(120f, 126f));
+            var glow = UiBuilder.Image(UiBuilder.Rect(fx, "StreakGlow_HUD", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -26.26f), new Vector2(150.4f, 97.2f)), streakGlowSprite, new Color(1f, 0.359f, 0f, 0.6f), sliced: true);
+            glow.pixelsPerUnitMultiplier = 5.2f;
+            glow.material = streakGlow;
+            UiParticles.HudSparks(fx, streakSpark, streakEmber, streakParticles);
+            var mask = UiBuilder.Rect(view, "Mask", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 15.3f), new Vector2(161.4f, 139.2f));
+            mask.gameObject.AddComponent<RectMask2D>();
+            UiBuilder.Image(UiBuilder.Rect(mask, "StreakIcon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -18.7f), new Vector2(147.3f, 147.3f)), streakFlame, Color.white);
         }
 
         /// <summary>Where combo coins fly to; shown only while a combo's coins land (ShowComboCoins).</summary>
@@ -128,6 +158,7 @@ namespace SnackDash.UI
             var progressBar = (RectTransform)root.Find("SafeArea/_top/Panel_InGame_HUD/ProgressBar");
             CoinTag = progressBar != null ? progressBar.Find("ComboHolder") as RectTransform : null;
             if (CoinTag == null && progressBar != null) CoinTag = BuildCoinTag(progressBar);
+            if (progressBar != null && SnackDash.Economy.PlayerEconomy.Shared.StreakOnFire && SnackDash.Economy.PlayerEconomy.StreakShown(levelNumber)) StreakOnFire(progressBar);
             if (CoinTag != null)
             {
                 _coinTagText = CoinTag.GetComponentInChildren<TMPro.TMP_Text>();

@@ -470,6 +470,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
+    shinyShader: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -708,6 +709,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
+    shinyShader: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -720,6 +722,12 @@ MonoBehaviour:
   markerCompleteDelay: 0.15
   backToHomeFromLevel: 6
   coinTagHold: 1.2
+  streakFlame: {fileID: 21300000, guid: 156003bf6d037d9459fd8c5828107906, type: 2}
+  streakGlowSprite: {fileID: 21300000, guid: 57af842be40d7f54f8909a36f4373237, type: 2}
+  streakGlow: {fileID: 2100000, guid: 71689bceb97f20e43917f4f79c8127c6, type: 2}
+  streakSpark: {fileID: 21300000, guid: 6d1fcb54baa105345840637b6db70059, type: 2}
+  streakEmber: {fileID: 21300000, guid: 26327775ed624d440bcf5162e1f81a22, type: 2}
+  streakParticles: {fileID: 2100000, guid: 4f76735f31bdc1f4280c0970c0e137ab, type: 2}
 --- !u!114 &1193949483
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -943,6 +951,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
+    shinyShader: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -951,6 +960,12 @@ MonoBehaviour:
     - {fileID: 2100000, guid: dda5ffe0979b42c45ab37a0bf4439932, type: 2}
     - {fileID: 2100000, guid: a1bd8bfd2595f7449bf1699d4852228a, type: 2}
   prefab: {fileID: 7671126237567784172, guid: e33dfc533f4460147bd0cebb8992a972, type: 3}
+  fxAdditive: {fileID: 2100000, guid: 4f76735f31bdc1f4280c0970c0e137ab, type: 2}
+  fxGlow: {fileID: 21300000, guid: dfda43963ccc95649803b5d9db784637, type: 2}
+  fxRaysA: {fileID: 21300000, guid: 7b21a9535c27d2b4796d1459f12a2862, type: 2}
+  fxRaysB: {fileID: 21300000, guid: c423e235c0ab45d498ddb4f015ef46e0, type: 2}
+  fxDot: {fileID: 21300000, guid: 6d1fcb54baa105345840637b6db70059, type: 2}
+  fxSparkle: {fileID: 21300000, guid: 7c4335588d660c44fbe4422e28b0e8e9, type: 2}
   appearDelay: 1.3
   backgroundFade: 0.3
   titlePopDuration: 0.35
@@ -1179,6 +1194,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
+    shinyShader: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -1434,6 +1450,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
+    shinyShader: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -1675,6 +1692,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 555081c1ea4fba94384e970d78a133fc, type: 2}
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
+    shinyShader: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -1859,6 +1877,7 @@ MonoBehaviour:
   boosters: {fileID: 1193949481}
   tutorial: {fileID: 1193949486}
   combo: {fileID: 1193949487}
+  guidanceArrow: {fileID: 21300000, guid: 9916fde520635ca42a675e6b4cb81872, type: 2}
   heldSwipeGraceAfterStop: 0.15
 --- !u!114 &1299850104
 MonoBehaviour:

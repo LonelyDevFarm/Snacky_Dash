@@ -30,6 +30,10 @@ namespace SnackDash.UI
         [SerializeField] private UiSkin skin = new UiSkin();
         [Tooltip("Layout prefab (Prefabs/UI/Victory); built in code when empty.")]
         [SerializeField] private GameObject prefab;
+        [Header("UNLOCKED! light (VictoryPopup FX_UI_Highlight_Rays_Golden)")]
+        [Tooltip("MT_FX_UI_Particle_Additive; TX_FX_Glow, TX_FX_Flare, TX_FX_Flare_1, TX_FX_Sparkle, circle_glow_fx.")]
+        [SerializeField] private Material fxAdditive;
+        [SerializeField] private Sprite fxGlow, fxRaysA, fxRaysB, fxDot, fxSparkle;
 
         [Header("Timing (measured on LV2-3)")]
         [SerializeField] private float appearDelay = 1.3f;
@@ -320,7 +324,8 @@ namespace SnackDash.UI
             var feature = Rect(root, "Feautre Unlocked", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             Text(Rect(feature, "Unlocked_Txt", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 555f), new Vector2(700f, 160f)),
                 "UNLOCKED!", skin.font, skin.redCartoonMaterial, 110f, Color.white);
-            Image(Rect(feature, "Glow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(560f, 560f)), skin.glow, new Color(1f, 0.78f, 0.25f, 0.6f));
+            if (fxGlow != null) UnlockFx.Add(feature, new Vector2(0f, 20f), fxAdditive, fxGlow, fxRaysA, fxRaysB, fxDot, fxSparkle); // behind the picture, as in the original
+            else Image(Rect(feature, "Glow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(560f, 560f)), skin.glow, new Color(1f, 0.78f, 0.25f, 0.6f));
             Image(Rect(feature, "Icon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(470f, 360f)), UnlockPopups.Icon(skin, entry), Color.white).preserveAspect = true;
             var ribbon = Rect(feature, "Ribbon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -212f), new Vector2(599f, 161f));
             Image(ribbon, skin.ribbonGreen, Color.white);
@@ -328,6 +333,8 @@ namespace SnackDash.UI
             name.enableAutoSizing = true;
             name.fontSizeMin = 24f;
             name.fontSizeMax = 55f;
+            // LD_Explain_Text: "Play next level to try it!" (58.2) under the ribbon.
+            Text(Rect(feature, "LD_Explain_Text", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -365f), new Vector2(884f, 90f)), "Play next level to try it!", skin.font, skin.plainMaterial, 58.2f, Color.white);
             return feature;
         }
 

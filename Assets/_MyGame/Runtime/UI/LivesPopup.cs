@@ -77,10 +77,11 @@ namespace SnackDash.UI
             top.fontSizeMax = 60f;
             // LivesPanel: one slot per life, the grey empty heart under the red full one.
             var panel = Rect(body, "LivesPanel", new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, -40f), new Vector2(-50f, 130f));
-            popup._hearts = new Image[PlayerEconomy.MaxLives];
+            popup._hearts = new Image[PlayerEconomy.Shared.LifeCap];
+            float gap = Mathf.Min(135f, 940f / popup._hearts.Length); // 8 hearts while Snacky Pass is active: closer together
             for (int i = 0; i < popup._hearts.Length; i++)
             {
-                var live = Rect(panel, i == 0 ? "Live" : $"Live ({i})", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2((i - (popup._hearts.Length - 1) * 0.5f) * 135f, 0f), new Vector2(125f, 125f));
+                var live = Rect(panel, i == 0 ? "Live" : $"Live ({i})", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2((i - (popup._hearts.Length - 1) * 0.5f) * gap, 0f), Vector2.one * Mathf.Min(125f, gap - 10f));
                 Image(Stretch(live, "Empty"), skin.Get("S_Icon_Heart_bg_0"), Color.white).preserveAspect = true;
                 popup._hearts[i] = Image(Stretch(live, "Full"), skin.Get("S_Icon_Heart_0"), Color.white);
                 popup._hearts[i].preserveAspect = true;
@@ -164,7 +165,7 @@ namespace SnackDash.UI
         {
             var economy = PlayerEconomy.Shared;
             int lives = economy.Lives;
-            bool infinite = economy.InfiniteLives, full = !infinite && lives >= PlayerEconomy.MaxLives;
+            bool infinite = economy.InfiniteLives, full = !infinite && lives >= economy.LifeCap;
             if (_number != null)
             {
                 _number.text = lives.ToString();

@@ -142,6 +142,10 @@ namespace SnackDash.Editor.Setup
             PanelPrefab("WeeklyMissionsPopup", SnackDash.UI.WeeklyMissionsPopup.BuildLayout);
             PanelPrefab("WeeklyMissionsRules", SnackDash.UI.WeeklyMissionsRules.BuildLayout);
             PanelPrefab("WeeklyBadgeFtue", SnackDash.UI.WeeklyBadgeFtue.BuildLayout);
+            PanelPrefab("SnackyPassView", SnackDash.UI.SnackyPassView.BuildLayout);
+            PanelPrefab("SnackyPassRules", SnackDash.UI.SnackyPassRules.BuildLayout);
+            PanelPrefab("SnackyPassOffer", SnackDash.UI.SnackyPassOffer.BuildLayout);
+            PanelPrefab("SnackyPassBadgeFtue", SnackDash.UI.WeeklyBadgeFtue.BuildSnackyPassLayout);
             AssetDatabase.SaveAssets();
         }
 
@@ -330,6 +334,13 @@ namespace SnackDash.Editor.Setup
             "S_Weekly_Background_InProfgress_0", "S_Weekly_Background_InProfgress_Gold_V2_0", "S_Weekly_SafariHat_0", "S_Weekly_Target_0", "Tex_WeeklyMissions_Background 1_0", "Tex_WeeklyMissions_Background_Progression",
             "Tex_WeeklyMissions_Headaer_0", "generic_round_128", "image 1585_0", "S_Weekly_Chests_M_0", "S_Weekly_Chests_M_1", "S_Weekly_Chests_M_2", "S_Weekly_Chests_M_3", "S_Icon_Timer_02_0", "S_Icon_Timer_03_0", "S_Background_SpeechBubble_01", "S_Hand_Tutorial",
             "S_Icon_Music_Enabled", "S_Icon_Music_Disabled", "S_Icon_Haptics_Enabled", "S_Icon_Haptics_Disabled", "S_Icon_Sound_Enabled", "S_Icon_Sound_Disabled",
+            // Level button on fire (StreakActive)
+            "TX_FX_UI_PlayButton_Streak", "TX_FX_UI_Streakbar_Streak", "TX_FX_UI_PlayButton_StreakEdge", "TX_FX_Sparkle", "S_FX_SmallGlow_01_0", "TX_FX_Square_Glow2",
+            // SNACKY PASS (SnackyPassView, its rules, offer and chests)
+            "S_SeasonPass_BackgroundImg_0", "S_SeasonPass_SnakeCoins_0", "SP_Shadow", "S_GoldenLine", "S_TimerBackground", "S_Img_TicketShdw_0", "S_Img_Ticket_0", "S_Button_Shadow_0", "S_Button_WMGreen_0",
+            "S_Button_WMPurple_0", "S_Icon_LevelNumber_Purple_0", "ProgressBar_Back_0", "S_Icon_SpeechBubble_Purple_0", "S_Glow", "S_PurpleButtonPass_0", "S_GoldenButtonPass_0", "S_Icon_Locked", "S_Icon_PremiumReward",
+            "S_Icon_Chests2_0", "S_Icon_Chests2_1", "S_Icon_Chests2_2", "S_Icon_Chests2_3", "S_FX_Sparkle_02_0", "S_FruitsIcon_0", "S_IconProgressBar_0", "S_TitleRewardBackground_0", "S_Pop-up_Frame_GoldenBorder_0",
+            "BackgroundImage_0", "S_LinearGradiant_0", "S_Pop-up_Frame_InlayWhite_0", "S_Bg_Clock_0", "S_Button_CloseYellow_0", "S_Bg_Offer_Top_0", "S_Bg_Offer_Container", "S_Bg_Offer_BottomV2", "S_Button_Green_0", "S_Bg_Offer_Frame_0",
         };
 
         private const string HomeScenePath = "Assets/_MyGame/Scenes/Home.unity";
@@ -354,6 +365,18 @@ namespace SnackDash.Editor.Setup
             Set(home, "weeklyPrefab", PanelPrefab("WeeklyMissionsPopup", SnackDash.UI.WeeklyMissionsPopup.BuildLayout));
             Set(home, "weeklyRulesPrefab", PanelPrefab("WeeklyMissionsRules", SnackDash.UI.WeeklyMissionsRules.BuildLayout));
             Set(home, "weeklyBadgeFtuePrefab", PanelPrefab("WeeklyBadgeFtue", SnackDash.UI.WeeklyBadgeFtue.BuildLayout));
+            Set(home, "snackyPassPrefab", PanelPrefab("SnackyPassView", SnackDash.UI.SnackyPassView.BuildLayout));
+            Set(home, "snackyPassRulesPrefab", PanelPrefab("SnackyPassRules", SnackDash.UI.SnackyPassRules.BuildLayout));
+            Set(home, "snackyPassOfferPrefab", PanelPrefab("SnackyPassOffer", SnackDash.UI.SnackyPassOffer.BuildLayout));
+            Set(home, "snackyPassBadgeFtuePrefab", PanelPrefab("SnackyPassBadgeFtue", SnackDash.UI.WeeklyBadgeFtue.BuildSnackyPassLayout));
+            System.Func<string, Material> mat = n => AssetDatabase.LoadAssetAtPath<Material>("Assets/_MyGame/Art/Material/" + n + ".mat");
+            Set(home, "streakFront", mat("Mat_UI_PlayButton_StreakActive"));
+            Set(home, "streakFrontSuperHard", mat("Mat_UI_PlayButton_StreakActive_SuperHard"));
+            Set(home, "streakUnderlay", mat("Mat_UI_PlayButton_Underlay_StreakActive"));
+            Set(home, "streakUnderlaySuperHard", mat("Mat_UI_PlayButton_Underlay_StreakActive_SuperHard"));
+            Set(home, "streakGlow", mat("Mat_UI_Streak_Glow"));
+            Set(home, "streakGlowEdge", mat("Mat_UI_Streak_Glow_2"));
+            Set(home, "streakParticles", mat("MT_FX_UI_Particle_Additive"));
             var eventSystem = new GameObject("EventSystem");
             eventSystem.AddComponent<UnityEngine.EventSystems.EventSystem>();
             eventSystem.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();

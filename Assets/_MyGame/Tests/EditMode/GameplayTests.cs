@@ -258,7 +258,7 @@ namespace SnackDash.Tests
         }
 
         [Test]
-        public void WeeklyMissions_CountClaimMilestones()
+        public void Events_WeeklyMissionsAndSnackyPass()
         {
             var now = new System.DateTime(2026, 10, 8, 9, 0, 0, System.DateTimeKind.Utc);
             var store = new SnackDash.Economy.MemoryStore();
@@ -321,6 +321,59 @@ namespace SnackDash.Tests
             Assert.AreEqual(1, wm.Day);
             Assert.AreEqual(0, wm.Points, "new week");
             Assert.IsFalse(wm.Claimed(2, 2));
+
+            // Snacky Pass (Level 25): normal 1 ticket, hard 2, super hard 3; stage k needs k - 1 more than stage k - 1.
+            store = new SnackDash.Economy.MemoryStore();
+            eco = new SnackDash.Economy.PlayerEconomy(store, () => now);
+            var sp = new SnackDash.Economy.SeasonPass(store, () => now, eco);
+            sp.StartIfUnlocked(24);
+            Assert.IsFalse(sp.Started);
+            sp.StartIfUnlocked(25);
+            Assert.AreEqual(1, sp.Stage);
+            Assert.IsTrue(sp.Claimable(1, false), "stage 1's free reward from the start");
+            Assert.IsFalse(sp.Claimable(1, true), "premium needs the pass");
+            Assert.AreEqual((0, 1), sp.Progress);
+            eco.Win(25, 0);
+            Assert.AreEqual(2, sp.Stage, "1 ticket opens stage 2");
+            eco.Win(26, 2);
+            Assert.AreEqual(3, sp.Tickets);
+            Assert.AreEqual(3, sp.Stage, "3 tickets open stage 3");
+            eco.Win(27, 4);
+            Assert.AreEqual(6, sp.Tickets);
+            Assert.AreEqual(4, sp.Stage);
+            Assert.AreEqual((0, 4), sp.Progress);
+            Assert.AreEqual(4, sp.ClaimableCount);
+
+            // Claiming; the active pass opens premium and raises the lives to 8 for the season.
+            sp.Claim(1, false);
+            Assert.IsTrue(eco.InfiniteLives, "stage 1: 10 minutes of infinite lives");
+            sp.Activate();
+            Assert.AreEqual(8, eco.LifeCap);
+            Assert.AreEqual(8, eco.Lives);
+            int before = eco.Boosters("booster_boomerang");
+            Assert.IsTrue(sp.Claim(2, true));
+            Assert.AreEqual(before + 1, eco.Boosters("booster_boomerang"));
+            Assert.IsFalse(sp.Claim(2, true), "once");
+            Assert.IsFalse(sp.Claim(5, false), "stage 5 is not open yet");
+
+            // The premium lane adds up to the offer: 3000 coins, x10 of each booster, 6 hours.
+            int paidCoins = 0, minutes = 0; var boosters = new int[4];
+            foreach (var r in SnackDash.Economy.SeasonPassData.Premium)
+            {
+                paidCoins += r.reward.coins; minutes += r.reward.infiniteMinutes;
+                for (int b = 0; b < 4; b++) boosters[b] += r.reward.Boosters[b];
+            }
+            Assert.AreEqual(3000, paidCoins);
+            Assert.AreEqual(360, minutes);
+            CollectionAssert.AreEqual(new[] { 10, 10, 10, 10 }, boosters);
+
+            // A new season after seven days: back to nothing and 5 lives.
+            now = now.AddDays(7);
+            sp.StartIfUnlocked(30);
+            Assert.AreEqual(0, sp.Tickets);
+            Assert.IsFalse(sp.Premium);
+            Assert.AreEqual(5, eco.LifeCap);
+            Assert.IsFalse(sp.Claimed(1, false));
         }
 
         [Test]
@@ -380,10 +433,19 @@ namespace SnackDash.Tests
                 if (session.RequestMove((Direction)random.Next(4))) Run();
             Assert.IsTrue(session.CanUndo, "again after the next swipe");
 
-            // Magnet: pulls fruit near the head into crates for five swipes, then goes [user].
+            // Magnet: pulls fruit near the head into crates while it moves, for five swipes, then goes [user].
             int pulled = 0;
             session.PillMagnetized += (c, k, col, crate) => pulled++;
             Assert.IsTrue(session.UseMagnet());
+            for (int i = 0; i < 20; i++) session.Tick(0.1f);
+            Assert.AreEqual(0, pulled, "standing still (just switched on, or after the shovel) pulls nothing: only moving does [user]");
+            var dig = session.ShovelTargets();
+            if (dig.Count > 0 && session.UseShovel(dig[0]))
+            {
+                Run();
+                for (int i = 0; i < 20; i++) session.Tick(0.1f);
+                Assert.AreEqual(0, pulled, "the shovel trip and standing where it came up pull nothing either [user]");
+            }
             for (int m = 0; m < 200 && session.MagnetActive; m++)
             {
                 if (session.RequestMove((Direction)random.Next(4))) Run();

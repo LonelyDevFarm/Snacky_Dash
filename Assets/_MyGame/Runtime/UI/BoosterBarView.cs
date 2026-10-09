@@ -163,6 +163,7 @@ namespace SnackDash.UI
                 if (arrow != null) _arrows[stop.Key] = arrow.gameObject;
             }
             session.BoomerangThrown += (column, thrown) => SetAiming(null);
+            session.MoveStarted += _ => SetAiming(null); // moving while a booster waits for its target or CONFIRM drops it, back to plain play (as the original) [user]
             session.ShovelDug += OnShovelDug;
             session.MagnetChanged += OnMagnetChanged;
             session.Stopped += cell => { if (session.Board.CrateColumnAt(cell) < 0) TryStartTutorial(); }; // at a crate the delivery comes first
@@ -554,7 +555,11 @@ namespace SnackDash.UI
             if (slot.GetComponent<GraphicRaycaster>() == null) slot.gameObject.AddComponent<GraphicRaycaster>();
             var arrow = Rect(slot, "Arrow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 215), new Vector2(160, 160) / SlotScale);
             arrow.localRotation = Quaternion.Euler(0, 0, 180);
-            Image(arrow, skin.tutorialArrow, Hex("7F33D4FF"));
+            var arrowImage = Image(arrow, skin.tutorialArrow, Hex("7F33D4FF"));
+            // The original Arrow carries a light cream Outline (alpha 0.47, 4 / -4): a soft rim instead of a hard purple edge [user].
+            var rim = arrowImage.gameObject.AddComponent<Outline>();
+            rim.effectColor = new Color(1f, 0.965f, 0.902f, 0.471f);
+            rim.effectDistance = new Vector2(4f, -4f);
             StartCoroutine(Bob(arrow, 1f / SlotScale));
         }
 

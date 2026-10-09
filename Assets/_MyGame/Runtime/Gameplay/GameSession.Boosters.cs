@@ -8,7 +8,7 @@ namespace SnackDash.Gameplay
     /// <summary>
     /// Booster rules besides the Boomerang (GameSession.UseBoomerang) [booster video, user]:
     /// Undo rewinds the last swipe (any number of times, but only the latest swipe is remembered, so
-    /// never twice in a row) [user], Magnet pulls fruit near the head into the crates for five swipes
+    /// never twice in a row) [user], Magnet pulls fruit near the moving head into the crates for five swipes
     /// [user] (_magnetPullIntervalSeconds 0.05), Shovel digs from the
     /// head's stop to another stop. None of them works once the tail is bitten (that is a loss) [user].
     /// Stock is the caller's job.
@@ -183,6 +183,9 @@ namespace SnackDash.Gameplay
         private void TickMagnet(float deltaTime)
         {
             if (!_magnetOn || IsStuck || IsWon) return;
+            // Only while the head moves, as in the original: fruit in reach when it is switched on, or where the shovel
+            // brought the head up, waits for the next swipe (pulling at once let shovel + magnet clear a lot for free) [user].
+            if (!IsMoving || _stopOnArrival) { _magnetTimer = 0f; return; } // a shovel trip is no swipe [user]
             _magnetTimer += deltaTime;
             while (_magnetTimer >= MagnetPullInterval)
             {

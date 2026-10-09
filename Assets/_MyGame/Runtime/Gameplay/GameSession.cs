@@ -589,6 +589,9 @@ namespace SnackDash.Gameplay
             return segmentHorizontal != Heading.IsHorizontal();
         }
 
+        /// <summary>A swipe that way would set the head going now (road open, not straight into its own tail).</summary>
+        public bool CanGo(Direction direction) => _board.CanMove(CurrentCell, direction) && !BlockedByTail(direction);
+
         private bool BlockedByTail(Direction direction)
         {
             if (_segments.Count == 0) return false;

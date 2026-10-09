@@ -47,7 +47,7 @@ namespace SnackDash.Economy
         public const int SnipPrice = 900;
         public const int BoosterPrice = 1800, BoosterPack = 3;
         public const int ExtraCratePrice = 700; // the extra crate of a level [user screenshot, Level 30]
-        public const int MaxLives = 5;
+        public const int MaxLives = 5; // the usual cap; Snacky Pass raises it to 8 (LifeCap)
         public const int LifeRegenSeconds = 30 * 60;
         public const int RefillPrice = 900;
         public const int StreakFromLevel = 23, StreakWinsToFire = 5, StreakMultiplier = 2;
@@ -121,7 +121,7 @@ namespace SnackDash.Economy
             get
             {
                 Regenerate();
-                if (_store.GetInt("eco_lives", MaxLives) >= MaxLives) return TimeSpan.Zero;
+                if (_store.GetInt("eco_lives", MaxLives) >= LifeCap) return TimeSpan.Zero;
                 var next = new DateTime(Ticks("eco_life_since")).AddSeconds(LifeRegenSeconds);
                 var left = next - _now();
                 return left > TimeSpan.Zero ? left : TimeSpan.Zero;
@@ -130,15 +130,28 @@ namespace SnackDash.Economy
 
         public bool CanPlay => InfiniteLives || Lives > 0;
 
+        /// <summary>Most lives now: 5, or 8 while Snacky Pass is active (SeasonPassConfig MaxLivesPerk).</summary>
+        public int LifeCap => _store.GetInt("eco_life_cap", MaxLives);
+
+        /// <summary>Sets the cap; keeping or raising it fills the lives up to it ("Maximum amount of lives has increased to 8!"), lowering it keeps no more than it.</summary>
+        public void SetLifeCap(int cap)
+        {
+            int lives = Lives;
+            bool fill = cap >= LifeCap;
+            _store.SetInt("eco_life_cap", cap);
+            _store.SetInt("eco_lives", fill ? cap : Math.Min(lives, cap));
+            Changed?.Invoke();
+        }
+
         private void Regenerate()
         {
             int lives = _store.GetInt("eco_lives", MaxLives);
-            if (lives >= MaxLives) return;
+            if (lives >= LifeCap) return;
             var since = new DateTime(Ticks("eco_life_since"));
             var now = _now();
             int back = (int)((now - since).TotalSeconds / LifeRegenSeconds);
             if (back <= 0) return;
-            lives = Math.Min(MaxLives, lives + back);
+            lives = Math.Min(LifeCap, lives + back);
             _store.SetInt("eco_lives", lives);
             SetTicks("eco_life_since", since.AddSeconds(back * (double)LifeRegenSeconds).Ticks);
         }
@@ -148,7 +161,7 @@ namespace SnackDash.Economy
             if (InfiniteLives) return;
             int lives = Lives;
             if (lives <= 0) return;
-            if (lives == MaxLives) SetTicks("eco_life_since", _now().Ticks); // the 30 minutes start now
+            if (lives >= LifeCap) SetTicks("eco_life_since", _now().Ticks); // the 30 minutes start now
             _store.SetInt("eco_lives", lives - 1);
             Changed?.Invoke();
         }
@@ -157,15 +170,15 @@ namespace SnackDash.Economy
         public void AddLife()
         {
             int lives = Lives;
-            if (lives >= MaxLives) return;
+            if (lives >= LifeCap) return;
             _store.SetInt("eco_lives", lives + 1);
             Changed?.Invoke();
         }
 
         public bool TryRefill()
         {
-            if (Lives >= MaxLives || !TrySpend(RefillPrice)) return false;
-            _store.SetInt("eco_lives", MaxLives);
+            if (Lives >= LifeCap || !TrySpend(RefillPrice)) return false;
+            _store.SetInt("eco_lives", LifeCap);
             Changed?.Invoke();
             return true;
         }
@@ -173,7 +186,7 @@ namespace SnackDash.Economy
         /// <summary>No life is lost meanwhile and the lives are full when it ends [user].</summary>
         public void AddInfiniteLives(TimeSpan time)
         {
-            _store.SetInt("eco_lives", MaxLives);
+            _store.SetInt("eco_lives", LifeCap);
             long from = Math.Max(_now().Ticks, Ticks("eco_infinite_until"));
             SetTicks("eco_infinite_until", from + time.Ticks);
             Changed?.Invoke();

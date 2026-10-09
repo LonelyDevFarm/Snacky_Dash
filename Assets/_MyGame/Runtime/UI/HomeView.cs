@@ -30,6 +30,16 @@ namespace SnackDash.UI
         [SerializeField] private GameObject weeklyPrefab;
         [SerializeField] private GameObject weeklyRulesPrefab;
         [SerializeField] private GameObject weeklyBadgeFtuePrefab;
+        [Tooltip("Prefabs/UI/SnackyPassView, SnackyPassRules, SnackyPassOffer, SnackyPassBadgeFtue; built in code when empty.")]
+        [SerializeField] private GameObject snackyPassPrefab;
+        [SerializeField] private GameObject snackyPassRulesPrefab;
+        [SerializeField] private GameObject snackyPassOfferPrefab;
+        [SerializeField] private GameObject snackyPassBadgeFtuePrefab;
+        [Header("Win streak on fire (StreakActive of Main.unity)")]
+        [Tooltip("Mat_UI_PlayButton_StreakActive(_SuperHard), Mat_UI_PlayButton_Underlay_StreakActive(_SuperHard), Mat_UI_Streak_Glow, Mat_UI_Streak_Glow_2.")]
+        [SerializeField] private Material streakFront;
+        [SerializeField] private Material streakFrontSuperHard, streakUnderlay, streakUnderlaySuperHard, streakGlow, streakGlowEdge;
+        [SerializeField] private Material streakParticles; // MT_FX_UI_Particle_Additive
         [Header("App start")]
         [SerializeField] private float splashSeconds = 1.5f;
         [SerializeField] private float startLoadingSeconds = 1.2f;
@@ -59,7 +69,7 @@ namespace SnackDash.UI
         private void RefreshCounters()
         {
             var economy = PlayerEconomy.Shared;
-            _coins.text = economy.Coins.ToString();
+            _coins.text = (economy.Coins - _coinsHeld).ToString(); // coins still flying in from a win are counted as they land
             bool infinite = economy.InfiniteLives;
             int lives = economy.Lives;
             _livesAmount.text = lives.ToString();
@@ -67,7 +77,7 @@ namespace SnackDash.UI
             if (_livesInfinite != null) _livesInfinite.SetActive(infinite);
             if (_livesHeart != null) _livesHeart.enabled = !infinite || _livesInfinite == null;
             _livesValue.text = infinite ? LivesPopup.Clock(economy.InfiniteLeft)
-                : lives >= PlayerEconomy.MaxLives ? "FULL" : $"{(int)economy.NextLifeIn.TotalMinutes:00}:{economy.NextLifeIn.Seconds:00}";
+                : lives >= economy.LifeCap ? "FULL" : $"{(int)economy.NextLifeIn.TotalMinutes:00}:{economy.NextLifeIn.Seconds:00}";
         }
 
         private void Start()
@@ -100,8 +110,91 @@ namespace SnackDash.UI
             if (level >= SnackDash.Bootstrap.LevelProgress.HomeFromLevel) SoundPlayer.Music("Music_Lobby"); // before Level 6 the app goes straight to the level
 
             // Splash and loading only when the app opens on Home, not when a level sends the player back.
+            int won = PlayerPrefs.GetInt(WinCoinsKey, 0);
+            if (won > 0) StartCoroutine(WinCoins(safe, won));
             if (!_started && !LoadingScreen.Busy) StartCoroutine(AppStart());
             _started = true;
+        }
+
+        // ================================================================== coins from the win (sk2 6.6-9.3 s)
+
+        private const string WinCoinsKey = "home_win_coins";
+        private int _coinsHeld;
+
+        /// <summary>The win screen's coins (already in the wallet) for Home to fly into its counter when the player gets there.</summary>
+        public static void HoldWinCoins(int coins)
+        {
+            PlayerPrefs.SetInt(WinCoinsKey, PlayerPrefs.GetInt(WinCoinsKey, 0) + coins);
+            PlayerPrefs.Save();
+        }
+
+        /// <summary>
+        /// sk2 6.6-9.3 s: as the loading lifts, a stack of coins with "+N" stands over the Level button and wobbles; then it
+        /// breaks into single coins that stream up in a curve one after another into the coin counter, which counts up as
+        /// they land (about 0.8 s) and pops.
+        /// </summary>
+        private IEnumerator WinCoins(RectTransform safe, int amount)
+        {
+            PlayerPrefs.DeleteKey(WinCoinsKey);
+            PlayerPrefs.Save();
+            _coinsHeld = amount;
+            RefreshCounters();
+            yield return null;
+            while (LoadingScreen.Busy || transform.Find("AppStart") != null) yield return null;
+
+            var counter = (RectTransform)safe.Find("HomeTopView/CurrenciesTopView/Currency-Coins/Icon");
+            var pile = Rect(_canvas, "WinCoins", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(190f, 190f)); // about a fifth of the width (sk2 7.0 s)
+            pile.position = safe.Find("Button_Play_Level").position;
+            pile.anchoredPosition += new Vector2(-15f, 215f);
+            Image(pile, skin.Get("Coin_Icon_02_0"), Color.white).preserveAspect = true;
+            var label = Text(Rect(pile, "Amount", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 4f), new Vector2(240f, 80f)), "+" + amount, skin.font, skin.redCartoonMaterial, 64f, Color.white);
+            label.alignment = TMPro.TextAlignmentOptions.Midline;
+
+            // In with a pop, then a wobble.
+            yield return Tween.Run(0.25f, Tween.OutBack(2f), t => pile.localScale = Vector3.one * t, true);
+            yield return Tween.Run(0.8f, Tween.Linear, t => pile.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(t * Mathf.PI * 6f) * 7f * (1f - t * 0.5f)), true);
+            pile.localRotation = Quaternion.identity;
+
+            // The stream: single coins, one every 0.06 s, each curving up into the counter.
+            int count = Mathf.Clamp(amount / 5, 5, 12);
+            int landed = 0, given = 0;
+            Vector3 from = pile.position, to = counter.position;
+            float unit = _canvas.lossyScale.y;
+            for (int i = 0; i < count; i++)
+            {
+                int share = (amount - given) / (count - i);
+                given += share;
+                StartCoroutine(StreamCoin(from, to, unit, i * 0.06f, () =>
+                {
+                    landed++;
+                    _coinsHeld -= share;
+                    RefreshCounters();
+                    SnackDash.Audio.SoundPlayer.Play("CollectCoin");
+                    StartCoroutine(Tween.Punch(0.06f, s => counter.localScale = Vector3.one * (1f + 0.15f * s)));
+                }));
+            }
+            StartCoroutine(Tween.Run(0.25f, Tween.Linear, t => { pile.localScale = Vector3.one * (1f - t); }, true));
+            while (landed < count) yield return null;
+            _coinsHeld = 0;
+            RefreshCounters();
+            Destroy(pile.gameObject);
+        }
+
+        private IEnumerator StreamCoin(Vector3 from, Vector3 to, float unit, float delay, System.Action landed)
+        {
+            for (float t = 0f; t < delay; t += Time.unscaledDeltaTime) yield return null;
+            var coin = Rect(_canvas, "Flying Coin", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(64f, 64f));
+            Image(coin, skin.Get("S_Icon_Coin_Single_0"), Color.white).preserveAspect = true;
+            // Up and a little out to the left first, then into the counter (sk2 8.0-8.7 s).
+            Vector3 control = new Vector3(Mathf.Lerp(from.x, to.x, 0.2f) - 120f * unit, Mathf.Lerp(from.y, to.y, 0.55f), from.z);
+            yield return Tween.Run(0.55f, Tween.Linear, t =>
+            {
+                float e = Tween.InOutSine(t), u = 1f - e;
+                coin.position = u * u * from + 2f * u * e * control + e * e * to;
+                coin.localScale = Vector3.one * Mathf.Lerp(1f, 0.75f, e);
+            }, true);
+            Destroy(coin.gameObject);
+            landed();
         }
 
         private int CurrentLevelNumber()
@@ -198,6 +291,13 @@ namespace SnackDash.UI
             Widget(left, -205f, "LavaQuestWidget", "S_Lava Quest_Widget_0", "LEVEL 35");
             var right = Rect(root, "RIghtBadgesLayout", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-115f, 550f), Vector2.zero);
             Widget(right, 0f, "SeasonPassWidget", "S_Icon_GoldenTicket_0", "LEVEL 25");
+            // Its ticket leans 16.9 degrees over the card, turned about its bottom left (S_IconSeasonPass of the original widget).
+            var ticket = (RectTransform)right.Find("SeasonPassWidget/S_Icon");
+            ticket.pivot = new Vector2(0.07405f, 0.16661f);
+            ticket.sizeDelta = new Vector2(161.63f, 161.94f);
+            ticket.anchoredPosition = new Vector2(-57.64f, 15.2f - IconDrop - 63.86f);
+            ticket.localEulerAngles = new Vector3(0f, 0f, 16.94f);
+            ((RectTransform)right.Find("SeasonPassWidget/Dot")).anchoredPosition = new Vector2(71.42f - 94f, 72.5f - IconDrop - 94f); // its dot on the ticket's top right corner (original Dot at 71.4, 72.5) [user]
             // No ads in this game, so no NO ADS widget [user]; the offer moves up into its place.
             Widget(right, -205f, "Widget_Offer", "S_Chest_Icon_Widget_0", "1D 16H", clock: true);
         }
@@ -364,17 +464,24 @@ namespace SnackDash.UI
         /// <summary>Each event opens at a level and shows its gold lock with "LEVEL N" until then (weekly 15, season pass 25, lava 35) [user].</summary>
         private void BindWidgets(RectTransform safe, int level)
         {
-            var weekly = EventWidget(safe.Find("LeftBadgesLayout/WeeklyMissionsWidget"), WeeklyMissions.UnlockLevel, level);
+            var weekly = EventWidget(safe.Find("LeftBadgesLayout/WeeklyMissionsWidget"), WeeklyMissions.UnlockLevel, level, "Weekly Adventure");
             if (weekly != null && level >= WeeklyMissions.UnlockLevel) WeeklyWidget(weekly);
-            EventWidget(safe.Find("LeftBadgesLayout/LavaQuestWidget"), 35, level);
-            EventWidget(safe.Find("RIghtBadgesLayout/SeasonPassWidget"), 25, level);
+            EventWidget(safe.Find("LeftBadgesLayout/LavaQuestWidget"), 35, level, "Lava Quest");
+            var pass = EventWidget(safe.Find("RIghtBadgesLayout/SeasonPassWidget"), SeasonPass.UnlockLevel, level, "Snacky Pass");
+            if (pass != null && level >= SeasonPass.UnlockLevel) SnackyPassWidget(pass);
             OutlineWidgetText(safe.Find("RIghtBadgesLayout/Widget_Offer/TextBar/Clock/Text"), false);
         }
 
-        private Transform EventWidget(Transform widget, int opensAt, int level)
+        private Transform EventWidget(Transform widget, int opensAt, int level, string eventName)
         {
             if (widget == null) return null;
             bool open = level >= opensAt;
+            if (!open)
+            {
+                // Locked: a tap shakes it and "Reach Lv. N to unlock <event>!" floats up (the original Hint prefab of Main.unity) [user].
+                var hit = Image(Stretch(widget, "Hit"), null, Color.clear, raycast: true);
+                OnClick(hit.transform, () => LockedHint(widget, $"Reach Lv. {opensAt} to unlock {eventName}!"));
+            }
             var locked = widget.Find("TextBar/Locked");
             var claim = widget.Find("TextBar/Claim");
             if (locked != null) locked.gameObject.SetActive(!open);
@@ -392,6 +499,40 @@ namespace SnackDash.UI
                 UiShiny.Widget(Find<Image>(widget, "TextBar/Claim/TextBarVisual"));
             }
             return widget;
+        }
+
+        private RectTransform _hint;
+
+        /// <summary>
+        /// A locked event widget tapped: its gold lock shakes, and the original Hint plays at (0, -339): white words with a brown edge
+        /// (Brown Cartoon, 40) pop to 1.25 in 0.2 s, fade in over 0.1 s and rise 437 in 1.5 s, fading out at the end.
+        /// A new tap replaces the words still in the air.
+        /// </summary>
+        private void LockedHint(Transform widget, string words)
+        {
+            var padlock = widget.Find("TextBar/Locked/Icon"); // only the gold lock shakes, not the widget [user]
+            if (padlock != null)
+            {
+                var rest = padlock.localRotation;
+                StartCoroutine(Tween.Run(0.4f, Tween.Linear, t => { if (padlock != null) padlock.localRotation = rest * Quaternion.Euler(0f, 0f, Mathf.Sin(t * Mathf.PI * 6f) * 15f * (1f - t)); }, true));
+            }
+            SnackDash.Audio.Haptics.Light();
+            if (_hint != null) Destroy(_hint.gameObject);
+            var hint = Rect(_canvas, "Hint", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -339f), new Vector2(900f, 250f));
+            _hint = hint;
+            var text = Text(Stretch(hint, "Text (TMP)"), words, skin.font, skin.EventMaterial("LuckiestGuy-Regular Brown Cartoon"), 40f, Color.white);
+            text.alignment = TMPro.TextAlignmentOptions.Midline;
+            var group = hint.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            StartCoroutine(Tween.Run(1.5f, Tween.Linear, t =>
+            {
+                if (hint == null) return;
+                float s = t * 1.5f;
+                hint.localScale = Vector3.one * (s < 0.2f ? 1f + 0.25f * Mathf.Sin(s / 0.2f * Mathf.PI) : 1f);
+                hint.anchoredPosition = new Vector2(0f, -339f + 437f * Tween.OutQuad(t));
+                group.alpha = s < 0.1f ? s / 0.1f : s > 1.2f ? (1.5f - s) / 0.3f : 1f;
+                if (t >= 1f) Destroy(hint.gameObject);
+            }, true));
         }
 
         /// <summary>A thin outline in the bar's dark colour (video); done here because a material made in the editor is not saved in the prefab.</summary>
@@ -433,6 +574,37 @@ namespace SnackDash.UI
             if (!WeeklyMissionsRules.Seen) WeeklyMissionsRules.Open((RectTransform)popup.transform, skin, weeklyRulesPrefab);
         }
 
+        /// <summary>SNACKY PASS: opens the pass; the dot counts the rewards to claim.</summary>
+        private void SnackyPassWidget(Transform widget)
+        {
+            var pass = SeasonPass.Shared;
+            pass.StartIfUnlocked(CurrentLevelNumber());
+            var dot = widget.Find("Dot");
+            void Badge()
+            {
+                if (dot == null) return;
+                int count = pass.ClaimableCount;
+                dot.gameObject.SetActive(count > 0);
+                dot.GetComponentInChildren<TextMeshProUGUI>().text = count.ToString();
+            }
+            Badge();
+            pass.Changed += Badge;
+            _unsubscribe += () => pass.Changed -= Badge;
+            var hit = Image(Stretch(widget, "Hit"), null, Color.clear, raycast: true);
+            OnClick(hit.transform, OpenSnackyPass);
+            if (!WeeklyBadgeFtue.SeenFor(WeeklyBadgeFtue.SnackyPassSeenKey)) StartCoroutine(SnackyPassFtue((RectTransform)widget));
+        }
+
+        private void OpenSnackyPass() => SnackyPassView.Open(_canvas, skin, snackyPassPrefab, snackyPassRulesPrefab, snackyPassOfferPrefab);
+
+        /// <summary>"Snacky Pass unlocked!" once Home is on screen and any other unlock message is gone (sk2 9.5-11 s).</summary>
+        private IEnumerator SnackyPassFtue(RectTransform widget)
+        {
+            yield return null;
+            while (LoadingScreen.Busy || transform.Find("AppStart") != null || _canvas.Find("WeeklyMissionBadgeFtue") != null || _canvas.Find("WeeklyMissionsPopup") != null) yield return null; // never on top of the weekly unlock or its popup
+            WeeklyBadgeFtue.Open(_canvas, skin, widget, snackyPassBadgeFtuePrefab, OpenSnackyPass, WeeklyBadgeFtue.SnackyPassSeenKey, WeeklyBadgeFtue.BuildSnackyPassLayout);
+        }
+
         /// <summary>"Weekly Adventure unlocked!" once Home is on screen (after the splash and loading) [sk1.3].</summary>
         private IEnumerator BadgeFtue(RectTransform widget)
         {
@@ -446,6 +618,8 @@ namespace SnackDash.UI
             var play = safe.Find("Button_Play_Level");
             var view = play.Find("View_Button_Play_Normal");
             bool hard = difficulty >= 2, superHard = difficulty >= 4;
+            _playView = (RectTransform)view;
+            _superHard = superHard;
             var colours = superHard ? Red : hard ? Purple : Green;
             for (int i = 0; i < ButtonLayers.Length; i++)
             {
@@ -518,7 +692,51 @@ namespace SnackDash.UI
             if (!fire) yield break;
             foreach (var step in orange) step.SetActive(true);
             tag.color = Hex("DC0600FF");
+            StreakActive();
             if (to > from) yield return Tween.Punch(0.12f, t => coin.localScale = Vector3.one * (1f + 0.3f * t));
+        }
+
+        private RectTransform _playView;
+        private bool _superHard;
+
+        /// <summary>
+        /// StreakActive (Main.unity, Btn_Nomal / Btn_Hard / Btn_SuperHard): while the streak is on fire the button face and its base
+        /// take the moving flame pattern (Mat_UI_PlayButton_StreakActive and its Underlay, red ones on super hard levels), a
+        /// flickering fire glow lights up behind the button and behind the streak bar (Streak_FX_Container, Mat_UI_Streak_Glow)
+        /// and a burning edge goes round the button (StreakGlow_Outline, Mat_UI_Streak_Glow_2), for every difficulty [user].
+        /// </summary>
+        private void StreakActive()
+        {
+            if (_playView == null || streakFront == null) return;
+            var view = _playView;
+            var front = Find<Image>(view, "Front");
+            if (front != null) front.material = _superHard ? streakFrontSuperHard : streakFront;
+            var underlay = Find<Image>(view, "Base");
+            if (underlay != null) underlay.material = _superHard ? streakUnderlaySuperHard : streakUnderlay;
+
+            var fx = view.Find("Streak_FX_Container") as RectTransform;
+            if (fx == null)
+            {
+                fx = Rect(view, "Streak_FX_Container", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(583.2f, 320.8f));
+                var under = view.Find("Underlay_Base");
+                fx.SetSiblingIndex(under != null ? under.GetSiblingIndex() + 1 : 0);
+                Image(Rect(fx, "StreakGlow_Button", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -24f), new Vector2(532f, 250.9f)), skin.Get("TX_FX_UI_PlayButton_Streak"), Color.white).material = streakGlow;
+                var barGlow = Image(Rect(fx, "StreakGlow_StreakBar", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-25.13f, 97.9f), new Vector2(327.6f, 87.6f)), skin.Get("TX_FX_UI_Streakbar_Streak"), Color.white, sliced: true);
+                barGlow.pixelsPerUnitMultiplier = 3.55f;
+                barGlow.material = streakGlow;
+                UiParticles.StreakSparks(fx, new Vector2(475f, 170f), skin.Get("TX_FX_Sparkle"), skin.Get("S_FX_SmallGlow_01_0"), skin.Get("TX_FX_Square_Glow2"), streakParticles);
+            }
+            fx.gameObject.SetActive(true);
+
+            var edge = view.Find("StreakGlow_Outline") as RectTransform;
+            if (edge == null)
+            {
+                edge = Rect(view, "StreakGlow_Outline", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(562.7f, 286.9f));
+                var outline = view.Find("Outline");
+                if (outline != null) edge.SetSiblingIndex(outline.GetSiblingIndex() + 1);
+                Image(edge, skin.Get("TX_FX_UI_PlayButton_StreakEdge"), Color.white).material = streakGlowEdge;
+            }
+            edge.gameObject.SetActive(true);
         }
 
         private RectTransform _marker;

@@ -35,6 +35,8 @@ namespace SnackDash.Bootstrap
         [SerializeField] private SnackDash.UI.BoosterBarView boosters;
         [SerializeField] private SnackDash.UI.TutorialView tutorial;
         [SerializeField] private SnackDash.UI.ComboView combo;
+        [Tooltip("S_Hint_Arrow: the purple guidance arrows of the first levels (GuidanceView).")]
+        [SerializeField] private Sprite guidanceArrow;
 
         [Tooltip("Seconds after a stop during which a finger still held down cannot start a new move (a fresh touch can).")]
         [SerializeField] private float heldSwipeGraceAfterStop = 0.15f;
@@ -71,6 +73,7 @@ namespace SnackDash.Bootstrap
             if (boosters != null) boosters.Bind(Session, LevelNumber, board, cameraFitter);
             if (tutorial != null) tutorial.Bind(Session, LevelNumber);
             if (combo != null) combo.Bind(Session, crates, hud);
+            board.gameObject.AddComponent<GuidanceView>().Bind(Session, LevelNumber, guidanceArrow, () => tutorial != null && tutorial.HidesBoosterBar); // purple arrows after 3 s standing still, Levels 1-7
             if (hud != null) hud.gameObject.AddComponent<SnackDash.UI.ExtraCrateView>().Bind(Session, crates, hud.Skin); // the extra crate, where the level has one
             if (tutorial != null && loseFlow != null) loseFlow.BeforeNoWayOut = tutorial.LoseTutorial;
             if (tutorial != null && loseFlow != null) loseFlow.ForcedSnip = () => tutorial.ForcedSnip;
@@ -105,10 +108,12 @@ namespace SnackDash.Bootstrap
             int comboCoins = combo != null ? combo.LevelCoins : 0;
             int baseCoins = economy.Win(LevelNumber, Level.difficulty);
             economy.AddCoins(comboCoins);
+            // Home shows these coins flying into its counter (sk2 7-9 s): it counts them up from the old total.
+            if (toHome) SnackDash.UI.HomeView.HoldWinCoins(baseCoins + comboCoins);
             var reward = new SnackDash.UI.VictoryReward
             {
                 baseCoins = baseCoins, comboCoins = comboCoins, onFire = onFire, level = LevelNumber,
-                doubled = () => { economy.AddCoins(baseCoins + comboCoins); economy.Report(SnackDash.Economy.MissionGoal.WatchRewardedVideo); }, // the ad button, free here [user]
+                doubled = () => { economy.AddCoins(baseCoins + comboCoins); if (toHome) SnackDash.UI.HomeView.HoldWinCoins(baseCoins + comboCoins); economy.Report(SnackDash.Economy.MissionGoal.WatchRewardedVideo); }, // the ad button, free here [user]
             };
             if (victory != null) victory.Show(toHome ? () => SnackDash.UI.LoadingScreen.Load(SnackDash.UI.LoadingScreen.HomeScene) : (System.Action)RestartLevel, crates != null ? crates.LastCompletionLag : 0f, unlocks ? unlocked : (SnackDash.UI.UnlockPopups.Entry?)null, reward);
             else RestartLevel();
