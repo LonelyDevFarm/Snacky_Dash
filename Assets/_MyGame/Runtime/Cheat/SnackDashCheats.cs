@@ -175,10 +175,10 @@ namespace SnackDash.Cheat
                 ("+1h", () => GameClock.Offset += TimeSpan.FromHours(1)),
                 ("+1 day", () => GameClock.Offset += TimeSpan.FromDays(1)),
                 ("Real", () => GameClock.Offset = TimeSpan.Zero));
-            CheatManager.Button(OtherTab, "Reset tutorials (keep level)", SaveData.ResetTutorials);
+            CheatManager.Button(OtherTab, "Reset tutorials (keep level)", SnackDash.Core.SaveManager.ResetTutorials);
             CheatManager.Button(OtherTab, "Reset ALL data", () =>
             {
-                SaveData.ResetAll();
+                SnackDash.Core.SaveManager.ResetAll();
                 GameClock.Offset = TimeSpan.Zero;
                 SceneManager.LoadScene(0);
             }).Confirmed();

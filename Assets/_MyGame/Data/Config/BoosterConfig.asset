@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e45c9f555a01ae647a05a408f633f9b4, type: 3}
+  m_Name: BoosterConfig
+  m_EditorClassIdentifier: 
+  boosters:
+  - name: SHOVEL
+    unlockLevel: 4
+    description: '<color=#8929F6>DIG A TUNNEL</color> TO ESCAPE!
+
+      <color=#8929F6>CLICK
+      A CIRCLE</color> TO SELECT YOUR EXIT POINT'
+  - name: BOOMERANG
+    unlockLevel: 7
+    description: <color=#8929F6>CLICK ARROW</color> TO DELIVER YOUR FRUITS!
+  - name: UNDO
+    unlockLevel: 11
+    description: <color=#8929F6>REWINDS</color> YOUR LAST MOVE
+  - name: MAGNET
+    unlockLevel: 16
+    description: <color=#8929F6>ATTRACT</color> NEARBY FRUITS TO THE CRATES FOR A
+      FEW SWIPES!

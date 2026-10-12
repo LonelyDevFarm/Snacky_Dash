@@ -1,0 +1,226 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &5743753914906506166
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4641821733258659378, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: ac3ba4ed257318c47a0670d8126ebe45, type: 2}
+    - target: {fileID: 4776355949339194191, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_text
+      value: LEVEL 35
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 188
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 188
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5823430391968245432, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7835604432715944129, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_Name
+      value: JungleHeistWidget
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7835604432715944129, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2421066833868603207}
+  m_SourcePrefab: {fileID: 100100000, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+--- !u!114 &1007943951496069369 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4776355949339194191, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+  m_PrefabInstance: {fileID: 5743753914906506166}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!1 &2524339572708500343 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7835604432715944129, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+  m_PrefabInstance: {fileID: 5743753914906506166}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2421066833868603207
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2524339572708500343}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2183a1024ddb5540990dfee263c99a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  button: {fileID: 8146865712144127198}
+  lockedBar: {fileID: 2649005658623165874}
+  lockedIcon: {fileID: 7197570096806361101}
+  lockedText: {fileID: 1007943951496069369}
+  claimBar: {fileID: 8042658616899178868}
+  dot: {fileID: 6096636837454098401}
+  dotText: {fileID: 6797165092029762314}
+  shines:
+  - {fileID: 6384049887718521192}
+  - {fileID: 7302289457373196851}
+  lockedWords: Unlock Jungle Heist from level {0}!
+  hintPrefab: {fileID: 1596701120233858033, guid: 6a2833b0cd3214d48ac8323287a81e9f, type: 3}
+  hintY: -339
+  hintRise: 437
+  hintTime: 1.5
+  ftuePrefab: {fileID: 8087112646468146083, guid: 466f3048d056fd64c8676582385b0b79, type: 3}
+  clockIcon: {fileID: 21300000, guid: 72508696d440c82468e3aa7cfd10d134, type: 2}
+  startTextLeft: 10
+--- !u!1 &2649005658623165874 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7743589212162176516, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+  m_PrefabInstance: {fileID: 5743753914906506166}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6096636837454098401 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1958629495036566615, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+  m_PrefabInstance: {fileID: 5743753914906506166}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6384049887718521192 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1670090321546398430, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+  m_PrefabInstance: {fileID: 5743753914906506166}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6edc777e66de5c047a5098ca9fe6dbd3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &6797165092029762314 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1288460929760786620, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+  m_PrefabInstance: {fileID: 5743753914906506166}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &7197570096806361101 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3195037985294715835, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+  m_PrefabInstance: {fileID: 5743753914906506166}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &7302289457373196851 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3090340511895896453, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+  m_PrefabInstance: {fileID: 5743753914906506166}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6edc777e66de5c047a5098ca9fe6dbd3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!1 &8042658616899178868 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2317289640526111426, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+  m_PrefabInstance: {fileID: 5743753914906506166}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8146865712144127198 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4520086750448314216, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+  m_PrefabInstance: {fileID: 5743753914906506166}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

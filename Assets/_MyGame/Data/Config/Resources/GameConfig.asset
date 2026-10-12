@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da138e20aac5fa04dba624f5d144ab5b, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: 
+  economy: {fileID: 11400000, guid: 62883a311f482d74190cb03b97e429f6, type: 2}
+  boosters: {fileID: 11400000, guid: abfec135dbef14b47be45efd4a39b404, type: 2}
+  shop: {fileID: 11400000, guid: 56dd392154e5aa942b308d5631f45ca9, type: 2}
+  weeklyMissions: {fileID: 11400000, guid: 9bbfb935213316d408bcf429e11ed2d4, type: 2}
+  snackyPass: {fileID: 11400000, guid: d04a53dd6b1536b428508985f4795236, type: 2}
+  jungleHeist: {fileID: 11400000, guid: 7542b3cd26e9cb448b683498d074f3cb, type: 2}

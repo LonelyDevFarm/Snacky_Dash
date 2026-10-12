@@ -8,8 +8,7 @@
 /[Uu]ser[Ss]ettings/
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
-/Assets/Screenshots/
-/Assets/Screenshots.meta
+/Screenshots/
 
 # IDE / generated project files
 .vs/

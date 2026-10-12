@@ -53,14 +53,19 @@ namespace SnackDash.Economy
     /// </summary>
     public sealed class PlayerEconomy
     {
-        public const int StartCoins = 1800;
-        public const int SnipPrice = 900;
-        public const int BoosterPrice = 1800, BoosterPack = 3;
-        public const int ExtraCratePrice = 700; // the extra crate of a level [user screenshot, Level 30]
-        public const int MaxLives = 5; // the usual cap; Snacky Pass raises it to 8 (LifeCap)
-        public const int LifeRegenSeconds = 30 * 60;
-        public const int RefillPrice = 900;
-        public const int StreakFromLevel = 23, StreakWinsToFire = 5, StreakMultiplier = 2;
+        // Số liệu ở Data/Config/EconomyConfig.
+        private static EconomyConfig Config => GameConfig.Current.economy;
+        public static int StartCoins => Config.startCoins;
+        public static int SnipPrice => Config.snipPrice;
+        public static int BoosterPrice => Config.boosterPrice;
+        public static int BoosterPack => Config.boosterPack;
+        public static int ExtraCratePrice => Config.extraCratePrice;
+        public static int MaxLives => Config.maxLives; // the usual cap; Snacky Pass raises it (LifeCap)
+        public static int LifeRegenSeconds => Config.lifeRegenMinutes * 60;
+        public static int RefillPrice => Config.refillPrice;
+        public static int StreakFromLevel => Config.streakFromLevel;
+        public static int StreakWinsToFire => Config.streakWinsToFire;
+        public static int StreakMultiplier => Config.streakMultiplier;
 
         private static PlayerEconomy _shared;
         /// <summary>The game's economy (PlayerPrefs, real clock).</summary>
@@ -112,7 +117,7 @@ namespace SnackDash.Economy
         }
 
         /// <summary>Coins for winning a level of <paramref name="difficulty"/> (LevelDefinition), before the streak.</summary>
-        public static int WinReward(int difficulty) => difficulty >= 4 ? 40 : difficulty >= 2 ? 30 : 20;
+        public static int WinReward(int difficulty) => difficulty >= 4 ? Config.winSuperHard : difficulty >= 2 ? Config.winHard : Config.winNormal;
 
         // ------------------------------------------------------------------ lives
 
@@ -285,7 +290,7 @@ namespace SnackDash.Economy
 
         /// <summary>Stock keys, in bar order: shovel, boomerang, undo, magnet.</summary>
         public static readonly string[] BoosterKeys = { "booster_shovel", "booster_boomerang", "booster_undo", "booster_magnet" };
-        public const int StartBoosterStock = 0; // none until a booster unlocks (it gives 3) or is bought; the 99 test stock is over [user]
+        public static int StartBoosterStock => Config.startBoosterStock; // none until a booster unlocks (it gives 3) or is bought [user]
 
         public int Boosters(string key) => _store.GetInt(key, StartBoosterStock);
 

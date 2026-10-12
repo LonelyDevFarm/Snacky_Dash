@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceff6c76ed5fbab478cbd3adcda0830c, type: 3}
+  m_Name: JungleHeistConfig
+  m_EditorClassIdentifier: 
+  unlockLevel: 35
+  steps: 7
+  participants: 100
+  grandPrize: 10000
+  survivorsPerStep: 6400000052000000400000003000000022000000160000000d00000007000000
+  cycleHours: 24
