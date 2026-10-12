@@ -471,6 +471,7 @@ MonoBehaviour:
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
     shinyShader: {fileID: 0}
+    uiAdditive: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -710,6 +711,7 @@ MonoBehaviour:
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
     shinyShader: {fileID: 0}
+    uiAdditive: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -952,6 +954,7 @@ MonoBehaviour:
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
     shinyShader: {fileID: 0}
+    uiAdditive: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -1195,6 +1198,7 @@ MonoBehaviour:
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
     shinyShader: {fileID: 0}
+    uiAdditive: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -1204,7 +1208,7 @@ MonoBehaviour:
     - {fileID: 2100000, guid: a1bd8bfd2595f7449bf1699d4852228a, type: 2}
   prefabs:
     noWayOut: {fileID: 2468461074028163192, guid: 000570ab3571ada45977a3bc31885231, type: 3}
-    secondChance: {fileID: 6772318187461439757, guid: 5623b482fdf4ab64c84bcbc3676b7ab5, type: 3}
+    secondChance: {fileID: 4797547545309075876, guid: 5623b482fdf4ab64c84bcbc3676b7ab5, type: 3}
     gameOver: {fileID: 7041430398557252781, guid: 7105f5c4a019e9947902efcae2ae2cea, type: 3}
   popupAppearDuration: 0.35
   titleScaleDuration: 0.2
@@ -1451,6 +1455,7 @@ MonoBehaviour:
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
     shinyShader: {fileID: 0}
+    uiAdditive: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
@@ -1693,6 +1698,7 @@ MonoBehaviour:
     shopFont: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
     eventMaterials: []
     shinyShader: {fileID: 0}
+    uiAdditive: {fileID: 0}
     shopMaterials:
     - {fileID: 2100000, guid: 0366f98e8054c1d45aa228bd5e5b40ba, type: 2}
     - {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}

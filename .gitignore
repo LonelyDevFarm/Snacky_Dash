@@ -40,3 +40,9 @@
 # OS
 .DS_Store
 Thumbs.db
+
+# Tài liệu nội bộ cho việc vibe code (không đưa lên git chung; Docs/ có git riêng trên máy)
+/Docs/
+
+# Ảnh gốc / số đo để so khi tái cấu trúc (chỉ trên máy)
+/Baseline/

@@ -35,6 +35,9 @@ namespace SnackDash.UI
         [SerializeField] private GameObject snackyPassRulesPrefab;
         [SerializeField] private GameObject snackyPassOfferPrefab;
         [SerializeField] private GameObject snackyPassBadgeFtuePrefab;
+        [Tooltip("Prefabs/UI/JungleHeistJoin, JungleHeistMatch, JungleHeistRules, JungleHeistMain, JungleHeistEnded, JungleHeistRewards, JungleHeistBadgeFtue; built in code when empty.")]
+        [SerializeField] private GameObject jungleJoinPrefab;
+        [SerializeField] private GameObject jungleRulesPrefab, jungleMatchPrefab, jungleMainPrefab, jungleEndedPrefab, jungleRewardsPrefab, jungleBadgeFtuePrefab;
         [Header("Win streak on fire (StreakActive of Main.unity)")]
         [Tooltip("Mat_UI_PlayButton_StreakActive(_SuperHard), Mat_UI_PlayButton_Underlay_StreakActive(_SuperHard), Mat_UI_Streak_Glow, Mat_UI_Streak_Glow_2.")]
         [SerializeField] private Material streakFront;
@@ -57,6 +60,11 @@ namespace SnackDash.UI
             if ((_tick -= Time.unscaledDeltaTime) > 0f || _coins == null) return;
             _tick = 0.25f; // the regen countdown
             RefreshCounters();
+            if (_heistWidget != null)
+            {
+                if (JungleHeist.Shared.Left <= System.TimeSpan.Zero) JungleHeist.Shared.StartIfUnlocked(CurrentLevelNumber()); // the next cycle
+                JungleHeistLabel(_heistWidget);
+            }
         }
 
         private void OnDestroy()
@@ -155,10 +163,27 @@ namespace SnackDash.UI
             yield return Tween.Run(0.8f, Tween.Linear, t => pile.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(t * Mathf.PI * 6f) * 7f * (1f - t * 0.5f)), true);
             pile.localRotation = Quaternion.identity;
 
-            // The stream: single coins, one every 0.06 s, each curving up into the counter.
+            StartCoroutine(Tween.Run(0.25f, Tween.Linear, t => { pile.localScale = Vector3.one * (1f - t); }, true));
+            yield return StreamCoins(pile.position, counter, amount);
+            _coinsHeld = 0;
+            RefreshCounters();
+            Destroy(pile.gameObject);
+        }
+
+        /// <summary>Coins already in the wallet fly from a popup into the coin counter, which counts up as they land (Jungle Heist rewards).</summary>
+        public void FlyCoins(Vector3 from, int amount)
+        {
+            _coinsHeld += amount;
+            RefreshCounters();
+            StartCoroutine(StreamCoins(from, (RectTransform)_canvas.Find("SafeArea/HomeTopView/CurrenciesTopView/Currency-Coins/Icon"), amount));
+        }
+
+        /// <summary>The stream: single coins, one every 0.06 s, each curving up into the counter and paying its part of the held coins.</summary>
+        private IEnumerator StreamCoins(Vector3 from, RectTransform counter, int amount)
+        {
             int count = Mathf.Clamp(amount / 5, 5, 12);
             int landed = 0, given = 0;
-            Vector3 from = pile.position, to = counter.position;
+            Vector3 to = counter.position;
             float unit = _canvas.lossyScale.y;
             for (int i = 0; i < count; i++)
             {
@@ -167,17 +192,13 @@ namespace SnackDash.UI
                 StartCoroutine(StreamCoin(from, to, unit, i * 0.06f, () =>
                 {
                     landed++;
-                    _coinsHeld -= share;
+                    _coinsHeld = Mathf.Max(0, _coinsHeld - share);
                     RefreshCounters();
                     SnackDash.Audio.SoundPlayer.Play("CollectCoin");
                     StartCoroutine(Tween.Punch(0.06f, s => counter.localScale = Vector3.one * (1f + 0.15f * s)));
                 }));
             }
-            StartCoroutine(Tween.Run(0.25f, Tween.Linear, t => { pile.localScale = Vector3.one * (1f - t); }, true));
             while (landed < count) yield return null;
-            _coinsHeld = 0;
-            RefreshCounters();
-            Destroy(pile.gameObject);
         }
 
         private IEnumerator StreamCoin(Vector3 from, Vector3 to, float unit, float delay, System.Action landed)
@@ -298,14 +319,13 @@ namespace SnackDash.UI
             ticket.anchoredPosition = new Vector2(-57.64f, 15.2f - IconDrop - 63.86f);
             ticket.localEulerAngles = new Vector3(0f, 0f, 16.94f);
             ((RectTransform)right.Find("SeasonPassWidget/Dot")).anchoredPosition = new Vector2(71.42f - 94f, 72.5f - IconDrop - 94f); // its dot on the ticket's top right corner (original Dot at 71.4, 72.5) [user]
-            // No ads in this game, so no NO ADS widget [user]; the offer moves up into its place.
-            Widget(right, -205f, "Widget_Offer", "S_Chest_Icon_Widget_0", "1D 16H", clock: true);
+            // Home keeps only the three events: no NO ADS widget and no offer pack [user].
         }
 
         /// <summary>Icons sit lower than the scene values, resting on the bar (video).</summary>
         private const float IconDrop = 18f;
 
-        private void Widget(RectTransform parent, float y, string name, string icon, string lockedLabel, bool clock = false)
+        private void Widget(RectTransform parent, float y, string name, string icon, string lockedLabel)
         {
             var widget = Rect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(188f, 188f));
             widget.localScale = Vector3.one * 1.1f;
@@ -318,12 +338,11 @@ namespace SnackDash.UI
             var bar = Rect(widget, "TextBar", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -62f), new Vector2(178f, 58f));
             Image(Rect(bar, "Shadow", Vector2.zero, Vector2.one, new Vector2(1.5f, -4f), Vector2.zero), skin.Get("S_Bow_Widget (2)_0"), new Color(0f, 0f, 0f, 0.17f), sliced: true);
 
-            // Locked / clock: the purple bow, the icon on its left, the words beside it.
-            var locked = Stretch(bar, clock ? "Clock" : "Locked");
+            // Locked: the purple bow, the icon on its left, the words beside it.
+            var locked = Stretch(bar, "Locked");
             Image(Stretch(locked, "TextBarVisual"), skin.Get("S_Bow_Widget (2)_0"), Color.white, sliced: true);
-            Image(Rect(locked, "Icon", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(18f, 2f), new Vector2(44f, 44f)), clock ? skin.Get("S_Clock_Icon_Widget_0") : skin.lockIcon, Color.white).preserveAspect = true;
+            Image(Rect(locked, "Icon", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(18f, 2f), new Vector2(44f, 44f)), skin.lockIcon, Color.white).preserveAspect = true;
             WidgetText(locked, lockedLabel, new Vector2(14f, 1f), new Vector2(-52f, -14f));
-            if (clock) return;
 
             // CLAIM: a green box with small corners and a gold rim (video), not the purple bow; the red dot counts.
             var claim = Stretch(bar, "Claim");
@@ -466,10 +485,10 @@ namespace SnackDash.UI
         {
             var weekly = EventWidget(safe.Find("LeftBadgesLayout/WeeklyMissionsWidget"), WeeklyMissions.UnlockLevel, level, "Weekly Adventure");
             if (weekly != null && level >= WeeklyMissions.UnlockLevel) WeeklyWidget(weekly);
-            EventWidget(safe.Find("LeftBadgesLayout/LavaQuestWidget"), 35, level, "Lava Quest");
+            var heist = EventWidget(safe.Find("LeftBadgesLayout/LavaQuestWidget"), JungleHeist.UnlockLevel, level, "Jungle Heist");
+            if (heist != null && level >= JungleHeist.UnlockLevel) JungleHeistWidget(heist);
             var pass = EventWidget(safe.Find("RIghtBadgesLayout/SeasonPassWidget"), SeasonPass.UnlockLevel, level, "Snacky Pass");
             if (pass != null && level >= SeasonPass.UnlockLevel) SnackyPassWidget(pass);
-            OutlineWidgetText(safe.Find("RIghtBadgesLayout/Widget_Offer/TextBar/Clock/Text"), false);
         }
 
         private Transform EventWidget(Transform widget, int opensAt, int level, string eventName)
@@ -480,7 +499,7 @@ namespace SnackDash.UI
             {
                 // Locked: a tap shakes it and "Reach Lv. N to unlock <event>!" floats up (the original Hint prefab of Main.unity) [user].
                 var hit = Image(Stretch(widget, "Hit"), null, Color.clear, raycast: true);
-                OnClick(hit.transform, () => LockedHint(widget, $"Reach Lv. {opensAt} to unlock {eventName}!"));
+                OnClick(hit.transform, () => LockedHint(widget, LockedWords(opensAt, eventName)));
             }
             var locked = widget.Find("TextBar/Locked");
             var claim = widget.Find("TextBar/Claim");
@@ -500,6 +519,10 @@ namespace SnackDash.UI
             }
             return widget;
         }
+
+        /// <summary>Jungle Heist has its own words (LocData jungle_heist_widget_locked_hint); the others the shared hint.</summary>
+        private static string LockedWords(int opensAt, string eventName) =>
+            eventName == "Jungle Heist" ? $"Unlock Jungle Heist from level {opensAt}!" : $"Reach Lv. {opensAt} to unlock {eventName}!";
 
         private RectTransform _hint;
 
@@ -596,6 +619,99 @@ namespace SnackDash.UI
         }
 
         private void OpenSnackyPass() => SnackyPassView.Open(_canvas, skin, snackyPassPrefab, snackyPassRulesPrefab, snackyPassOfferPrefab);
+
+        private TextMeshProUGUI _heistTimer;
+
+        /// <summary>
+        /// JUNGLE HEIST (LavaQuestWidget, Widget_Unlocked): the purple bar shows the clock and the time left in the cycle; a tap
+        /// opens the join popup (then the rules the first time, then the river), or the river when a run is on or over.
+        /// </summary>
+        private void JungleHeistWidget(Transform widget)
+        {
+            var heist = JungleHeist.Shared;
+            heist.StartIfUnlocked(CurrentLevelNumber());
+            var icon = Find<Image>(widget, "TextBar/Locked/Icon");
+            if (icon != null) icon.sprite = skin.Get("S_Clock_Icon_Widget_0");
+            _heistTimer = Find<TextMeshProUGUI>(widget, "TextBar/Locked/Text");
+            if (_heistTimer != null) _heistTextLeft = _heistTimer.rectTransform.offsetMin.x;
+            JungleHeistLabel(widget);
+            System.Action relabel = () => { if (widget != null) JungleHeistLabel(widget); };
+            heist.Changed += relabel;
+            _unsubscribe += () => heist.Changed -= relabel;
+            _heistWidget = widget;
+            var hit = widget.Find("Hit");
+            if (hit == null) hit = Image(Stretch(widget, "Hit"), null, Color.clear, raycast: true).transform;
+            OnClick(hit, OpenJungleHeist);
+            if (!WeeklyBadgeFtue.SeenFor(WeeklyBadgeFtue.JungleHeistSeenKey)) StartCoroutine(JungleHeistFtue((RectTransform)widget));
+            else StartCoroutine(JungleHeistEntry());
+        }
+
+        private Transform _heistWidget;
+
+        private void OpenJungleHeist()
+        {
+            var heist = JungleHeist.Shared;
+            heist.StartIfUnlocked(CurrentLevelNumber());
+            if (!heist.CanJoin)
+            {
+                JungleHeistMain.Open(_canvas, skin, jungleMainPrefab, jungleRulesPrefab, jungleEndedPrefab, jungleRewardsPrefab);
+                return;
+            }
+            JungleHeistJoin.Open(_canvas, skin, jungleJoinPrefab, () =>
+            {
+                heist.Join();
+                // "Finding players on your level" first (Popup_Lava_Quest_PurchaseOverlay), then the river.
+                JungleHeistMatch.Open(_canvas, skin, jungleMatchPrefab, () =>
+                {
+                    var main = JungleHeistMain.Open(_canvas, skin, jungleMainPrefab, jungleRulesPrefab, jungleEndedPrefab, jungleRewardsPrefab);
+                    if (!JungleHeistRules.Seen) JungleHeistRules.Open((RectTransform)main.transform, skin, jungleRulesPrefab);
+                });
+            });
+        }
+
+        /// <summary>
+        /// LavaQuestHomeEntryGate: back on Home with something new in the run (a win to jump, the lost level to fall, the
+        /// prize to take), the river opens by itself [user: "có"], once Home is clear of the loading, the win coins and other popups.
+        /// </summary>
+        private IEnumerator JungleHeistEntry()
+        {
+            yield return null;
+            while (LoadingScreen.Busy || transform.Find("AppStart") != null || _canvas.Find("WinCoins") != null || _canvas.Find("WeeklyMissionBadgeFtue") != null
+                   || _canvas.Find("WeeklyMissionsPopup") != null || _canvas.Find("SnackyPassView") != null) yield return null;
+            if (JungleHeist.Shared.HasNews) OpenJungleHeist();
+        }
+
+        /// <summary>The widget's bar by the run's state (LavaQuestWidgetState): "Start" to join, CLAIM for the prize, else the clock.</summary>
+        private void JungleHeistLabel(Transform widget)
+        {
+            var heist = JungleHeist.Shared;
+            bool claim = heist.Current == JungleHeist.State.Won && !heist.PrizeClaimed;
+            var bar = widget.Find("TextBar/Locked");
+            if (bar != null) bar.gameObject.SetActive(!claim);
+            var claimBar = widget.Find("TextBar/Claim");
+            if (claimBar != null) claimBar.gameObject.SetActive(claim);
+            var dot = widget.Find("Dot");
+            if (dot != null) dot.gameObject.SetActive(claim);
+            var icon = Find<Image>(widget, "TextBar/Locked/Icon");
+            bool start = heist.CanJoin;
+            if (icon != null) icon.gameObject.SetActive(!start);
+            if (_heistTimer != null)
+            {
+                _heistTimer.text = start ? "Start" : JungleHeistUi.Clock(heist.Left); // LocData jungle_heist_widget_start_hint
+                _heistTimer.rectTransform.offsetMin = new Vector2(start ? 10f : _heistTextLeft, _heistTimer.rectTransform.offsetMin.y);
+            }
+        }
+
+        private float _heistTextLeft;
+
+        /// <summary>"Jungle Heist unlocked!" once Home is on screen and no other unlock message is up (LavaQuestBadgeFtue).</summary>
+        private IEnumerator JungleHeistFtue(RectTransform widget)
+        {
+            yield return null;
+            while (LoadingScreen.Busy || transform.Find("AppStart") != null || _canvas.Find("WeeklyMissionBadgeFtue") != null
+                   || _canvas.Find("WeeklyMissionsPopup") != null || _canvas.Find("SnackyPassView") != null) yield return null;
+            WeeklyBadgeFtue.Open(_canvas, skin, widget, jungleBadgeFtuePrefab, OpenJungleHeist, WeeklyBadgeFtue.JungleHeistSeenKey, WeeklyBadgeFtue.BuildJungleHeistLayout);
+        }
 
         /// <summary>"Snacky Pass unlocked!" once Home is on screen and any other unlock message is gone (sk2 9.5-11 s).</summary>
         private IEnumerator SnackyPassFtue(RectTransform widget)

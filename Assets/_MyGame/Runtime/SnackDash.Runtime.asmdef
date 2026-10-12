@@ -2,6 +2,7 @@
     "name": "SnackDash.Runtime",
     "rootNamespace": "SnackDash",
     "references": [
+        "CheatSystem",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

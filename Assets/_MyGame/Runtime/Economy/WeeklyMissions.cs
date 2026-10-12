@@ -135,7 +135,7 @@ namespace SnackDash.Economy
         public const int UnlockLevel = 15, WeekDays = 7;
 
         private static WeeklyMissions _shared;
-        public static WeeklyMissions Shared => _shared ?? (_shared = new WeeklyMissions(new PlayerPrefsStore(), () => DateTime.UtcNow, PlayerEconomy.Shared));
+        public static WeeklyMissions Shared => _shared ?? (_shared = new WeeklyMissions(new PlayerPrefsStore(), () => GameClock.UtcNow, PlayerEconomy.Shared));
 
         private readonly IStore _store;
         private readonly Func<DateTime> _now;
@@ -257,6 +257,15 @@ namespace SnackDash.Economy
 
         /// <summary>Milestones already given out (0 to 4).</summary>
         public int MilestonesReached => _store.GetInt("wm_milestones", 0);
+
+        /// <summary>Cheat / test: every mission of <paramref name="day"/> (1 to 7) done, waiting to be claimed.</summary>
+        public void CheatFinishDay(int day)
+        {
+            if (day < 1 || day > WeekDays) return;
+            for (int i = 0; i < WeeklyMissionsData.Days[day - 1].Length; i++)
+                _store.SetInt(Key("wm_p", day - 1, i), WeeklyMissionsData.Days[day - 1][i].amount);
+            Changed?.Invoke();
+        }
 
         /// <summary>
         /// Claims a done mission of an open day: its reward and tokens; returns the milestones it reached

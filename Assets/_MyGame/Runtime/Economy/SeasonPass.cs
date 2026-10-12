@@ -55,7 +55,7 @@ namespace SnackDash.Economy
         public const int UnlockLevel = 25, Stages = 20, SeasonDays = 7, PremiumLives = 8;
 
         private static SeasonPass _shared;
-        public static SeasonPass Shared => _shared ?? (_shared = new SeasonPass(new PlayerPrefsStore(), () => DateTime.UtcNow, PlayerEconomy.Shared));
+        public static SeasonPass Shared => _shared ?? (_shared = new SeasonPass(new PlayerPrefsStore(), () => GameClock.UtcNow, PlayerEconomy.Shared));
 
         private readonly IStore _store;
         private readonly Func<DateTime> _now;

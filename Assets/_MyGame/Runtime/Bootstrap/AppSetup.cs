@@ -24,6 +24,8 @@ namespace SnackDash.Bootstrap
             missions.Login();
             // Snacky Pass counts the tickets of every win too.
             SnackDash.Economy.SeasonPass.Shared.StartIfUnlocked(LevelProgress.Index + 1);
+            // Jungle Heist steps on with each win and fails on a loss.
+            SnackDash.Economy.JungleHeist.Shared.StartIfUnlocked(LevelProgress.Index + 1);
         }
     }
 }

@@ -1008,6 +1008,28 @@ namespace SnackDash.Gameplay
             return false;
         }
 
+        // ------------------------------------------------------------------ cheats (SnackDashCheats)
+
+        /// <summary>Cheat: the level is won now, through the usual <see cref="Won"/> (win screen, coins, events); the crates stay as they are.</summary>
+        public bool CheatWin()
+        {
+            if (IsWon || IsStuck) return false;
+            IsMoving = false;
+            IsWon = true;
+            Won?.Invoke();
+            return true;
+        }
+
+        /// <summary>Cheat: the head bites its tail where it stands (NO WAY OUT, then the usual lose flow). Only while the snake stands still with a tail.</summary>
+        public bool CheatBite()
+        {
+            if (IsWon || IsStuck || IsMoving || IsDelivering || _segments.Count == 0) return false;
+            IsStuck = true;
+            SnipKeep = _segments.Count / KeptPerSegments;
+            TailBitten?.Invoke(SnipKeep);
+            return true;
+        }
+
         /// <summary>Every completed crate takes one off every rock row; at 0 it breaks and its road opens [user].</summary>
         private void WearWalls()
         {

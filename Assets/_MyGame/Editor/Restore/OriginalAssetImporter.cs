@@ -147,6 +147,8 @@ namespace SnackDash.Editor.Restore
             // Snacky Pass (BP_MainUI_View, its milestone rows, the offer and FTUE screens).
             "LuckiestGuy-Regular Brown", "LuckiestGuy-Regular Brown Title2", "LuckiestGuy-Regular Green Cartoon", "LuckiestGuy-Regular Purple Cartoon 03",
             "LuckiestGuy-Regular SDF 2 - purple cartoon 2",
+            // Jungle Heist (Popup_Lava_Quest_Join, _Ftue, _Main).
+            "LuckiestGuy-Regular LavaQuest blue", "LuckiestGuy-Regular LavaQuest orange", "LuckiestGuy-Regular LavaQuest Counter", "LuckiestGuy-Regular Green Dark Cartoon 3",
         };
 
         /// <summary>LilitaOne presets of the Shop (ShopView, its items and section titles).</summary>

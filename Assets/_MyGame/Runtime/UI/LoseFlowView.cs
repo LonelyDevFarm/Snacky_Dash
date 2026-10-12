@@ -174,6 +174,11 @@ namespace SnackDash.UI
             OnClick(root, "Popup Parent/Cancel Button", ShowGameOver);
 
             root.Find("background overlay").GetComponent<HoldToHide>().Target = card.GetComponent<CanvasGroup>();
+            // A Jungle Heist run on: the warning that giving up fails it, in place of the snake (LosePopup PopupContentLavaQuest).
+            var heist = root.Find("Popup Parent/Popup Content LavaQuest");
+            bool heistOn = heist != null && SnackDash.Economy.JungleHeist.Shared.Current == SnackDash.Economy.JungleHeist.State.Running;
+            if (heist != null) heist.gameObject.SetActive(heistOn);
+            root.Find("Popup Parent/Popup Content Common").gameObject.SetActive(!heistOn);
             var fruits = root.Find("Popup Parent/Popup Content Common/Content/SP_Fruits");
             if (fruits != null) StartCoroutine(Blink(fruits.GetComponent<Graphic>()));
             StartCoroutine(Pop(card));
@@ -199,6 +204,7 @@ namespace SnackDash.UI
             var sub = Text(Rect(content, "Sub text", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 26.52f), new Vector2(686, 53.05f)),
                 "<color=#FF4945>SHORTEN THE TAIL</color> TO KEEP PLAYING!", skin.font, skin.plainMaterial, 42, Hex("446890FF"));
             sub.richText = true;
+            HeistWarning(card);
 
             // Phone screenshot of the original: the button sits inside the card, ~37 units under the
             // white box and ~31 above the card's bottom, drawn ~0.85x (its layout group scales it).
@@ -219,6 +225,36 @@ namespace SnackDash.UI
 
             Text(Rect(root, "TMP_See_The_Board", Vector2.zero, new Vector2(1, 0), new Vector2(0, 120.12f), new Vector2(0, 240.23f)),
                 "HOLD TO SEE THE BOARD", skin.font, skin.blueUnderlayMaterial, 46.9f, Color.white);
+        }
+
+        /// <summary>
+        /// PopupContentLavaQuest of the original LosePopup, shown instead of the snake while a Jungle Heist run is on: the
+        /// white box with the lose picture (Tex_Jungle Heist_Lose_screen, AspectRatioFitter envelope 0.5, clipped by the box)
+        /// and the speech bubble (S_Background_SpeechBubble_03, at 144, -159, 1.2, turned 11 degrees) "We will fail Jungle
+        /// Heist!" (LocData jungle_heist_lose_flow_hint, 48, blue grey). The bubble's size is a STAND-IN (a layout sized it).
+        /// </summary>
+        private void HeistWarning(RectTransform card)
+        {
+            var block = Rect(card, "Popup Content LavaQuest", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 171), new Vector2(828, 509.45f));
+            var box = Rect(block, "Color", new Vector2(0.0285f, 0), new Vector2(0.9715f, 1), new Vector2(0, -21.08f), new Vector2(-40, -18.93f));
+            Image(box, skin.bannerFrame, Color.white, sliced: true);
+            box.gameObject.AddComponent<RectMask2D>();
+            var picture = Rect(box, "Picture", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            Image(picture, skin.Get("Tex_Jungle Heist_Lose_screen"), Color.white).preserveAspect = true;
+            var cover = picture.gameObject.AddComponent<AspectRatioFitter>();
+            cover.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            cover.aspectRatio = 0.5f;
+            var art = Rect(block, "Content", Vector2.zero, Vector2.one, new Vector2(-2.84f, 0), new Vector2(-129.29f, 0));
+            var bubble = Rect(art, "SpeechBubble", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(144f, -159f), new Vector2(400f, 150f));
+            bubble.localScale = Vector3.one * 1.2f;
+            bubble.localRotation = Quaternion.Euler(0f, 0f, -11.05f);
+            Image(Stretch(bubble, "background"), skin.Get("S_Background_SpeechBubble_03_0"), Color.white, sliced: true).pixelsPerUnitMultiplier = 2.07f;
+            var words = Text(Rect(bubble, "Text (TMP)", Vector2.zero, Vector2.one, new Vector2(0f, 4f), new Vector2(-50f, -30f)), "We will fail\n<color=#FF4945>Jungle Heist</color>!", skin.font, skin.plainMaterial, 48f, new Color(0.369f, 0.498f, 0.678f));
+            words.richText = true;
+            words.enableAutoSizing = true;
+            words.fontSizeMin = 20f;
+            words.fontSizeMax = 48f;
+            block.gameObject.SetActive(false);
         }
 
         /// <summary>

@@ -136,7 +136,28 @@ namespace SnackDash.Tests
             Assert.AreEqual(0, session.Pills.Count);
             Assert.AreEqual(0, session.Columns[0].CurrentIndex, "a crate filled below the top waits its turn");
             Assert.AreEqual(8, session.Columns[0].FilledIn(1));
+
             Assert.IsTrue(session.RequestMove(Direction.Down));
+
+            // Cheats: LOSE bites where the snake stands (the usual NO WAY OUT); WIN ends the level even while moving.
+            session = new GameSession(new BoardGraph(map, _database), map, level);
+            session.Begin();
+            Assert.IsFalse(session.CheatBite(), "no tail yet");
+            Assert.IsTrue(session.RequestMove(Direction.Up));
+            session.Tick(1f);
+            int bitten = -1;
+            session.TailBitten += keep => bitten = keep;
+            Assert.IsTrue(session.CheatBite());
+            Assert.IsTrue(session.IsStuck);
+            Assert.AreEqual(1, bitten, "8 segments / 5 keeps 1, as a real bite");
+            Assert.IsFalse(session.CheatWin(), "not while stuck");
+            Assert.IsTrue(session.Snip());
+            Assert.IsTrue(session.RequestMove(Direction.Left));
+            bool won = false;
+            session.Won += () => won = true;
+            Assert.IsTrue(session.CheatWin());
+            Assert.IsTrue(won && session.IsWon);
+            Assert.IsFalse(session.CheatWin(), "only once");
         }
 
         [Test]
@@ -255,6 +276,19 @@ namespace SnackDash.Tests
             Assert.IsTrue(eco.InfiniteLives);
             Assert.AreEqual(SnackDash.Economy.PlayerEconomy.StartBoosterStock + 2, eco.Boosters("booster_shovel"));
             Assert.AreEqual(SnackDash.Economy.PlayerEconomy.StartBoosterStock, eco.Boosters("booster_undo"));
+
+            // Cheats set coins, streak and boosters without counting for the missions.
+            int counted = 0;
+            eco.Goal += (goal, amount) => counted += amount;
+            eco.SetCoins(123);
+            Assert.AreEqual(123, eco.Coins);
+            eco.SetStreak(true);
+            Assert.IsTrue(eco.StreakOnFire);
+            eco.SetStreak(false);
+            Assert.AreEqual(0, eco.StreakWins);
+            eco.SetBoosters("booster_shovel", 0, countUse: false);
+            Assert.AreEqual(0, eco.Boosters("booster_shovel"));
+            Assert.AreEqual(0, counted, "no mission progress from cheats");
         }
 
         [Test]
@@ -374,6 +408,39 @@ namespace SnackDash.Tests
             Assert.IsFalse(sp.Premium);
             Assert.AreEqual(5, eco.LifeCap);
             Assert.IsFalse(sp.Claimed(1, false));
+
+            // Jungle Heist (Level 35): join, 7 wins in a row finish it (the share is paid once); a loss fails it; then wait for the next cycle.
+            var jh = new SnackDash.Economy.JungleHeist(store, () => now, eco);
+            jh.StartIfUnlocked(34);
+            Assert.IsFalse(jh.Started);
+            jh.StartIfUnlocked(35);
+            Assert.IsTrue(jh.CanJoin);
+            jh.Join();
+            for (int i = 0; i < 3; i++) eco.Win(40 + i, 0);
+            Assert.AreEqual(3, jh.Step);
+            Assert.AreEqual(SnackDash.Economy.JungleHeist.SurvivorsPerStep[3], jh.Survivors);
+            Assert.IsTrue(jh.HasNews, "Home opens the river for wins not shown yet");
+            jh.SeenStep = 3;
+            Assert.IsFalse(jh.HasNews);
+            eco.Lose();
+            Assert.AreEqual(SnackDash.Economy.JungleHeist.State.Lost, jh.Current, "one lost level fails the challenge");
+            Assert.IsTrue(jh.HasNews, "and for the failed run, once");
+            jh.ResultSeen = true;
+            Assert.IsFalse(jh.HasNews);
+            Assert.IsFalse(jh.CanJoin, "and the next run waits for the next cycle");
+            now = now.AddHours(SnackDash.Economy.JungleHeist.CycleHours);
+            jh.StartIfUnlocked(40);
+            Assert.IsTrue(jh.CanJoin);
+            jh.Join();
+            for (int i = 0; i < SnackDash.Economy.JungleHeist.Steps; i++) eco.Win(50 + i, 0);
+            Assert.AreEqual(SnackDash.Economy.JungleHeist.State.Won, jh.Current);
+            Assert.IsFalse(jh.ResultSeen, "a new cycle starts unseen");
+            int wallet = eco.Coins;
+            Assert.IsTrue(jh.ClaimPrize());
+            jh.SeenStep = SnackDash.Economy.JungleHeist.Steps;
+            Assert.IsFalse(jh.HasNews, "the prize taken, nothing left to open for");
+            Assert.AreEqual(wallet + SnackDash.Economy.JungleHeist.Share, eco.Coins);
+            Assert.IsFalse(jh.ClaimPrize(), "once");
         }
 
         [Test]

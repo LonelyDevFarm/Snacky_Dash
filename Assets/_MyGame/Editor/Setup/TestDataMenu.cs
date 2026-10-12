@@ -14,25 +14,12 @@ namespace SnackDash.Editor.Setup
         public static void ResetAll()
         {
             if (!EditorUtility.DisplayDialog("Reset All Data", "Xóa toàn bộ dữ liệu đã lưu (level, coin, tim, booster, hướng dẫn, cài đặt)?", "Reset", "Hủy")) return;
-            PlayerPrefs.DeleteAll();
-            PlayerPrefs.Save();
-            Debug.Log("[Test] All saved data cleared: next start is a fresh install.");
+            SnackDash.Bootstrap.SaveData.ResetAll();
         }
 
         /// <summary>Only the one-time things (booster intro cards, forced first use, unlock gifts); level and coins stay.</summary>
         [MenuItem("SnackDash/Test/Reset Tutorials (keep level)")]
-        public static void ResetTutorials()
-        {
-            foreach (var booster in new[] { "shovel", "boomerang", "undo", "magnet" })
-            {
-                PlayerPrefs.DeleteKey("booster_" + booster + "_tutorial");
-                PlayerPrefs.DeleteKey("booster_" + booster + "_gift");
-                PlayerPrefs.DeleteKey("booster_intro_" + booster.ToUpperInvariant());
-            }
-            PlayerPrefs.DeleteKey("home_streak_shown");
-            PlayerPrefs.Save();
-            Debug.Log("[Test] Tutorials and unlock gifts will show again; level, coins and lives kept.");
-        }
+        public static void ResetTutorials() => SnackDash.Bootstrap.SaveData.ResetTutorials();
 
         /// <summary>
         /// Sets the saved level (Home and the next game start there). The Game scene's Test Level only plays a level once

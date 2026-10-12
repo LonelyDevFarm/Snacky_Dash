@@ -21,6 +21,9 @@ namespace SnackDash.Bootstrap
             private set { PlayerPrefs.SetInt(Key, value); PlayerPrefs.Save(); }
         }
 
+        /// <summary>Cheat / test: the saved level becomes list index <paramref name="index"/> (0 = Level 1).</summary>
+        public static void SetIndex(int index) => Index = Mathf.Max(0, index);
+
         /// <summary>Set once a level picked in the Inspector for testing has been won, so the next one follows.</summary>
         public static bool TestLevelDone { get; set; }
 

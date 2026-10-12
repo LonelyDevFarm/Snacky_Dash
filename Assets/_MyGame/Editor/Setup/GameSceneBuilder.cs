@@ -146,6 +146,13 @@ namespace SnackDash.Editor.Setup
             PanelPrefab("SnackyPassRules", SnackDash.UI.SnackyPassRules.BuildLayout);
             PanelPrefab("SnackyPassOffer", SnackDash.UI.SnackyPassOffer.BuildLayout);
             PanelPrefab("SnackyPassBadgeFtue", SnackDash.UI.WeeklyBadgeFtue.BuildSnackyPassLayout);
+            PanelPrefab("JungleHeistJoin", SnackDash.UI.JungleHeistJoin.BuildLayout);
+            PanelPrefab("JungleHeistRules", SnackDash.UI.JungleHeistRules.BuildLayout);
+            PanelPrefab("JungleHeistMain", SnackDash.UI.JungleHeistMain.BuildLayout);
+            PanelPrefab("JungleHeistEnded", SnackDash.UI.JungleHeistEnded.BuildLayout);
+            PanelPrefab("JungleHeistRewards", SnackDash.UI.JungleHeistRewards.BuildLayout);
+            PanelPrefab("JungleHeistMatch", SnackDash.UI.JungleHeistMatch.BuildLayout);
+            PanelPrefab("JungleHeistBadgeFtue", SnackDash.UI.WeeklyBadgeFtue.BuildJungleHeistLayout);
             AssetDatabase.SaveAssets();
         }
 
@@ -297,6 +304,7 @@ namespace SnackDash.Editor.Setup
             Sprites("named", NamedSprites);
             Ref("shopFont", Find<TMPro.TMP_FontAsset>(Restore.OriginalAssetImporter.ShopFontName));
             Ref("shinyShader", AssetDatabase.LoadAssetAtPath<Shader>("Assets/_MyGame/Shader/UI_Shiny.shader"));
+            Ref("uiAdditive", AssetDatabase.LoadAssetAtPath<Material>("Assets/_MyGame/Art/Material/MT_FX_UI_Particle_Additive.mat"));
             var eventMaterials = skin.FindPropertyRelative("eventMaterials");
             eventMaterials.arraySize = Restore.OriginalAssetImporter.EventFontPresets.Length;
             for (int i = 0; i < eventMaterials.arraySize; i++)
@@ -336,6 +344,8 @@ namespace SnackDash.Editor.Setup
             "S_Icon_Music_Enabled", "S_Icon_Music_Disabled", "S_Icon_Haptics_Enabled", "S_Icon_Haptics_Disabled", "S_Icon_Sound_Enabled", "S_Icon_Sound_Disabled",
             // Level button on fire (StreakActive)
             "TX_FX_UI_PlayButton_Streak", "TX_FX_UI_Streakbar_Streak", "TX_FX_UI_PlayButton_StreakEdge", "TX_FX_Sparkle", "S_FX_SmallGlow_01_0", "TX_FX_Square_Glow2",
+            // JUNGLE HEIST (join, rules, river, end popups)
+            "S_Bg_Offer_Banner_Lava_Quest_0", "S_Title_Accessory_LavaQuest (2)_0", "S_Title_Leaf_LavaQuest (2)_0", "S_Pop-up_Lava_Quest_Frame_Brown _0", "S_Button_Close_Brown_0", "S_Pop-up_Frame_Inlay_Brown_0", "TXT_Avatars_Icons_0", "TXT_Avatars_Icons_1", "TXT_Avatars_Icons_2", "TXT_Avatars_Icons_3", "TXT_Avatars_Icons_4", "TXT_Avatars_Icons_5", "TXT_Avatars_Icons_6", "TXT_Avatars_Icons_7", "TXT_Avatars_Icons_8", "TXT_Avatars_Icons_9", "S_Profile_Frame_0", "S_Profile_Frame_Player_0", "Tex_Jungle_Heist_Start_Illustration_V2_0", "TX_FX_Glow", "Tex_FX_Rays", "S_Jungle_Heist_Start_Boat_0", "S_Gradient_Overlay_LavaQuest", "S_GrandPrize_LavaQuest_0", "Tex_FX_Environment_WaterEdge_0", "Tex_FX_Environment_WaterEdge_1", "Tex_FX_Environment_WaterEdge_2", "Tex_FX_Environment_Shadows_0", "Tex_FX_Environment_Shadows_1", "Tex_FX_Environment_Shadows_2", "Tex_LavaQuest_Illustration_1_0", "S_Waterfall_1", "S_Waterfall_2", "S_Waterfall_3", "S_Sign_Bg_0", "S_Lilypad_1_0", "S_Lilypad_2_0", "S_Lilypad_3_0", "S_Lilypad_4_0", "S_Lilypad_5_0", "S_Lilypad_6_0", "S_Lilypad_7_0", "Tex_FX_Lilypad_WaterEdge_0", "Tex_FX_Lilypad_WaterEdge_1", "Tex_FX_Lilypad_WaterEdge_2", "Tex_FX_Lilypad_WaterEdge_3", "Tex_FX_Lilypad_WaterEdge_4", "Tex_FX_Lilypad_WaterEdge_5", "Tex_LavaQuest_Foreground", "S_Lava_Quest_Bg_0", "S_Bg_Counter_Lava_Quest_0", "Tex_Jungle Heist_Lose_screen", "S_Coins_Medium_Pack_1_0", "S_Background_SpeechBubble_03_0",
             // SNACKY PASS (SnackyPassView, its rules, offer and chests)
             "S_SeasonPass_BackgroundImg_0", "S_SeasonPass_SnakeCoins_0", "SP_Shadow", "S_GoldenLine", "S_TimerBackground", "S_Img_TicketShdw_0", "S_Img_Ticket_0", "S_Button_Shadow_0", "S_Button_WMGreen_0",
             "S_Button_WMPurple_0", "S_Icon_LevelNumber_Purple_0", "ProgressBar_Back_0", "S_Icon_SpeechBubble_Purple_0", "S_Glow", "S_PurpleButtonPass_0", "S_GoldenButtonPass_0", "S_Icon_Locked", "S_Icon_PremiumReward",
@@ -369,6 +379,13 @@ namespace SnackDash.Editor.Setup
             Set(home, "snackyPassRulesPrefab", PanelPrefab("SnackyPassRules", SnackDash.UI.SnackyPassRules.BuildLayout));
             Set(home, "snackyPassOfferPrefab", PanelPrefab("SnackyPassOffer", SnackDash.UI.SnackyPassOffer.BuildLayout));
             Set(home, "snackyPassBadgeFtuePrefab", PanelPrefab("SnackyPassBadgeFtue", SnackDash.UI.WeeklyBadgeFtue.BuildSnackyPassLayout));
+            Set(home, "jungleJoinPrefab", PanelPrefab("JungleHeistJoin", SnackDash.UI.JungleHeistJoin.BuildLayout));
+            Set(home, "jungleRulesPrefab", PanelPrefab("JungleHeistRules", SnackDash.UI.JungleHeistRules.BuildLayout));
+            Set(home, "jungleMainPrefab", PanelPrefab("JungleHeistMain", SnackDash.UI.JungleHeistMain.BuildLayout));
+            Set(home, "jungleEndedPrefab", PanelPrefab("JungleHeistEnded", SnackDash.UI.JungleHeistEnded.BuildLayout));
+            Set(home, "jungleRewardsPrefab", PanelPrefab("JungleHeistRewards", SnackDash.UI.JungleHeistRewards.BuildLayout));
+            Set(home, "jungleMatchPrefab", PanelPrefab("JungleHeistMatch", SnackDash.UI.JungleHeistMatch.BuildLayout));
+            Set(home, "jungleBadgeFtuePrefab", PanelPrefab("JungleHeistBadgeFtue", SnackDash.UI.WeeklyBadgeFtue.BuildJungleHeistLayout));
             System.Func<string, Material> mat = n => AssetDatabase.LoadAssetAtPath<Material>("Assets/_MyGame/Art/Material/" + n + ".mat");
             Set(home, "streakFront", mat("Mat_UI_PlayButton_StreakActive"));
             Set(home, "streakFrontSuperHard", mat("Mat_UI_PlayButton_StreakActive_SuperHard"));

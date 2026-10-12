@@ -34,7 +34,10 @@ namespace SnackDash.UI
             Image(Rect(header, "Line", Vector2.zero, new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, 6f), new Vector2(0.5f, 0f)), null, Hex("FFD312FF"));
             var shadow = Rect(header, "Shadow", Vector2.zero, new Vector2(1f, 0f), new Vector2(0f, -12f), new Vector2(0f, 12f), new Vector2(0.5f, 1f));
             Image(shadow, skin.Get("LineShadow"), new Color(0f, 0f, 0f, 0.59f));
-            Text(Rect(header, "Text (TMP) - Header", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -35f), new Vector2(600f, 100f)), "SETTINGS", skin.font, skin.homeScreenLevelsMaterial, 80f, Color.white);
+            var title = Text(Rect(header, "Text (TMP) - Header", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -35f), new Vector2(600f, 100f)), "SETTINGS", skin.font, skin.homeScreenLevelsMaterial, 80f, Color.white);
+            // Tapping SETTINGS twice opens the cheat panel, on Home and in a level (Editor / Development Build only) [user].
+            title.raycastTarget = true;
+            title.gameObject.AddComponent<CheatSystem.CheatButton>().Taps = 2;
             var cancel = Rect(header, "Cancel Button", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-82f, -20f), new Vector2(100f, 100f));
             Image(cancel, null, Color.clear, raycast: true);
             Image(Rect(cancel, "cancel icon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(73f, 73f)), skin.Get("Button_Cancel"), new Color(0.827f, 0.38f, 0.016f));

@@ -144,9 +144,28 @@ namespace SnackDash.UI
                     if (_pathOverlay.texture != null) Destroy(_pathOverlay.texture);
                     _pathOverlay.texture = BakePathMask(cam, direction);
                     _pathOverlay.color = Color.white;
+                    PlaceHandOnHead(cam);
                 }
                 yield return null;
             }
+        }
+
+        /// <summary>
+        /// The original puts the hand at the screen's centre, which on our Level 1 board is an empty road far from the
+        /// snake; the fingertip goes on the snake's head instead, so the swipe starts where the snake is [user].
+        /// </summary>
+        private const float HandAhead = 0.6f; // in cells
+
+        private void PlaceHandOnHead(Camera cam)
+        {
+            var parent = (RectTransform)_hand.parent;
+            // A little ahead of the head, toward the swipe (on it the hand sat too close) [user].
+            var cell = _session.CurrentCell;
+            var screen = cam.WorldToScreenPoint(Vector3.Lerp(BoardView.CellToWorld(cell), BoardView.CellToWorld(cell + Vector2Int.right), HandAhead));
+            var canvas = _root.GetComponent<Canvas>();
+            var eye = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_root, screen, eye, out var local))
+                parent.anchoredPosition = local;
         }
 
         private Texture2D BakePathMask(Camera cam, Direction direction)
@@ -347,7 +366,7 @@ namespace SnackDash.UI
             tap.outlineColor = new Color32(40, 30, 60, 255);
             _tap.gameObject.SetActive(false);
 
-            // Hand_SwipeTuto: screen centre (_yOffsetFromScreenCenter 0), trail behind the hand.
+            // Hand_SwipeTuto, trail behind the hand; moved onto the snake's head by PlaceHandOnHead (the original: screen centre).
             var handRoot = Rect(_root, "TUTO_HAND_Parent", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             _hand = Rect(handRoot, "HandPivot", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             float handWidth = handHeight * 169.9f / 234.9f;

@@ -106,6 +106,9 @@ namespace SnackDash.UI
         /// <summary>UI/Shiny (Shader/UI_Shiny), the sweeping light of UiShiny.</summary>
         public Shader shinyShader;
 
+        /// <summary>MT_FX_UI_Particle_Additive (UI/Additive): glows and rays added on top.</summary>
+        public Material uiAdditive;
+
         /// <summary>An event preset by its original name, e.g. "LuckiestGuy-Regular weekly orange" (plain when missing).</summary>
         public Material EventMaterial(string original)
         {

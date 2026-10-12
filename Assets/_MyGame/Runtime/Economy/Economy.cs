@@ -31,6 +31,16 @@ namespace SnackDash.Economy
     }
 
     /// <summary>
+    /// The clock of the shared economy and events: real UTC time plus <see cref="Offset"/>, which the cheat panel moves
+    /// forward to test lives coming back, mission days and the end of a season or cycle. Not saved: a new run is real time.
+    /// </summary>
+    public static class GameClock
+    {
+        public static TimeSpan Offset { get; set; }
+        public static DateTime UtcNow => DateTime.UtcNow + Offset;
+    }
+
+    /// <summary>
     /// The player's coins, lives and win streak, with the rules the user set (07/10, FINDINGS):
     /// - Coins: 1800 to start; a win pays 20 / 30 / 40 (normal / hard / super hard), doubled while the
     ///   streak is on fire; combo coins go to the wallet too. Snip costs 900 every time. Boosters: 1800
@@ -54,7 +64,7 @@ namespace SnackDash.Economy
 
         private static PlayerEconomy _shared;
         /// <summary>The game's economy (PlayerPrefs, real clock).</summary>
-        public static PlayerEconomy Shared => _shared ?? (_shared = new PlayerEconomy(new PlayerPrefsStore(), () => DateTime.UtcNow));
+        public static PlayerEconomy Shared => _shared ?? (_shared = new PlayerEconomy(new PlayerPrefsStore(), () => GameClock.UtcNow));
 
         private readonly IStore _store;
         private readonly Func<DateTime> _now;
@@ -92,6 +102,13 @@ namespace SnackDash.Economy
             Changed?.Invoke();
             if (amount > 0) Goal?.Invoke(MissionGoal.SpendCoins, amount);
             return true;
+        }
+
+        /// <summary>Cheat / test: the wallet becomes <paramref name="coins"/> without counting for the missions.</summary>
+        public void SetCoins(int coins)
+        {
+            _store.SetInt("eco_coins", Math.Max(0, coins));
+            Changed?.Invoke();
         }
 
         /// <summary>Coins for winning a level of <paramref name="difficulty"/> (LevelDefinition), before the streak.</summary>
@@ -241,6 +258,14 @@ namespace SnackDash.Economy
             return coins;
         }
 
+        /// <summary>Cheat / test: the streak on fire (x2) or back to 0.</summary>
+        public void SetStreak(bool onFire)
+        {
+            _store.SetInt("eco_streak_fire", onFire ? 1 : 0);
+            _store.SetInt("eco_streak_wins", onFire ? StreakWinsToFire : 0);
+            Changed?.Invoke();
+        }
+
         /// <summary>A level lost or left: a life, and the streak if it was on fire.</summary>
         public void Lose()
         {
@@ -264,12 +289,13 @@ namespace SnackDash.Economy
 
         public int Boosters(string key) => _store.GetInt(key, StartBoosterStock);
 
-        public void SetBoosters(string key, int count)
+        /// <summary>Sets the stock; a lower count is boosters used (missions), unless <paramref name="countUse"/> is false (cheats).</summary>
+        public void SetBoosters(string key, int count, bool countUse = true)
         {
             int used = Boosters(key) - Math.Max(0, count);
             _store.SetInt(key, Math.Max(0, count));
             Changed?.Invoke();
-            if (used > 0) ReportBoosterUse(key, used);
+            if (used > 0 && countUse) ReportBoosterUse(key, used);
         }
 
         public void AddBoosters(string key, int count) => SetBoosters(key, Boosters(key) + count);

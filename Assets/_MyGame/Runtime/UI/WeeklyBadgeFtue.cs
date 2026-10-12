@@ -19,6 +19,7 @@ namespace SnackDash.UI
     {
         private const string SeenKey = "wm_badge_ftue_seen";
         public const string SnackyPassSeenKey = "sp_badge_ftue_seen";
+        public const string JungleHeistSeenKey = "jh_badge_ftue_seen";
 
         public static bool Seen => PlayerPrefs.GetInt(SeenKey, 0) != 0;
         public static bool SeenFor(string key) => PlayerPrefs.GetInt(key, 0) != 0;
@@ -56,6 +57,10 @@ namespace SnackDash.UI
         /// <summary>SeasonPassBadgeFtue: the bubble on the left (-256, 76), the hand under it (Tap -155, -121; holder -22, 17).</summary>
         public static void BuildSnackyPassLayout(RectTransform root, UiSkin skin)
             => Layout(root, skin, "Snacky Pass\n<color=#9358D6>unlocked!</color>", new Vector2(-256f, 76f), new Vector2(-155f, -121f), new Vector2(-22f, 17f), 0.647f, true); // dims as the prefab says, at once (the video stayed bright; covering the coins is fine) [user]
+
+        /// <summary>LavaQuestBadgeFtue: bubble (243, 29), hand at Tap (158, -121), LocData jungle_heist_widget_ulocked_hint.</summary>
+        public static void BuildJungleHeistLayout(RectTransform root, UiSkin skin)
+            => Layout(root, skin, "<color=#FED025>Jungle Heist</color>\n<color=#9A65CF>unlocked!</color>", new Vector2(243f, 29f), new Vector2(158f, -121f), Vector2.zero, 0.647f, false);
 
         private static void Layout(RectTransform root, UiSkin skin, string words, Vector2 bubbleAt, Vector2 tapAt, Vector2 holderAt, float dim, bool mirror)
         {
