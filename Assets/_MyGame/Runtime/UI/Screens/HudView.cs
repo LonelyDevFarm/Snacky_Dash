@@ -109,7 +109,7 @@ namespace SnackDash.UI
         {
             yield return new WaitForSeconds(markerCompleteDelay);
             if (pending != null) Destroy(pending);
-            var check = Marker(completeMarker, completedHolder, fraction).GetChild(0);
+            var check = Marker(completeMarker, completedHolder, fraction).Find("CheckIcon_Img"); // FX_Reward_Particles nằm trước, bắn khi mốc hiện
             yield return Tween.Run(0.25f, Tween.OutBack(3f), t => { if (check != null) check.localScale = Vector3.one * t; });
         }
 

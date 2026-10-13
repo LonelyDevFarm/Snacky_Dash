@@ -1301,7 +1301,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 3.69
 --- !u!114 &7954734527816556133
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2245,7 +2245,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 3.42
 --- !u!114 &8199855769451993850
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3045,6 +3045,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d0a09df5a52b9847afca33a41a5a55e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  raysA: {fileID: 2080838887489876963}
+  raysB: {fileID: 2036066593352692953}
+  roundSeconds: 20
+  dot: {fileID: 21300000, guid: 6d1fcb54baa105345840637b6db70059, type: 2}
+  sparkle: {fileID: 21300000, guid: 7c4335588d660c44fbe4422e28b0e8e9, type: 2}
+  dotRate: 3
+  sparkleRate: 6
+  radius: 50
+  glow: {fileID: 4918869976307711993}
 --- !u!1 &6215309490863296658
 GameObject:
   m_ObjectHideFlags: 0
@@ -3628,7 +3637,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 3.5
 --- !u!114 &8008984967256573623
 MonoBehaviour:
   m_ObjectHideFlags: 0

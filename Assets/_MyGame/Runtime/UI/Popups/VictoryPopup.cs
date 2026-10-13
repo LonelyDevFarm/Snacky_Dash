@@ -81,6 +81,9 @@ namespace SnackDash.UI
             main.gameObject.SetActive(reward.HasValue);
             doubleButton.gameObject.SetActive(reward.HasValue);
             unlocked.gameObject.SetActive(false);
+            // Đặt sẵn mọi phần trước khi màn hiện: prefab để chúng bật ở cỡ thật (có cả lửa streak) nên không làm trước thì
+            // chúng hiện ra một thoáng trong lúc VICTORY! bật lên [user].
+            if (reward.HasValue) PrepareReward(buttonRect, reward.Value);
             StartCoroutine(Tween.Run(backgroundFade, Tween.Linear, t => background.color = new Color(color.r, color.g, color.b, t * color.a)));
             yield return Tween.Run(titlePopDuration, Tween.OutBack(3f), t => title.localScale = Vector3.one * t);
             if (reward.HasValue)
@@ -112,7 +115,11 @@ namespace SnackDash.UI
         /// Video Lv11-15 (10 fps) và user: đống xu bật ra kèm pháo giấy và "+20"; đống combo (+N) ở trên, rồi thanh NEW ITEM (chỉ khi
         /// có cơ chế sắp tới) và nút x2 / CONTINUE; đống combo rơi vào đống lớn và số đếm lên tổng.
         /// </summary>
-        private IEnumerator RewardSequence(RectTransform continueRect, VictoryReward reward)
+        private bool _hasBar;
+        private float _barFrom, _barTo;
+
+        /// <summary>Lửa streak, đống xu, combo, thanh NEW ITEM, 2 nút: đúng trận này và thu về 0, chờ lần lượt bật ra.</summary>
+        private void PrepareReward(RectTransform continueRect, VictoryReward reward)
         {
             _reward = reward;
             _total = reward.baseCoins + reward.comboCoins;
@@ -123,17 +130,23 @@ namespace SnackDash.UI
             combo.gameObject.SetActive(reward.comboCoins > 0);
             comboAmount.text = "+" + reward.comboCoins;
             combo.localScale = Vector3.zero;
-            bool hasBar = UnlockPopups.NewItemBar(reward.level, out float from, out float to, out int icon);
-            bar.gameObject.SetActive(hasBar);
-            if (hasBar)
+            _hasBar = UnlockPopups.NewItemBar(reward.level, out _barFrom, out _barTo, out int icon);
+            bar.gameObject.SetActive(_hasBar);
+            if (_hasBar)
             {
-                barFill.anchorMax = new Vector2(from, 1f);
+                barFill.anchorMax = new Vector2(_barFrom, 1f);
                 featureIcon.sprite = icon < mechanicIcons.Length ? mechanicIcons[icon] : null;
                 bar.localScale = Vector3.zero;
             }
-            var doubleRect = (RectTransform)doubleButton.transform;
-            doubleRect.localScale = Vector3.zero;
+            ((RectTransform)doubleButton.transform).localScale = Vector3.zero;
             continueRect.anchoredPosition = new Vector2(buttonsSpread, continueHeight);
+        }
+
+        private IEnumerator RewardSequence(RectTransform continueRect, VictoryReward reward)
+        {
+            bool hasBar = _hasBar;
+            float from = _barFrom, to = _barTo;
+            var doubleRect = (RectTransform)doubleButton.transform;
 
             yield return Tween.Run(0.3f, Tween.OutBack(2.5f), t => coinItem.localScale = Vector3.one * t);
             StartCoroutine(Confetti(coinItem));

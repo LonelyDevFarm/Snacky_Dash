@@ -25,7 +25,8 @@ namespace SnackDash.UI
             public Color colourA, colourB;
             public Vector2 box;           // the shell they start on; zero: the centre
             public float spin;            // degrees a second, either way at random
-            public bool shrink;           // size 1 -> 0 over the life (Size over Lifetime)
+            public bool shrink;           // size 1 -> shrinkTo over the life (Size over Lifetime)
+            public float shrinkTo;        // size left at the end when shrinking (0: gone)
             public float noise;           // wiggle frequency (0: none)
         }
 
@@ -83,7 +84,7 @@ namespace SnackDash.UI
                 }
                 p.rect.anchoredPosition += velocity * dt;
                 p.rect.localRotation *= Quaternion.Euler(0f, 0f, p.spin * dt);
-                p.rect.sizeDelta = Vector2.one * p.size * (settings.shrink ? 1f - k : 1f);
+                p.rect.sizeDelta = Vector2.one * p.size * (settings.shrink ? Mathf.Lerp(1f, settings.shrinkTo, k) : 1f);
                 var colour = p.colour;
                 colour.a *= 1f - k; // Color over Lifetime: alpha 1 -> 0
                 p.image.color = colour;

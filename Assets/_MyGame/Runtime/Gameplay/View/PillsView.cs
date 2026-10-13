@@ -27,6 +27,13 @@ namespace SnackDash.Presentation
             public bool landed, pushed;
             public Vector3 waitPosition;
             public float clearTime;
+            public Transform fruit;          // the shown kind; bobs while the shadow stays on the board
+            public float fruitZ, bobTime, bobDuration;
+            public Transform shadow;
+            public Vector3 shadowScale;
+            public Transform question;       // ? of a secret box; spins
+            public Quaternion questionRest;
+            public float spinTime, spinDuration;
         }
 
         [SerializeField] private GameObject pillPrefab;
@@ -50,6 +57,24 @@ namespace SnackDash.Presentation
         [SerializeField] private float checkInterval = 0.1f;
         [SerializeField] private float minClearTime = 0.3f;
         [SerializeField] private float waitZ = -1.1f;
+        [Tooltip("Độ cao trái nằm trên ô (PillController._zOffset -0.5): trái nổi trên mặt đường, bóng (Shadow của prefab) nằm sát đường và lộ ra khi trái nhún.")]
+        [SerializeField] private float restZ = -0.5f;
+
+        [Header("Idle (PillView / SecretCollectibleView)")]
+        [Tooltip("Trái nằm chờ nổi lên cao chừng này rồi hạ xuống; bóng nằm yên trên bàn. Gốc: _idleAnimationZOffset -0.8 so với _zOffset -0.5 của PillController, tức cao 0.3; 0.8 nhìn quá cao, chốt 0.45 [user]. Đường cong không có trong dữ liệu: dùng nhún êm.")]
+        [SerializeField] private float idleHeight = 0.45f;
+        [Tooltip("Bóng (Shadow trong prefab trái) nhỏ lại còn phần này khi trái lên cao nhất, cho thấy rõ độ nhún [user; bản gốc không ghi].")]
+        [SerializeField, Range(0.3f, 1f)] private float shadowAtTop = 0.75f;
+        [Tooltip("Giây cho một lượt lên (hoặc xuống) (_idleAnimationDuration).")]
+        [SerializeField] private float idleDuration = 1.75f;
+        [Tooltip("Trễ ngẫu nhiên tối đa trước lượt đầu (_idleAnimationMaxDelay).")]
+        [SerializeField] private float idleMaxDelay = 0.3f;
+        [Tooltip("Thời lượng lệch ngẫu nhiên ± phần này (_idleAnimationRandomness).")]
+        [SerializeField] private float idleRandomness = 0.25f;
+        [Tooltip("Dấu ? của hộp bí ẩn: giây cho một vòng xoay quanh trục đứng (SecretCollectibleView._idleAnimationDuration).")]
+        [SerializeField] private float spinDuration = 5.5f;
+        [Tooltip("Nghỉ giữa hai vòng xoay (_idleAnimationDelay).")]
+        [SerializeField] private float spinPause = 0.5f;
 
         private readonly Dictionary<Vector2Int, Pill> _pills = new Dictionary<Vector2Int, Pill>();
         private readonly List<(Vector2Int cell, PillKind kind)> _pending = new List<(Vector2Int, PillKind)>();
@@ -91,6 +116,7 @@ namespace SnackDash.Presentation
         {
             if (_session == null) return;
             if (_pending.Count > 0) SpawnPending();
+            Idle(Time.deltaTime);
 
             _checkTimer += Time.deltaTime;
             if (_checkTimer < checkInterval) return;
@@ -137,12 +163,13 @@ namespace SnackDash.Presentation
             go.name = $"Pill {kind} {cell}";
             PillVisual.SetKind(go, kind);
             var pill = new Pill { go = go, cell = cell };
-            if (_session.IsSecret(cell)) ShowSecret(go);
+            if (_session.IsSecret(cell)) ShowSecret(pill);
+            else FindFruit(pill, kind);
             _pills[cell] = pill;
             go.SetActive(delay <= 0f);
 
             // Landing on the snake: jump straight to the waiting spot beside it.
-            var landing = BoardView.CellToWorld(cell);
+            var landing = Rest(cell);
             if (_occupied.ContainsKey(cell))
             {
                 pill.pushed = true;
@@ -153,16 +180,65 @@ namespace SnackDash.Presentation
         }
 
         /// <summary>Secret fruit: the fruit mesh hides under the ? box (PillView puts it in SecreteCollectibleParent).</summary>
-        private void ShowSecret(GameObject pill)
+        private void ShowSecret(Pill pill)
         {
             if (secretPrefab == null) return;
-            var fruits = pill.transform.Find("Visual/FruitsParent");
-            var parent = pill.transform.Find("Visual/SecreteCollectibleParent");
+            var fruits = pill.go.transform.Find("Visual/FruitsParent");
+            var parent = pill.go.transform.Find("Visual/SecreteCollectibleParent");
             if (fruits == null || parent == null) return;
             fruits.gameObject.SetActive(false);
             var box = Instantiate(secretPrefab, parent, false);
             var burst = box.transform.Find("Feedbacks");
             if (burst != null) burst.gameObject.SetActive(false); // the reveal burst plays when eaten (SnakeView)
+            pill.question = box.transform.Find("Visual/SecretiCollectibleQuestionMark");
+            if (pill.question == null) return;
+            pill.questionRest = pill.question.localRotation;
+            pill.spinDuration = spinDuration * Random.Range(1f - idleRandomness, 1f + idleRandomness);
+            pill.spinTime = -Random.Range(0f, spinPause);
+        }
+
+        private void FindFruit(Pill pill, PillKind kind)
+        {
+            pill.fruit = PillVisual.Shown(pill.go, kind);
+            if (pill.fruit == null) return;
+            pill.fruitZ = pill.fruit.localPosition.z;
+            pill.shadow = pill.fruit.parent.Find("Shadow");
+            if (pill.shadow != null) pill.shadowScale = pill.shadow.localScale;
+            pill.bobDuration = idleDuration * Random.Range(1f - idleRandomness, 1f + idleRandomness);
+            pill.bobTime = -Random.Range(0f, idleMaxDelay);
+        }
+
+        /// <summary>
+        /// Trái nằm yên trên ô thì nhún lên xuống (đẩy sang bên hay đang nhảy thì về chỗ, bóng luôn nằm trên bàn); dấu ? luôn xoay.
+        /// Một vòng lặp cho mọi trái, không coroutine riêng.
+        /// </summary>
+        private void Idle(float dt)
+        {
+            foreach (var pill in _pills.Values)
+            {
+                if (pill.fruit != null)
+                {
+                    float rise = 0f;
+                    if (pill.landed && !pill.pushed)
+                    {
+                        pill.bobTime += dt;
+                        // một lượt lên trong bobDuration rồi một lượt xuống, chậm ở đỉnh và đáy
+                        if (pill.bobTime > 0f) rise = 0.5f - 0.5f * Mathf.Cos(pill.bobTime / pill.bobDuration * Mathf.PI);
+                    }
+                    else pill.bobTime = 0f;
+                    var p = pill.fruit.localPosition;
+                    float scale = pill.fruit.parent.localScale.z; // FruitsParent 1.1: độ cao tính theo đơn vị bàn
+                    pill.fruit.localPosition = new Vector3(p.x, p.y, pill.fruitZ - idleHeight * rise / scale);
+                    if (pill.shadow != null) pill.shadow.localScale = pill.shadowScale * Mathf.Lerp(1f, shadowAtTop, rise);
+                }
+                if (pill.question != null)
+                {
+                    pill.spinTime += dt;
+                    if (pill.spinTime >= pill.spinDuration + spinPause) pill.spinTime -= pill.spinDuration + spinPause;
+                    float turn = pill.spinTime > 0f ? Mathf.Min(pill.spinTime / pill.spinDuration, 1f) * 360f : 0f;
+                    pill.question.localRotation = pill.questionRest * Quaternion.Euler(0f, turn, 0f); // quanh trục dọc của chính dấu ?, giữ độ nghiêng 40° về camera
+                }
+            }
         }
 
         private IEnumerator JumpIn(Pill pill, Vector3 landing, float delay, bool inPlace)
@@ -226,7 +302,7 @@ namespace SnackDash.Presentation
 
         private IEnumerator DropBack(Pill pill)
         {
-            yield return Jump(pill.go, pill.go.transform.localPosition, BoardView.CellToWorld(pill.cell));
+            yield return Jump(pill.go, pill.go.transform.localPosition, Rest(pill.cell));
             pill.landed = true;
         }
 
@@ -253,6 +329,8 @@ namespace SnackDash.Presentation
                 : side.y > 0 ? sideDistanceVertical : sideDistanceVertical + 2f * raisedShift;
             return BoardView.CellToWorld(cell) + (Vector3)(Vector2)side * distance + new Vector3(0f, 0f, waitZ);
         }
+
+        private Vector3 Rest(Vector2Int cell) => BoardView.CellToWorld(cell) + new Vector3(0f, 0f, restZ);
 
         private void RefreshOccupancy()
         {

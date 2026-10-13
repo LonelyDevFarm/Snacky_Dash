@@ -1719,6 +1719,9 @@ MonoBehaviour:
   panel: {fileID: 0}
   openTime: 0
   openBack: 1.6
+  openFrom: 0
+  overlayShare: 0.5
+  panelFade: {fileID: 0}
   closeTime: 0.2
   closeBack: 1.5
   fadeGroup: {fileID: 1170969253600794462}
@@ -2149,7 +2152,7 @@ MonoBehaviour:
       m_Calls: []
   m_Sprite: {fileID: 21300000, guid: c25b84c36477feb40b477fc4ef270be3, type: 2}
   m_Type: 0
-  m_PreserveAspect: 0
+  m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1

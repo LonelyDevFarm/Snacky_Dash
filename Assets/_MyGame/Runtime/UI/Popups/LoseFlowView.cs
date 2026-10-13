@@ -101,7 +101,9 @@ namespace SnackDash.UI
             EventBus.Publish(new LevelLostEvent(SnackDash.Bootstrap.LevelProgress.Index + 1));
             var popup = Open<GameOverPopup>();
             if (popup == null) return;
+            popup.Setup(SnackDash.Bootstrap.LevelProgress.Index + 1 >= SnackDash.Bootstrap.LevelProgress.HomeFromLevel);
             popup.TryAgain += () => { CloseOpen(); _restart?.Invoke(); };
+            popup.Home += () => { CloseOpen(); LoadingScreen.Load(LoadingScreen.HomeScene); }; // tim đã mất lúc thua, X không trừ thêm
         }
     }
 }

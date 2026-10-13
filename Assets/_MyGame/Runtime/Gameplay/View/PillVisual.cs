@@ -22,5 +22,12 @@ namespace SnackDash.Presentation
                 if (child != null) child.gameObject.SetActive(i == (int)kind);
             }
         }
+
+        /// <summary>The shown child of <paramref name="kind"/>, or null.</summary>
+        public static Transform Shown(GameObject pill, PillKind kind)
+        {
+            int i = (int)kind;
+            return i < ChildNames.Length ? pill.transform.Find("Visual/FruitsParent/" + ChildNames[i]) : null;
+        }
     }
 }

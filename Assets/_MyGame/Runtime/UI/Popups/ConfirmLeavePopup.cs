@@ -19,8 +19,9 @@ namespace SnackDash.UI
         [SerializeField] private float heartGap = 135f;
         [SerializeField] private float heartsWidth = 940f;
         [SerializeField] private float heartSize = 125f;
-        [SerializeField] private TMP_Text timeLabel;
         [SerializeField] private TMP_Text countdown;
+        [Tooltip("Chữ thay cho đồng hồ khi tim đã đầy.")]
+        [SerializeField] private string fullText = "FULL";
         [SerializeField] private UiButton continueButton;
 
         private Action _leave;
@@ -61,11 +62,10 @@ namespace SnackDash.UI
         private void Refresh()
         {
             var economy = PlayerEconomy.Shared;
-            bool infinite = economy.InfiniteLives, full = !infinite && economy.Lives >= economy.LifeCap;
+            bool infinite = economy.InfiniteLives, full = economy.Lives >= economy.LifeCap;
             for (int i = 0; i < _full.Length; i++) _full[i].enabled = infinite || i < economy.Lives;
-            // Tim đầy: không có tim nào đang hồi, ẩn dòng đếm giờ.
-            timeLabel.enabled = countdown.enabled = !full;
-            countdown.text = LivesPopup.Clock(infinite ? economy.InfiniteLeft : economy.NextLifeIn);
+            // Tim đầy: "Time to next life: FULL" như bản gốc (video home); chưa đầy: giờ tới tim sau, hoặc giờ còn của tim vô hạn.
+            countdown.text = full ? fullText : LivesPopup.Clock(infinite ? economy.InfiniteLeft : economy.NextLifeIn);
         }
     }
 }
