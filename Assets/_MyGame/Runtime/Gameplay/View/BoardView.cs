@@ -7,23 +7,21 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Spawns the tile cover prefab of every cell. The board lies on the XY plane, one unit per cell,
-    /// cell (x, y) centred at world (x, y, 0); covers are rotated around Z by the database rotation,
-    /// matching the original Tilemap-based layout.
+    /// Dựng bàn: mỗi ô một prefab mặt ô (ô (x, y) ở (x, y, 0)), và chạy cổng một chiều, mũi tên đổi chiều, đá, khối nâng.
+    /// Nằm trong scene Game; GameBootstrap gọi Build rồi BindGates.
     /// </summary>
     public class BoardView : MonoBehaviour
     {
-        // Layers whose tiles carry covers. "map" holds ground/path, "ldf" holds mechanics.
+        // "map": nền và đường; "ldf": cơ chế (đá, mũi tên...).
         private static readonly string[] CoverLayers = { "map", "ldf" };
 
         [SerializeField] private TileDefinitionDatabase database;
         [SerializeField] private Transform coverRoot;
 
-        [Tooltip("Original: TilesCovers/VisualOverhaul/FullScreenBackground, loaded by GroundBGController.")]
+        [Tooltip("Nền cỏ toàn màn (gốc FullScreenBackground, GroundBGController).")]
         [SerializeField] private GameObject backgroundPrefab;
 
-        // Original Game.unity "Ground_BG" transform, which carries GroundBGController; the background
-        // prefab is spawned under it with its own local transform, giving a 160x160 plane at z = +1.3.
+        // Transform "Ground_BG" của Game.unity gốc: nền thành mặt phẳng 160x160 ở z +1.3.
         private static readonly Quaternion GroundRotation = Quaternion.Euler(-90f, 0f, 0f);
         private static readonly Vector3 GroundScale = new Vector3(8f, 1f, 8f);
         private const float GroundDepth = 0.1f;
@@ -45,8 +43,8 @@ namespace SnackDash.Presentation
             public Transform left, right, shakeOrigin;
             public Quaternion leftRest, rightRest;
             public Vector3 shakeRest;
-            public float open;  // 0 closed .. 1 open
-            public float shake; // time left of the not-allowed shake
+            public float open;  // 0 đóng .. 1 mở
+            public float shake; // thời gian rung còn lại
         }
 
         private readonly List<Gate> _gates = new List<Gate>();
@@ -101,17 +99,13 @@ namespace SnackDash.Presentation
                 _spawned.Add(ground.gameObject);
             }
 
-            // Local id 342 (raw GID 343) is plain grass with no entry in the original database either.
+            // Id 342 là cỏ trơn, database gốc cũng không có.
             unknownIds.Remove(342);
             if (unknownIds.Count > 0)
                 Debug.LogWarning($"[BoardView] Tile ids without database entry: {string.Join(", ", unknownIds)}", this);
         }
 
-        /// <summary>
-        /// Bounds spanning the centres of the non-grass cells (paths, delivery points, mechanics).
-        /// Calibrated against Level 2 footage (ortho size ~16.3): the original frames centre-to-centre
-        /// path bounds (12 for 13 columns) plus the fitter's 3-cell expansion, not the full map.
-        /// </summary>
+        /// <summary>Khung từ tâm tới tâm các ô không phải cỏ, không phải cả bản đồ (khớp video Lv2).</summary>
         private Bounds ComputePlayableBounds(TiledMap map)
         {
             var min = new Vector2(float.MaxValue, float.MaxValue);
@@ -120,7 +114,7 @@ namespace SnackDash.Presentation
             for (int x = 0; x < map.Width; x++)
             {
                 int id = map.GetLocalTileId("map", new Vector2Int(x, y));
-                // Road corners are category Grass but carry a corner TileType, so only pure grass is skipped.
+                // Góc đường cũng thuộc nhóm Grass nên chỉ bỏ cỏ trơn.
                 if (id < 0 || !database.TryGet(id, out var definition)) continue;
                 if (definition.category == TileCategory.Grass && definition.tileType == TileType.Empty) continue;
                 min = Vector2.Min(min, new Vector2(x, y));
@@ -133,14 +127,17 @@ namespace SnackDash.Presentation
             return new Bounds(new Vector3(center.x, center.y, 0f), new Vector3(size.x, size.y, 0f));
         }
 
-        /// <summary>Cover spawned for a cell of the "map" layer, or null.</summary>
+        /// <summary>Ẩn / hiện mặt cơ chế (lớp "ldf") của ô; CurtainsView dùng cho ô dưới rèm.</summary>
+        public void SetMechanicVisible(Vector2Int cell, bool visible)
+        {
+            if (_ldfCovers.TryGetValue(cell, out var cover) && cover != null) cover.SetActive(visible);
+        }
+
+        /// <summary>Chỉ lớp "map"; null nếu ô không có.</summary>
         public GameObject GetCover(Vector2Int cell) => _mapCovers.TryGetValue(cell, out var cover) ? cover : null;
 
-        /// <summary>
-        /// ArrowSwitchController / ArrowView: a fixed gate swings its two doors open while the head
-        /// is about to enter it or the snake is inside it, and shuts again once the tail has left;
-        /// it shakes when the snake runs past it while it is closed to it.
-        /// </summary>
+        /// <summary>Nối các cơ chế trên bàn với GameSession. Cổng một chiều mở khi rắn sắp vào hoặc đang ở trong, đóng khi đuôi
+        /// ra hết (gốc ArrowSwitchController / ArrowView).</summary>
         public void BindGates(GameSession session)
         {
             _session = session;
@@ -160,7 +157,20 @@ namespace SnackDash.Presentation
             }
             BindWalls(session);
 
-            // Flipping arrows (TileCov_Arrow): the arrow turns half round when its pair flips.
+            // Khối nâng: nhô lên sau đuôi, hạ xuống sau khi giao trái.
+            _risingBlocks.Clear();
+            foreach (var cell in session.Board.RisingBlocks)
+            {
+                if (!_ldfCovers.TryGetValue(cell, out var cover) || !cover.TryGetComponent<RisingBlockView>(out var view)) continue;
+                view.Init(session.Board.RoadTypeAt(cell));
+                _risingBlocks[cell] = view;
+            }
+            session.RisingBlockChanged += (cell, risen) =>
+            {
+                if (_risingBlocks.TryGetValue(cell, out var view)) view.Animate(risen);
+            };
+
+            // Mũi tên đổi chiều (TileCov_Arrow): quay nửa vòng khi cặp của nó đổi.
             _flips.Clear();
             foreach (var arrow in session.Board.FlippingArrows.Keys)
             {
@@ -171,7 +181,7 @@ namespace SnackDash.Presentation
                 _flips[arrow] = new FlipArrow { arrow = spinner, rest = spinner.localRotation, shakeOrigin = shakeOrigin, shakeRest = shakeOrigin.localPosition,
                     initial = session.Board.OneWayGates[arrow] };
             }
-            // Undo booster: arrows point and rocks stand as the session has them again.
+            // Undo: mũi tên và đá trở lại đúng trạng thái của session.
             session.Rewound += () =>
             {
                 foreach (var flip in _flips)
@@ -200,7 +210,7 @@ namespace SnackDash.Presentation
                     if (_flips.TryGetValue(cell, out var flip)) flip.turns++;
             };
 
-            // Shakes when the snake runs past a closed one, not when it is driven into it [user].
+            // Rung khi rắn chạy ngang cổng đang đóng, không rung khi bị đẩy vào [user].
             session.ArrowNotAllowed += cell =>
             {
                 foreach (var gate in _gates)
@@ -210,22 +220,18 @@ namespace SnackDash.Presentation
         }
 
         [Header("Rocks (DestructibleWall ends, RoadBlock inside)")]
-        [Tooltip("The rocks react when the crate's completion plays (CratesView: flight + hold), not when it is counted.")]
+        [Tooltip("Giây chờ: đá phản ứng khi crate đầy diễn xong (bay + giữ), không phải lúc tính.")]
         [SerializeField] private float wallHitDelay = 0.8f;
         [SerializeField] private float wallTextOutline = 0.3f;
         [SerializeField] private Vector3 wallTextOffset = new Vector3(0f, -0.05f, 0f);
 
         private readonly List<List<GameObject>> _wallCovers = new List<List<GameObject>>();
-        private readonly List<List<Vector2Int>> _wallCoverCells = new List<List<Vector2Int>>(); // cell of each cover
+        private readonly List<List<Vector2Int>> _wallCoverCells = new List<List<Vector2Int>>(); // ô của từng mảnh đá
 
-        [Tooltip("A rock row breaks from both ends inwards, one cell per step [user].")]
-        [SerializeField] private float wallBreakStep = 0.067f; // VFX_da stepped at 15 fps: about one cell per frame
+        [Tooltip("Giây mỗi bước: hàng đá vỡ từ hai đầu vào, mỗi bước một ô [user].")]
+        [SerializeField] private float wallBreakStep = 0.067f; // video VFX_da 15 fps: một ô mỗi frame
 
-        /// <summary>
-        /// Rock rows: inside cells (RoadBlock) show one of their three rock meshes, the ends
-        /// (DestructibleWall) show the crates left; every completed crate hits the row
-        /// (FX_DestructibleWall_Hit) and at 0 it bursts (FX_DestructibleWall) and goes [user].
-        /// </summary>
+        /// <summary>Hàng đá: hai đầu hiện số crate còn thiếu; mỗi crate đầy đánh một cái, về 0 thì nổ và biến mất [user].</summary>
         private void BindWalls(GameSession session)
         {
             _wallCovers.Clear();
@@ -249,8 +255,7 @@ namespace SnackDash.Presentation
                 {
                     var text = cover.GetComponentInChildren<TMPro.TMP_Text>(true);
                     if (text == null) continue;
-                    // White with a black outline, centred on the rock [user]: the rebuilt font sits
-                    // higher than the original GladlyAccept, so it comes down a little.
+                    // Chữ trắng viền đen giữa đá [user]; font dựng lại nằm cao hơn GladlyAccept gốc nên hạ xuống chút.
                     text.color = Color.white;
                     text.outlineWidth = wallTextOutline;
                     text.outlineColor = Color.black;
@@ -279,8 +284,7 @@ namespace SnackDash.Presentation
                 foreach (var cover in _wallCovers[group]) Replay(cover, "FX_DestructibleWall_Hit");
                 yield break;
             }
-            // VFX_da video: the numbered ends flash (FX_DestructibleWall), then the rocks go one cell a
-            // frame from those ends along the row, each leaving a dust puff that fades.
+            // Video VFX_da: hai đầu loé sáng, rồi đá vỡ dần từ hai đầu vào, mỗi viên để lại bụi.
             var covers = _wallCovers[group];
             var cells = _wallCoverCells[group];
             var steps = StepsFromEnds(cells);
@@ -297,10 +301,7 @@ namespace SnackDash.Presentation
             }
         }
 
-        /// <summary>
-        /// One rock: an end gets the whole burst (flash, smoke, rocks, sparkles); a rock inside only the
-        /// dust (FX_Smoke, FX_Small_Rocks) and the rock chunks. The rock itself is gone at once.
-        /// </summary>
+        /// <summary>Đá đầu hàng nổ đủ FX; đá bên trong chỉ có bụi và mảnh vụn (FX_Smoke, FX_Small_Rocks).</summary>
         private IEnumerator BreakRock(GameObject cover, GameObject burstTemplate, float delay, bool end)
         {
             if (delay > 0f) yield return new WaitForSeconds(delay);
@@ -309,22 +310,22 @@ namespace SnackDash.Presentation
             if (text != null) text.gameObject.SetActive(false);
             if (burstTemplate != null)
             {
-                // Placed like the template sits in its cap (local copy), then left behind when the rock goes.
+                // Đặt đúng chỗ như mẫu rồi tách ra để FX còn lại khi đá ẩn.
                 var burst = Instantiate(burstTemplate, cover.transform, false);
                 burst.transform.SetParent(cover.transform.parent, true);
                 if (!end)
                     foreach (Transform part in burst.transform)
                         part.gameObject.SetActive(part.name == "FX_Smoke" || part.name == "FX_Small_Rocks");
                 burst.SetActive(true);
-                // The prefab leaves FX_DestructibleWall off with playOnAwake off (a feedback fired it).
+                // Prefab tắt playOnAwake của FX_DestructibleWall nên phải gọi Play.
                 if (burst.TryGetComponent<ParticleSystem>(out var particles)) particles.Play(true);
                 Destroy(burst, 3f);
             }
-            // VFX_da: the rock is simply gone as its burst goes off (shrinking read as sinking) [user].
+            // Đá biến mất ngay khi nổ; thu nhỏ trông như lún xuống [user, VFX_da].
             cover.SetActive(false);
         }
 
-        /// <summary>Distance of each cell from the nearer end of its row (ends: cells with one neighbour in the row).</summary>
+        /// <summary>Số ô từ mỗi ô tới đầu hàng gần nhất (đầu hàng: ô chỉ có một ô kề trong hàng).</summary>
         private static List<int> StepsFromEnds(List<Vector2Int> cells)
         {
             var set = new HashSet<Vector2Int>(cells);
@@ -351,7 +352,7 @@ namespace SnackDash.Presentation
             return steps;
         }
 
-        /// <summary>Restarts a particle child (kept off in the prefab); detached ones outlive the rock.</summary>
+        /// <summary>Bật lại FX con (prefab để tắt); detach thì FX tách ra để sống lâu hơn đá.</summary>
         private static void Replay(GameObject cover, string fx, bool detach = false)
         {
             var effect = cover != null ? cover.transform.Find(fx) : null;
@@ -368,15 +369,16 @@ namespace SnackDash.Presentation
             public Transform arrow, shakeOrigin;
             public Quaternion rest;
             public Vector3 shakeRest;
-            public Direction initial; // the way it pointed at the start
-            public int turns;     // half turns asked for
-            public float shown;   // half turns shown so far (eases towards turns)
+            public Direction initial; // hướng lúc đầu màn
+            public int turns;     // số nửa vòng cần quay
+            public float shown;   // số nửa vòng đã hiện, tiến dần về turns
             public float shake;
         }
 
         private readonly Dictionary<Vector2Int, FlipArrow> _flips = new Dictionary<Vector2Int, FlipArrow>();
+        private readonly Dictionary<Vector2Int, RisingBlockView> _risingBlocks = new Dictionary<Vector2Int, RisingBlockView>();
 
-        [Tooltip("TileCov_Arrow ArrowView: half turn in _animationDuration, shake _notAllowedShakeAmount.")]
+        [Tooltip("Giây quay nửa vòng (gốc ArrowView _animationDuration).")]
         [SerializeField] private float flipDuration = 0.15f;
         [SerializeField] private Vector3 flipNotAllowedShake = new Vector3(0.1f, 0.1f, 0f);
 
@@ -410,8 +412,7 @@ namespace SnackDash.Presentation
                 bool open = SnakeAtGate(gate.cell);
                 gate.open = Mathf.MoveTowards(gate.open, open ? 1f : 0f, step);
                 float angle = gateRotateAngle * Tween.OutSine(gate.open);
-                // Doors hinge on their bolts (local Y) and swing the way the arrow points; the right
-                // door is the mirrored copy (scale x -1), so it turns the other way.
+                // Cánh phải là bản lật (scale x -1) nên quay ngược chiều cánh trái.
                 gate.left.localRotation = gate.leftRest * Quaternion.Euler(0f, angle, 0f);
                 gate.right.localRotation = gate.rightRest * Quaternion.Euler(0f, -angle, 0f);
 
@@ -426,7 +427,7 @@ namespace SnackDash.Presentation
             }
         }
 
-        /// <summary>Head heading into the gate's cell next (the "tip" cell), or any part of the snake in it.</summary>
+        /// <summary>Đầu sắp bước vào ô cổng, hoặc có phần nào của rắn đang trong ô.</summary>
         private bool SnakeAtGate(Vector2Int cell)
         {
             if (_session.IsMoving && _session.TargetCell == cell) return true;

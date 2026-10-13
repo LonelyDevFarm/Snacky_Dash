@@ -52,3 +52,6 @@ MonoBehaviour:
   wallGroupHealths:
   - seedCell: {x: 7, y: 7}
     health: 3
+  curtainCells: []
+  curtainGroups: []
+  risingBlockDeliveriesToLower: 3

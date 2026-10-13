@@ -116,3 +116,6 @@ MonoBehaviour:
     health: 3
   - seedCell: {x: 2, y: 10}
     health: 5
+  curtainCells: []
+  curtainGroups: []
+  risingBlockDeliveriesToLower: 3

@@ -7,15 +7,8 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Crate columns above their delivery end points. Placement is measured from Level 2 footage
-    /// (the original computes it at runtime): the column is a stack of crates standing on the ground,
-    /// rising towards the camera (-Z) 1.1 units per crate, with the current crate on top. Through the
-    /// tilted camera each crate below shows as a ~12 px coloured band; the original shows two of them.
-    ///
-    /// Feel: delivered fruit leaves the snake's head, arcs into its slot and settles there with a
-    /// bounce (measured on footage, flight slowed slightly after play-testing);
-    /// a full crate exits (BoxFeedbackView: InBack 3, 0.3 s) with its confetti while the next one
-    /// rises into place (OutBack 3, 0.35 s).
+    /// Chồng crate (khay) trên mỗi điểm giao: trái bay từ rắn vào khay, khay đầy bay đi, khay sau dâng lên.
+    /// Nằm trong scene Game, GameBootstrap gọi Bind; vị trí đo từ video Lv2.
     /// </summary>
     public class CratesView : MonoBehaviour
     {
@@ -24,79 +17,79 @@ namespace SnackDash.Presentation
         private const int VisibleCratesPerColumn = 3;
         private const float TopCrateLift = -StackDepth * (VisibleCratesPerColumn - 1);
 
-        /// <summary>Footprint of a crate on screen (measured: 2.8 cells wide), used for camera framing.</summary>
+        /// <summary>Khung một crate trên màn (rộng 2.8 ô, đo video), dùng để canh camera.</summary>
         public static readonly Vector3 CrateSize = new Vector3(2.8f, 2f, 0f);
 
         [SerializeField] private GameObject crate9Prefab;
-        [Tooltip("Hole_VO (CrateVisualConfig_Box_VO.HoleColumnPrefab): the pit the stack stands in; its wooden floor shows once the column is empty.")]
+        [Tooltip("Hole_VO: hố chồng khay đứng trong; lộ sàn gỗ khi cột hết khay.")]
         [SerializeField] private GameObject holePrefab;
         [SerializeField] private GameObject pillPrefab;
         [SerializeField] private FruitGraphicSet fruits;
-        [Tooltip("Board whose crate-stop covers (TileCov_Crate_Delivery) get their idle/highlight state.")]
+        [Tooltip("Bàn có ô điểm giao (TileCov_Crate_Delivery) cần bật sáng.")]
         [SerializeField] private BoardView board;
-        [Tooltip("Delivered fruit starts its flight from the snake head.")]
+        [Tooltip("Trái giao bay ra từ đầu rắn.")]
         [SerializeField] private SnakeView snake;
 
         [Header("Feel")]
-        [Tooltip("Footage (30 fps) shows ~4 frames; 0.475 s chosen by play-testing against the original on a phone.")]
+        [Tooltip("Giây bay vào khay (chốt khi chơi thử so với bản gốc).")]
         [SerializeField] private float flightDuration = 0.475f;
         [SerializeField] private float flightArcHeight = 1.5f;
-        [Tooltip("Lv7 video (15 fps steps): a boomerang fruit is lifted off the road first, then glides into the crate in ~0.5 s, wrapped in the Vortex2 FX wind; ~6 are in the air at once.")]
+        [Tooltip("Giây bay của trái boomerang: nhấc lên rồi lượn vào khay (video Lv7).")]
         [SerializeField] private float boomerangFlightDuration = 0.5f;
         [SerializeField] private float boomerangArcHeight = 3f;
         [SerializeField] private GameObject vortexPrefab;
         [Header("Extra crate (ExtraCrateVfxConfig)")]
-        [Tooltip("Crates/Particle_Extra_Crate: bursts on the crate when the extra column opens.")]
+        [Tooltip("Particle_Extra_Crate: bung trên khay khi mở cột thêm.")]
         [SerializeField] private GameObject extraUnlockVfx;
-        [Tooltip("Crates/ExtraCrate_Trail_FX: flies from the screen to the crate before it opens.")]
+        [Tooltip("ExtraCrate_Trail_FX: bay từ giữa màn tới khay trước khi mở.")]
         [SerializeField] private GameObject extraTrailPrefab;
         [SerializeField] private float extraTrailDuration = 1f;
-        [Tooltip("Footage: the fruit lands large and settles into its slot over ~6 frames.")]
+        [Tooltip("Trái đáp to cỡ này rồi thu về chỗ (video).")]
         [SerializeField] private float landingScale = 1.6f;
         [SerializeField] private float landingDuration = 0.2f;
-        [Tooltip("Footage: a full crate sits still ~0.33 s (after its last fruit lands) before the completion flash.")]
+        [Tooltip("Giây khay đầy đứng yên trước khi bay đi (video).")]
         [SerializeField] private float fullCrateHold = 0.33f;
         [SerializeField] private float appearDuration = 0.35f;
         [SerializeField] private float exitDuration = 0.3f;
         [SerializeField] private float easeBack = 3f;
 
-        /// <summary>Raised when a full crate starts its completion flash (after the hold).</summary>
+        /// <summary>Báo khi khay đầy bắt đầu hiệu ứng hoàn thành (sau lúc đứng yên).</summary>
         public event System.Action<int> CompletionEffectStarted;
 
         private readonly Dictionary<int, List<GameObject>> _columns = new Dictionary<int, List<GameObject>>();
+        private readonly Dictionary<int, GameObject> _holes = new Dictionary<int, GameObject>();
+        [Tooltip("Khay dưới rèm hiện khi rèm mở xong.")]
+        [SerializeField] private CurtainsView curtains;
         private readonly Dictionary<int, (GameObject idle, GameObject highlight)> _stopStates = new Dictionary<int, (GameObject, GameObject)>();
         private GameSession _session;
         private int _snipOrder;
-        // Completions whose crate is still on screen (the swap comes after the hold), per column, and
-        // fruit still flying into a crate: a boomerang keeps streaming into the next crate meanwhile.
+        // Khay đã đầy nhưng còn trên màn, và trái đang bay: boomerang vẫn đổ vào khay sau trong lúc đó.
         private readonly Dictionary<int, int> _pendingSwaps = new Dictionary<int, int>();
-        private readonly Dictionary<int, float> _columnFreeAt = new Dictionary<int, float>(); // next completion may start
+        private readonly Dictionary<int, float> _columnFreeAt = new Dictionary<int, float>(); // lúc khay kế được phép hoàn thành
         private float _lastEffectLag;
 
         private float NormalCompletionWait => (_boomerang ? boomerangFlightDuration : flightDuration) + fullCrateHold;
 
-        /// <summary>
-        /// How much later than usual the last scheduled crate completion plays (crates of a column
-        /// queue up after a boomerang); the victory screen waits that much longer.
-        /// </summary>
+        /// <summary>Khay đầy cuối bị trễ bao lâu (khay một cột xếp hàng sau boomerang); màn thắng chờ thêm chừng đó.</summary>
         public float LastCompletionLag => _lastEffectLag;
         private readonly Dictionary<(int column, int crate), int> _inFlight = new Dictionary<(int, int), int>();
-        private bool _boomerang; // the SegmentSnipped flights now come from a boomerang throw
+        private bool _boomerang; // trái SegmentSnipped hiện tại là do boomerang ném
 
-        /// <summary>Centre of the current (top) crate of a column.</summary>
+        /// <summary>Tâm khay trên cùng của cột.</summary>
         public static Vector3 CratePosition(Vector2Int endPoint) =>
             BoardView.CellToWorld(endPoint) + new Vector3(0f, CrateHeightAboveEndPoint, TopCrateLift);
 
         public void Bind(GameSession session)
         {
             _session = session;
-            // Every column, extra-crate slots included (bought with coins in the original, empty here).
+            // Mọi cột, kể cả chỗ khay thêm (gốc mua bằng xu, ở đây để trống).
             if (holePrefab != null)
                 foreach (var anchor in session.Board.CrateAnchors)
                 {
                     var hole = Instantiate(holePrefab, transform);
                     hole.name = $"Hole c{anchor.Key}";
                     hole.transform.localPosition = BoardView.CellToWorld(anchor.Value) + new Vector3(0f, CrateHeightAboveEndPoint, 0f);
+                    _holes[anchor.Key] = hole;
                 }
             for (int column = 0; column < session.Columns.Count; column++) Rebuild(column, false);
             session.SegmentDelivered += OnDelivered;
@@ -104,11 +97,12 @@ namespace SnackDash.Presentation
             session.SegmentSnipped += OnSnipped;
             session.TailSnipped += keep => { _snipOrder = 0; _boomerang = false; };
             session.BoomerangThrown += (column, thrown) => { _snipOrder = 0; _boomerang = true; };
-            session.TailBitten += count => _boomerang = false; // a snip follows: plain flights
+            session.TailBitten += count => _boomerang = false; // sắp cắt đuôi: bay thường
             session.DeliveryStarted += column => _boomerang = false;
             session.CrateCompleted += OnCrateCompleted;
             session.PillMagnetized += OnMagnetized;
-            // Undo booster: the stacks show what the session holds again.
+            session.CurtainOpened += index => StartCoroutine(ShowUncovered(curtains != null ? curtains.RevealTime : 0.6f));
+            // Undo: dựng lại chồng khay theo session.
             session.Rewound += () =>
             {
                 _pendingSwaps.Clear();
@@ -116,8 +110,7 @@ namespace SnackDash.Presentation
                 for (int column = 0; column < session.Columns.Count; column++) Rebuild(column, false);
             };
 
-            // Original CrateDeliverPoint: idleRoot / highlightRoot, highlighted whenever the snake
-            // carries the current crate's kind (CrateManager.highlightOnlyIfEnoughToFill = 0).
+            // Điểm giao sáng khi rắn mang loại trái của khay hiện tại, đủ hay chưa đủ (gốc highlightOnlyIfEnoughToFill = 0).
             foreach (var stop in session.Board.CrateStops)
             {
                 var cover = board != null ? board.GetCover(stop.Value) : null;
@@ -146,27 +139,21 @@ namespace SnackDash.Presentation
             { var target = points.GetChild(slot); StartCoroutine(Fly(kind, () => target, snake != null ? snake.HeadWorldPosition : points.position, 0f)); }
         }
 
-        /// <summary>
-        /// Video Man_Lose: after a snip the cut fruit streams out of the tail into the crates of its
-        /// kind, also crates further down the stack. Staggered like a delivery (inferred spacing).
-        /// </summary>
+        /// <summary>Trái của đuôi bị cắt bay lần lượt vào khay cùng loại, kể cả khay dưới chồng (video Man_Lose).</summary>
         private void OnSnipped(int segmentIndex, PillKind kind, int columnIndex, int crateIndex)
         {
             if (!_columns.TryGetValue(columnIndex, out var crates) || crates.Count == 0) return;
             var start = snake != null ? snake.SegmentWorldPosition(segmentIndex) : transform.position;
-            // Boomerang fruit come one per GameSession.BoomerangInterval tick already: no extra stagger.
+            // Boomerang đã ra từng trái theo GameSession.BoomerangInterval: không giãn thêm.
             float delay = _boomerang ? 0f : _snipOrder++ * GameSession.DeliveryInterval;
             FlyToCrate(start, kind, columnIndex, crateIndex, delay, _boomerang);
         }
 
-        /// <summary>Where a column's crate stands (world), e.g. for the TAP TO UNLOCK bubble.</summary>
+        /// <summary>Vị trí khay của cột (world), vd cho bong bóng TAP TO UNLOCK.</summary>
         public Vector3 ColumnWorldPosition(int column) =>
             _session.Board.CrateAnchors.TryGetValue(column, out var anchor) ? transform.TransformPoint(CratePosition(anchor)) : transform.position;
 
-        /// <summary>
-        /// ExtraCrate_Trail_FX [ExtraCrateVfxConfig]: from just below the middle of the screen (viewport offset 0, -0.1)
-        /// to the extra crate in 1 s, growing in over the first 35 % (from 0.5) and ending at 0.35 of its size.
-        /// </summary>
+        /// <summary>Vệt FX bay từ dưới giữa màn tới khay thêm, to dần rồi nhỏ lại (gốc ExtraCrateVfxConfig).</summary>
         public IEnumerator PlayExtraTrail(int column)
         {
             var camera = Camera.main;
@@ -184,10 +171,10 @@ namespace SnackDash.Presentation
                 float size = t < 0.35f ? Mathf.Lerp(0.5f, 1f, t / 0.35f) : Mathf.Lerp(1f, 0.35f, (t - 0.35f) / 0.65f);
                 trail.transform.localScale = scale * size;
             });
-            if (trail != null) Destroy(trail, 1f); // its particles fade out
+            if (trail != null) Destroy(trail, 1f); // chờ hạt tan hết
         }
 
-        /// <summary>Particle_Extra_Crate on the crate (offset 0, 0, -0.5), the new stack pops in, the others show their share.</summary>
+        /// <summary>Mở cột thêm: FX bung, mọi cột dựng lại vì khay được chia lại.</summary>
         private void OnExtraUnlocked(int extraColumn)
         {
             if (extraUnlockVfx != null)
@@ -198,7 +185,7 @@ namespace SnackDash.Presentation
             for (int column = 0; column < _session.Columns.Count; column++) Rebuild(column, column == extraColumn);
         }
 
-        /// <summary>Magnet booster: the fruit flies from its cell into the crate it was given (the boomerang's flight).</summary>
+        /// <summary>Booster nam châm: trái bay từ ô vào khay, kiểu bay boomerang.</summary>
         private void OnMagnetized(Vector2Int cell, PillKind kind, int columnIndex, int crateIndex) =>
             FlyToCrate(BoardView.CellToWorld(cell), kind, columnIndex, crateIndex, 0f, true);
 
@@ -215,7 +202,7 @@ namespace SnackDash.Presentation
             }
             else
             {
-                // Deeper than the visible stack: into the bottom crate, shown once it comes up.
+                // Khay sâu hơn chồng đang hiện: bay vào khay dưới cùng rồi biến, hiện lại khi khay dâng lên.
                 var bottom = crates[crates.Count - 1].transform;
                 StartCoroutine(Fly(kind, () => bottom, start, delay, vanish: true, boomerang: boomerang));
             }
@@ -223,7 +210,7 @@ namespace SnackDash.Presentation
 
         private int InFlight((int, int) key) => _inFlight.TryGetValue(key, out int n) ? n : 0;
 
-        /// <summary>Destination point <paramref name="slot"/> of a crate as the stack shows it now, or null when it is not shown.</summary>
+        /// <summary>Chỗ <paramref name="slot"/> trong khay theo chồng đang hiện; null nếu khay chưa hiện.</summary>
         private Transform SlotFor(int column, int crateIndex, int slot)
         {
             if (!_columns.TryGetValue(column, out var crates)) return null;
@@ -234,16 +221,13 @@ namespace SnackDash.Presentation
             return points != null && slot >= 0 && slot < points.childCount ? points.GetChild(slot) : null;
         }
 
-        /// <summary>
-        /// Flies a fruit to <paramref name="target"/>, asked again every frame: the stack may swap
-        /// crates under a boomerang stream, which then lands in the crate where it now stands.
-        /// </summary>
+        /// <summary>Hỏi lại <paramref name="target"/> mỗi frame vì chồng khay có thể đổi khi trái đang bay.</summary>
         private IEnumerator Fly(PillKind kind, System.Func<Transform> target, Vector3 start, float delay, bool vanish = false, bool boomerang = false, System.Action landed = null)
         {
-            // The fruit shows at once where it was (a snipped tail's body goes, its fruit stay) and waits its turn there
-            // [video Man_Lose; user: they came up out of the ground].
+            // Trái hiện ngay tại chỗ (thân đuôi cắt biến mất, trái ở lại) rồi chờ lượt [video Man_Lose, user].
             var fruit = Instantiate(pillPrefab, transform);
             PillVisual.SetKind(fruit, kind);
+            PillVisual.HideShadow(fruit);
             fruit.transform.position = start;
             if (delay > 0f) yield return new WaitForSeconds(delay);
             var slot = target();
@@ -257,7 +241,7 @@ namespace SnackDash.Presentation
                 Vector3 position;
                 if (boomerang)
                 {
-                    // Lifted first (height peaks a quarter of the way), then a slow glide in.
+                    // Nhấc lên trước (cao nhất ở 1/4 đường), rồi lượn chậm vào.
                     position = Vector3.Lerp(start, slot.position, Tween.InOutSine(t));
                     position.z -= Mathf.Sin(Mathf.PI * Mathf.Sqrt(t)) * boomerangArcHeight;
                 }
@@ -265,6 +249,8 @@ namespace SnackDash.Presentation
                 {
                     position = Vector3.Lerp(start, slot.position, Tween.OutQuad(t));
                     position.z -= 4f * t * (1f - t) * flightArcHeight;
+                    // To dần khi bay để lúc đáp không giật từ 1 lên landingScale.
+                    fruit.transform.localScale = Vector3.one * Mathf.Lerp(1f, landingScale * slot.lossyScale.x / transform.lossyScale.x, t);
                 }
                 fruit.transform.position = position;
             });
@@ -274,6 +260,7 @@ namespace SnackDash.Presentation
             if (slot == null || vanish) { Destroy(fruit); yield break; }
             fruit.transform.SetParent(slot, false);
             fruit.transform.localPosition = Vector3.zero;
+            fruit.transform.localScale = Vector3.one * landingScale; // trái boomerang to lên ở đây
 
             var settle = Tween.OutBack(easeBack);
             yield return Tween.Run(landingDuration, settle, t =>
@@ -288,12 +275,8 @@ namespace SnackDash.Presentation
             StartCoroutine(Complete(columnIndex));
         }
 
-        /// <summary>
-        /// Footage: the last fruit lands, the full crate holds still, then the flash/smoke plays while
-        /// the next crate takes its place underneath. The session's CrateCompletePause covers all of it.
-        /// Crates of one column finish one after another: a boomerang can fill the next crate before
-        /// the previous one has gone, and that crate still comes up and holds before it goes [user].
-        /// </summary>
+        /// <summary>Khay đầy đứng yên rồi bay đi, khay sau dâng lên. Khay cùng cột xong lần lượt, kể cả khi boomerang
+        /// lấp khay sau trước khi khay trước đi [user].</summary>
         private IEnumerator Complete(int columnIndex)
         {
             float ready = Time.time + NormalCompletionWait;
@@ -308,15 +291,15 @@ namespace SnackDash.Presentation
                 finished = crates[0];
                 crates.RemoveAt(0);
             }
-            _pendingSwaps[columnIndex]--; // with the removal, so fruit in flight aim at the next crate (still below)
-            // The full crate goes first, then the stack rises: together the next crate rode up over it [user].
+            _pendingSwaps[columnIndex]--; // cùng lúc gỡ khay để trái đang bay nhắm khay kế
+            // Khay đầy đi trước rồi chồng mới dâng; làm cùng lúc thì khay sau đè lên khay đầy [user].
             if (finished != null) yield return Exit(finished);
             Rebuild(columnIndex, true);
         }
 
         private IEnumerator Exit(GameObject crate)
         {
-            CameraShake.CrateExit(); // Exit Camera Shake [Box_Crate_9_VO BoxFeedbackView]
+            CameraShake.CrateExit(); // gốc: Box_Crate_9_VO BoxFeedbackView
             var confetti = crate.transform.Find("Confetti_Crates");
             if (confetti != null)
             {
@@ -339,28 +322,32 @@ namespace SnackDash.Presentation
             if (!_session.Board.CrateAnchors.TryGetValue(columnIndex, out var anchor)) return;
             var column = _session.Columns[columnIndex];
             var basePosition = CratePosition(anchor);
-            // From the crate on show, not the session's: when several crates of a column fill in one go, the full ones
-            // still waiting for their turn to leave stay on top (skipping them lost a crate and its fruit) [user].
+            // Tính từ khay đang hiện, không phải của session: khay đầy chờ đi vẫn nằm trên, bỏ qua thì mất khay [user].
             int top = column.CurrentIndex - (_pendingSwaps.TryGetValue(columnIndex, out int pending) ? pending : 0);
+            // Chồng đứng trên đất: hết khay mới thì chỗ trống ở trên, khay còn lại đứng yên chứ không dâng lơ lửng [mentor].
+            int remaining = column.Crates.Count - top;
+            int missing = Mathf.Max(0, VisibleCratesPerColumn - remaining);
+            int missingBefore = Mathf.Max(0, VisibleCratesPerColumn - (remaining + 1)); // tính cả khay vừa đi
 
             for (int k = 0; k < VisibleCratesPerColumn; k++)
             {
                 int crateIndex = top + k;
                 if (crateIndex >= column.Crates.Count) break;
                 var definition = column.Crates[crateIndex];
-                var crate = Instantiate(crate9Prefab, transform); // every crate holds 9 (see GameSession.CrateCapacity)
+                var crate = Instantiate(crate9Prefab, transform); // khay nào cũng 9 chỗ (GameSession.CrateCapacity)
                 crate.name = $"Crate c{columnIndex} #{crateIndex} {definition.kind} x{definition.requiredCount}";
                 Paint(crate, definition.kind);
                 crates.Add(crate);
                 ShowFilled(crate, definition.kind, column.FilledIn(crateIndex) - InFlight((columnIndex, crateIndex)));
 
-                var target = basePosition + new Vector3(0f, 0f, StackDepth * k);
+                var target = basePosition + new Vector3(0f, 0f, StackDepth * (k + missing));
                 crate.transform.localPosition = target;
                 if (!animate) continue;
 
-                // The stack rises one level; the crate entering at the bottom pops in.
-                var from = target + new Vector3(0f, 0f, StackDepth);
-                bool entering = k == VisibleCratesPerColumn - 1;
+                // Chồng dâng một bậc, khay mới hiện ở dưới; hết khay mới thì giữ nguyên chỗ (from == target).
+                var from = basePosition + new Vector3(0f, 0f, StackDepth * (k + 1 + missingBefore));
+                bool entering = missing == 0 && k == VisibleCratesPerColumn - 1;
+                if (from == target && !entering) continue;
                 var ease = Tween.OutBack(easeBack);
                 StartCoroutine(Tween.Run(appearDuration, ease, t =>
                 {
@@ -369,9 +356,30 @@ namespace SnackDash.Presentation
                     if (entering) crate.transform.localScale = Vector3.one * t;
                 }));
             }
+            // Khay dưới rèm ẩn tới khi rèm mở (gốc CrateManager.IsColumnCurtainCovered).
+            bool covered = _session.IsColumnCovered(columnIndex);
+            foreach (var crate in crates) crate.SetActive(!covered);
+            if (_holes.TryGetValue(columnIndex, out var hole)) hole.SetActive(!covered);
         }
 
-        /// <summary>Fruit already in a crate (put there by a snip before it reached the top).</summary>
+        /// <summary>Rèm mở: khay bên dưới hiện ra sau khi rèm đi hết (CurtainsView.RevealTime).</summary>
+        private IEnumerator ShowUncovered(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            for (int column = 0; column < _session.Columns.Count; column++)
+                if (_columns.TryGetValue(column, out var crates) && crates.Count > 0 && !crates[0].activeSelf && !_session.IsColumnCovered(column))
+                {
+                    Rebuild(column, false);
+                    foreach (var crate in _columns[column])
+                    {
+                        var target = crate.transform.localScale;
+                        crate.transform.localScale = Vector3.zero;
+                        StartCoroutine(Tween.Run(appearDuration, Tween.OutBack(easeBack), t => { if (crate != null) crate.transform.localScale = target * t; }));
+                    }
+                }
+        }
+
+        /// <summary>Trái đã có sẵn trong khay (do cắt đuôi đổ vào khi khay chưa lên trên cùng).</summary>
         private void ShowFilled(GameObject crate, PillKind kind, int count)
         {
             var points = crate.transform.Find("AllDestinationPoints/DestinationPoints");
@@ -380,6 +388,7 @@ namespace SnackDash.Presentation
             {
                 var fruit = Instantiate(pillPrefab, points.GetChild(slot), false);
                 PillVisual.SetKind(fruit, kind);
+                PillVisual.HideShadow(fruit);
                 fruit.transform.localPosition = Vector3.zero;
             }
         }
@@ -392,10 +401,10 @@ namespace SnackDash.Presentation
             {
                 var renderer = mesh.GetComponent<Renderer>();
                 var materials = renderer.sharedMaterials;
-                if (materials.Length > 1) materials[1] = entry.crateMaterial; // original _materialIndexToColor = 1
+                if (materials.Length > 1) materials[1] = entry.crateMaterial; // gốc: _materialIndexToColor = 1
                 renderer.sharedMaterials = materials;
             }
-            // The empty crate in the footage shows no icon; the original toggles it from code.
+            // Khay trống trong video không có icon; gốc tắt bằng code.
             var icon = crate.transform.Find("BoxVisual_VO/BoxFloor_VO/Mesh_Crate/Fruit_Icon");
             if (icon != null) icon.gameObject.SetActive(false);
         }

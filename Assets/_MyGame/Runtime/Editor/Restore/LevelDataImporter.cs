@@ -12,7 +12,8 @@ namespace SnackDash.Editor.Restore
     /// <summary>
     /// Converts original LevelDataSO assets (YAML) into LevelDefinition assets, and the original
     /// GraphicSet_VO into a FruitGraphicSet. Only the fields the game uses are read:
-    /// manualColumns, respawnSequence, _timeLimitSeconds, speedPlayer and the rock healths.
+    /// manualColumns, respawnSequence, _timeLimitSeconds, speedPlayer, the rock healths, the curtains
+    /// (curtainCells, curtainGroups) and risingBlockDeliveriesToLower; the cohort order can be patched (Swaps).
     /// Source: the v1.15 export (the version on the user's phone), level order from its default
     /// cohort ab-vo-co; v1.15 shuffles levels from 15 on and uses newer variants (ftue).
     /// </summary>
@@ -23,7 +24,7 @@ namespace SnackDash.Editor.Restore
         private const string MapSource = ExportRoot + "Resources/levelmaps/";
         private const string CohortSource = ExportRoot + "Resources/cohorts/ab-vo-co.asset";
         /// <summary>How many levels of the cohort are imported (more as mechanics get built).</summary>
-        public const int LevelCount = 40;
+        public const int LevelCount = 60;
         private const string GraphicSetSource = "G:/Game_2D/APK/ExportedProject/Assets/Resources/graphicssets/GraphicSet_VO.asset";
         private const string JsonFolder = "Assets/_MyGame/Data/Levels/Maps/";
         private const string OutputFolder = "Assets/_MyGame/Data/Levels/Definitions/";
@@ -32,6 +33,12 @@ namespace SnackDash.Editor.Restore
 
         // Levels whose mechanic is not built yet: kept in the list (numbering) but skipped in play.
         private static readonly string[] SkippedForNow = { };
+
+        /// <summary>
+        /// Chỗ thứ tự gốc sai, đổi hai màn (số màn đếm từ 1). 43 có khối nâng và thẻ NEW ITEM của nó trước khi thanh mở khoá
+        /// tới (khối nâng mở sau 50) [user, video Lv43]; 93 (5156_v2) chỉ có rèm.
+        /// </summary>
+        private static readonly (int a, int b)[] Swaps = { (43, 93) };
 
         private static string[] _levels;
 
@@ -55,9 +62,10 @@ namespace SnackDash.Editor.Restore
                 if (!line.StartsWith("  - ")) break;
                 int g = line.IndexOf("guid: ");
                 if (g >= 0 && names.TryGetValue(line.Substring(g + 6, 32), out var name)) order.Add(name);
-                if (order.Count == LevelCount) break;
             }
-            return order.ToArray();
+            foreach (var (a, b) in Swaps)
+                if (a <= order.Count && b <= order.Count) (order[a - 1], order[b - 1]) = (order[b - 1], order[a - 1]);
+            return order.Take(LevelCount).ToArray();
         }
 
         /// <summary>Definitions/LevelNN_mapname.asset: sorted by play order, original map name kept [user].</summary>
@@ -99,6 +107,9 @@ namespace SnackDash.Editor.Restore
                 level.wallHealth = Int(TopLevel(lines, "destructibleWallHealth"));
                 level.difficulty = Int(TopLevel(lines, "<difficulty>k__BackingField"));
                 level.wallGroupHealths = ParseWallGroups(Block(lines, "  destructibleWallGroupHealths:"));
+                level.curtainCells = ParseCurtainCells(Block(lines, "  curtainCells:"));
+                level.curtainGroups = ParseCurtainGroups(Block(lines, "  curtainGroups:"));
+                level.risingBlockDeliveriesToLower = Int(TopLevel(lines, "risingBlockDeliveriesToLower"));
                 EditorUtility.SetDirty(level);
 
                 Debug.Log($"[Restore] {name}: {level.columns.Count} columns, " +
@@ -287,6 +298,52 @@ namespace SnackDash.Editor.Restore
                 }
             }
             return groups;
+        }
+
+        /// <summary>curtainCells entries: "- cell: {x, y}", "groupId".</summary>
+        private static List<CurtainCell> ParseCurtainCells(List<string> block)
+        {
+            var cells = new List<CurtainCell>();
+            foreach (var line in block)
+            {
+                var t = line.Trim();
+                if (t.StartsWith("- cell:")) cells.Add(new CurtainCell { cell = Cell(t) });
+                else if (t.StartsWith("groupId:") && cells.Count > 0)
+                {
+                    var c = cells[cells.Count - 1];
+                    c.groupId = Int(Value(t));
+                    cells[cells.Count - 1] = c;
+                }
+            }
+            return cells;
+        }
+
+        /// <summary>curtainGroups entries: "- groupId", seedCell, cellCount, counterPlacementMin/MaxCell, requiredKind, requiredCount.</summary>
+        private static List<CurtainGroupDefinition> ParseCurtainGroups(List<string> block)
+        {
+            var groups = new List<CurtainGroupDefinition>();
+            var group = new CurtainGroupDefinition();
+            foreach (var line in block)
+            {
+                var t = line.Trim();
+                if (t.StartsWith("- groupId:")) group = new CurtainGroupDefinition { groupId = Int(Value(t)) };
+                else if (t.StartsWith("counterPlacementMinCell:")) group.counterMin = Cell(t);
+                else if (t.StartsWith("counterPlacementMaxCell:")) group.counterMax = Cell(t);
+                else if (t.StartsWith("requiredKind:")) group.kind = (PillKind)Int(Value(t));
+                else if (t.StartsWith("requiredCount:"))
+                {
+                    group.count = Int(Value(t));
+                    groups.Add(group);
+                }
+            }
+            return groups;
+        }
+
+        /// <summary>"key: {x: 1, y: 2}" -> (1, 2).</summary>
+        private static Vector2Int Cell(string line)
+        {
+            var parts = line.Substring(line.IndexOf('{') + 1).TrimEnd('}').Split(',');
+            return new Vector2Int(Int(Value(parts[0])), Int(Value(parts[1])));
         }
 
         private static List<string> Block(string[] lines, string header)

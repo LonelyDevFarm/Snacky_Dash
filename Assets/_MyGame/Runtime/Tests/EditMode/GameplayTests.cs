@@ -578,12 +578,15 @@ namespace SnackDash.Tests
             foreach (var gate in session.Board.OneWayGates)
             {
                 var way = gate.Value;
+                if (session.Board.IsCovered(gate.Key) || session.Board.IsCovered(gate.Key + way.ToCell())) continue; // under a curtain: shut until it opens
                 Assert.IsTrue(session.Board.CanMove(gate.Key, way), "a gate lets the snake through its way");
                 Assert.IsFalse(session.Board.CanMove(gate.Key + way.ToCell(), way.Opposite()), "a gate is a wall the other way");
             }
+            // A rising block that is down takes fruit like a road [user].
+            bool RoadObject(Vector2Int cell) => BoardGraph.HasRoadObject(map, cell) && !session.Board.RisingBlocks.Contains(cell);
             if (!map.HasLayer("spawn1"))
-                Assert.IsFalse(session.Pills.Keys.Any(cell => BoardGraph.HasRoadObject(map, cell)
-                        || DirectionExtensions.All.Any(d => BoardGraph.HasRoadObject(map, cell + d.ToCell()))),
+                Assert.IsFalse(session.Pills.Keys.Any(cell => RoadObject(cell)
+                        || DirectionExtensions.All.Any(d => RoadObject(cell + d.ToCell()))),
                     "no fruit on or next to an object on the road (bridge, gate...)");
             int shakes = 0;
             session.ArrowNotAllowed += cell => shakes++;

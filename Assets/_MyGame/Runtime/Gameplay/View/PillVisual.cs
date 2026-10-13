@@ -4,9 +4,8 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Shows one fruit kind on a PillMaster_VO instance. The prefab holds one child per kind under
-    /// Visual/FruitsParent; the original PillColorShape components bind them in PillKind order
-    /// (Raspberry = Strawberry, Lemon = Banana, Peach = Pear, Orange = Carrot).
+    /// Bật đúng loại trái trên prefab PillMaster_VO (mỗi loại một con dưới Visual/FruitsParent, theo thứ tự PillKind).
+    /// PillsView, SnakeView, CratesView gọi. Tên gốc: Raspberry = Strawberry, Lemon = Banana, Peach = Pear, Orange = Carrot.
     /// </summary>
     public static class PillVisual
     {
@@ -23,7 +22,13 @@ namespace SnackDash.Presentation
             }
         }
 
-        /// <summary>The shown child of <paramref name="kind"/>, or null.</summary>
+        /// <summary>Trái rời bàn (đang bay, trong crate) không có bóng, vì bóng sẽ kéo vệt theo sau.</summary>
+        public static void HideShadow(GameObject pill)
+        {
+            var shadow = pill.transform.Find("Visual/FruitsParent/Shadow");
+            if (shadow != null) shadow.gameObject.SetActive(false);
+        }
+
         public static Transform Shown(GameObject pill, PillKind kind)
         {
             int i = (int)kind;

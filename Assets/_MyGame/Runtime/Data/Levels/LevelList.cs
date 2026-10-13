@@ -3,16 +3,18 @@ using UnityEngine;
 
 namespace SnackDash.LevelSystem
 {
-    /// <summary>Levels in play order (cohort ab-vo-co), written by SnackDash/Restore/Import Level Data.</summary>
+    /// <summary>
+    /// Danh sách màn theo thứ tự chơi (cohort ab-vo-co), asset Data/Levels/LevelList.asset do menu
+    /// SnackDash/Restore/Import Level Data ghi. GameBootstrap, HomeView, LevelManager đọc qua LevelProgress.
+    /// </summary>
     public class LevelList : ScriptableObject
     {
         public List<LevelDefinition> levels = new List<LevelDefinition>();
 
-        [Tooltip("Levels kept in the list (so numbering matches the original) but skipped in play for now, " +
-                 "e.g. booster tutorials until boosters exist.")]
+        [Tooltip("Màn giữ trong danh sách cho đúng số thứ tự gốc nhưng tạm bỏ qua khi chơi.")]
         public List<LevelDefinition> skipped = new List<LevelDefinition>();
 
-        /// <summary>First playable index at or after <paramref name="index"/> (wrapping), or -1.</summary>
+        /// <summary>Chỉ số chơi được đầu tiên từ <paramref name="index"/> trở đi (vòng lại), hoặc -1.</summary>
         public int Playable(int index)
         {
             for (int i = 0; i < levels.Count; i++)

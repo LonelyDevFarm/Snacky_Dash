@@ -3,11 +3,8 @@ using System.Collections.Generic;
 namespace SnackDash.LevelSystem
 {
     /// <summary>
-    /// Maps the spawn-marker tile ids 371..377 on spawn1..N layers to fruit kinds.
-    /// The original LevelSpawnIdMap is built from the level's RespawnSequence; matching the marker
-    /// counts against the batches (e.g. Level 2: spawn1 = 371x9 + 372x9 = Blueberry 9 + Banana 9,
-    /// spawn2 = 371x9 + 373x4 = Blueberry 9 + Strawberry 4) shows ids are assigned to kinds in order
-    /// of first appearance in the sequence.
+    /// Đổi id dấu rải trái 371..377 trên lớp spawn1..N ra loại trái; GameSession gọi khi rải.
+    /// Id gán theo thứ tự loại trái xuất hiện lần đầu trong các đợt (gốc: LevelSpawnIdMap; khớp số dấu Level 2).
     /// </summary>
     public static class SpawnIdMap
     {

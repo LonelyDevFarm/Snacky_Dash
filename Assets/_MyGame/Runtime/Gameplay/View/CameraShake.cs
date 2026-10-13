@@ -4,15 +4,8 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// The original's camera shakes (DOTween DOShakePosition with fade-out, values from the original):
-    /// <list type="bullet">
-    /// <item>Hit Camera Shake when the snake bites its tail [PlayerView.HandleTailHit: delay 0.1, 0.3 s, strength 0.4,
-    /// vibrato 20, randomness 90].</item>
-    /// <item>Exit Camera Shake when a full crate leaves [Box_Crate_9_VO BoxFeedbackView: 0.2 s, strength 0.09, vibrato 22,
-    /// randomness 90].</item>
-    /// </list>
-    /// Like DOTween: vibrato x duration steps, each a jump at an angle within ±randomness of the reverse of the last,
-    /// shrinking to zero. The offset sits on top of wherever the camera fitter puts the camera.
+    /// Rung camera kiểu DOTween DOShakePosition, tự gắn lên Camera.main; SnakeView gọi Hit (rắn cắn đuôi), CratesView gọi
+    /// CrateExit (crate đầy rời đi). Số lấy từ gốc: PlayerView.HandleTailHit và Box_Crate_9_VO BoxFeedbackView.
     /// </summary>
     public class CameraShake : MonoBehaviour
     {
@@ -46,7 +39,7 @@ namespace SnackDash.Presentation
                 if (i == steps - 1) to = Vector3.zero;
                 else
                 {
-                    float size = strength * (steps - i) / steps; // fade out
+                    float size = strength * (steps - i) / steps; // nhỏ dần về 0
                     angle = angle - 180f + Random.Range(-randomness, randomness);
                     float rad = angle * Mathf.Deg2Rad;
                     to = (transform.right * Mathf.Cos(rad) + transform.up * Mathf.Sin(rad)) * size;
@@ -64,8 +57,7 @@ namespace SnackDash.Presentation
 
         private void LateUpdate()
         {
-            // The camera without the shake: last frame's offset taken off, unless something (the fitter) has placed the
-            // camera since, in which case where it put it is the base.
+            // Gỡ độ lệch frame trước; nếu BoardCameraFitter vừa đặt lại camera thì lấy chỗ đó làm gốc.
             var position = transform.position;
             var basePosition = (position - _expected).sqrMagnitude < 1e-8f ? position - _applied : position;
             transform.position = basePosition + _offset;

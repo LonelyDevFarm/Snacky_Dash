@@ -4,11 +4,8 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Fits the orthographic board camera to the level, using the values serialized on the original
-    /// LevelCameraFitter in Game.unity: bounds expanded by (3, 4) cells, camera pulled back 13 units
-    /// along its view axis, fit area = canvas (1080x1920 reference, match height) inset by 10 x 287.78
-    /// and shifted up by 30. The fitting maths itself is reconstructed (the original body is stripped).
-    /// While the lose buttons are shown the board is refitted between them and the HUD (FitBetween).
+    /// Canh camera trực giao (Main Camera trong Game.unity) cho vừa màn; số lấy từ LevelCameraFitter gốc, phép tính tự dựng lại.
+    /// GameBootstrap gọi Fit; LoseFlowView và BoosterBarView gọi FitBetween / FitDefault.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class BoardCameraFitter : MonoBehaviour
@@ -34,17 +31,13 @@ namespace SnackDash.Presentation
             Apply(size, position);
         }
 
-        /// <summary>
-        /// Tween the board into the area between <paramref name="bottom"/> and <paramref name="top"/>
-        /// canvas units, counted inside the safe area (see Compute).
-        /// </summary>
+        /// <summary>Đưa bàn vào khoảng giữa <paramref name="bottom"/> và <paramref name="top"/> (đơn vị canvas, tính trong safe area).</summary>
         public void FitBetween(float bottom, float top, float duration)
         {
             Compute(top - bottom, (bottom + top) * 0.5f - referenceHeight * 0.5f, out var size, out var position);
             TweenTo(size, position, duration);
         }
 
-        /// <summary>Tween back to the normal play framing.</summary>
         public void FitDefault(float duration)
         {
             Compute(referenceHeight - fitAreaHeightInset, fitAreaOffsetY, out var size, out var position);
@@ -55,9 +48,7 @@ namespace SnackDash.Presentation
         {
             if (_camera == null) _camera = GetComponent<Camera>();
 
-            // The HUD and the booster bar sit inside Screen.safeArea (like the original's
-            // _safe_area_fitter), so on a notched phone they move in from the top and bottom: keep the
-            // board inside the safe area too, or the bar overlaps it (Simulator, iPhone).
+            // HUD và thanh booster nằm trong safe area; giữ bàn trong đó luôn, không thì máy tai thỏ bị thanh che bàn.
             var safe = Screen.safeArea;
             float insetTop = Screen.height > 0 ? (Screen.height - safe.yMax) / Screen.height * referenceHeight : 0f;
             float insetBottom = Screen.height > 0 ? safe.yMin / Screen.height * referenceHeight : 0f;
@@ -66,7 +57,7 @@ namespace SnackDash.Presentation
             var bounds = _board;
             bounds.Expand(new Vector3(expandBoundsX, expandBoundsY, 0f));
 
-            // Extent of the bounds in camera space (the camera is tilted, so project the corners).
+            // Camera nghiêng nên phải chiếu 8 góc vào không gian camera để lấy khung.
             var rotation = transform.rotation;
             Vector3 right = rotation * Vector3.right, up = rotation * Vector3.up, forward = rotation * Vector3.forward;
             float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
@@ -88,7 +79,7 @@ namespace SnackDash.Presentation
             float sizeForWidth = (maxX - minX) * 0.5f / (fitWidthFraction * _camera.aspect);
             size = Mathf.Max(sizeForHeight, sizeForWidth);
 
-            // Board centre should land on the fit-area centre, which sits areaOffsetY above screen centre.
+            // Tâm bàn nằm ở tâm vùng canh, cao hơn tâm màn hình areaOffsetY.
             float offsetWorld = areaOffsetY / referenceHeight * 2f * size;
             position = bounds.center - forward * distance - up * offsetWorld;
         }

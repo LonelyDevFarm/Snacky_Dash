@@ -7,18 +7,16 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Snake head (SnakeHead_VO) and tail segments (TailSegment_VO, each carrying a PillMaster_VO),
-    /// placed every frame from the session state, plus the original "feel" values:
-    /// PlayerView (scale, stretch, bump, spawn drop), TailFeelHandler (spacing speed) and
-    /// TailSegmentFeedbacksView (segment pop-in). The head prefab faces +Y at rest.
+    /// Vẽ rắn: đầu (SnakeHead_VO) và các đốt thân (TailSegment_VO, mỗi đốt mang một trái), đặt lại mỗi frame theo GameSession.
+    /// Nằm trong scene Game, GameBootstrap gọi Bind; số "feel" lấy từ PlayerView, TailFeelHandler gốc.
     /// </summary>
     public class SnakeView : MonoBehaviour
     {
         [SerializeField] private GameObject headPrefab;
         [SerializeField] private GameObject segmentPrefab;
-        [Tooltip("Resources/boosters/boomerang/Vortex2 FX: the wind around boomerang fruit.")]
+        [Tooltip("Vortex2 FX: gió xoáy quanh trái boomerang.")]
         [SerializeField] private GameObject vortexPrefab;
-        [Tooltip("GameObject/View_Secret_Collectible: its ExplodeFeedback burst plays where a secret fruit is eaten.")]
+        [Tooltip("View_Secret_Collectible: FX bung khi ăn trái bí ẩn.")]
         [SerializeField] private GameObject secretPrefab;
 
         [Header("PlayerView (Game.unity)")]
@@ -30,36 +28,36 @@ namespace SnackDash.Presentation
         [SerializeField] private float bumpForwardDuration = 0.08f;
         [SerializeField] private float bumpReturnDuration = 0.05f;
         [SerializeField] private float spawnDropHeight = 15f;
-        [SerializeField] private float spawnDuration = 0.6f; // the original 1 s looked slow [user]
+        [SerializeField] private float spawnDuration = 0.6f; // gốc 1 s trông chậm [user]
 
         [Header("TailFeelHandler / TailSegmentFeedbacksView")]
         [SerializeField] private float spacingSpeed = 20f;
         [SerializeField] private float segmentPopDuration = 0.35f;
         [SerializeField] private float segmentPopOvershoot = 3.25f;
-        [Tooltip("Height of the bridge deck at its middle (TileCov_Bridge_LR top mesh bounds: ~1.8).")]
+        [Tooltip("Độ cao giữa mặt cầu (TileCov_Bridge_LR ~1.8).")]
         [SerializeField] private float deckHeight = 1.8f;
 
         [Header("Eyes (SnakeHead_VO Feedbacks/Blinking, Stunned)")]
-        [SerializeField] private Vector2 blinkInterval = new Vector2(0.5f, 4f);   // MMF_Looper pause
-        [SerializeField] private Vector2 blinkDuration = new Vector2(0.1f, 0.2f); // MMF_HoldingPause
-        [Tooltip("Stunned: the top jaw opens 90 -> 75 degrees (MMF_Rotation).")]
+        [SerializeField] private Vector2 blinkInterval = new Vector2(0.5f, 4f);   // gốc: MMF_Looper pause
+        [SerializeField] private Vector2 blinkDuration = new Vector2(0.1f, 0.2f); // gốc: MMF_HoldingPause
+        [Tooltip("Độ mở hàm trên khi choáng (gốc MMF_Rotation 90 -> 75).")]
         [SerializeField] private float stunnedJawAngle = 15f;
 
         [Header("Jaw (SpringChild on Pivot) and blocked-swipe bump (PlayerView)")]
         [SerializeField] private float blockedBumpDistance = 0.1f;
-        [SerializeField] private float jawTiltPerSpeed = 10f;   // SpringChild.tiltAmount
-        [SerializeField] private float jawSmoothTime = 0.05f;   // SpringChild.smoothTime
-        [SerializeField] private float jawMaxAngle = 45f;       // SpringChild.maxAngle
+        [SerializeField] private float jawTiltPerSpeed = 10f;   // gốc: SpringChild.tiltAmount
+        [SerializeField] private float jawSmoothTime = 0.05f;   // gốc: SpringChild.smoothTime
+        [SerializeField] private float jawMaxAngle = 45f;       // gốc: SpringChild.maxAngle
 
-        private const string DeliveryStartState = "SnakeHead_DeliveryStart"; // SnakeHeadView._deliveryStartStateName
+        private const string DeliveryStartState = "SnakeHead_DeliveryStart"; // gốc: SnakeHeadView._deliveryStartStateName
         private const string DeliveryEndState = "SnakeHead_DeliveryEnd";
 
         private class Segment
         {
             public GameObject root;
             public Transform visual;
-            public float distance; // along the head path; eases towards its slot
-            public bool frozen;    // waiting for its boomerang flight: stays where it is
+            public float distance; // khoảng cách dọc đường đầu đi, tiến dần về chỗ của đốt
+            public bool frozen;    // chờ bay boomerang: đứng yên
         }
 
         private readonly List<Segment> _segments = new List<Segment>();
@@ -67,20 +65,20 @@ namespace SnackDash.Presentation
         private Transform _head;
         private Animator _headAnimator;
         private Vector3 _headScale;
-        private float _bump;      // forward offset along the heading
-        private float _dropHeight; // spawn drop, towards the camera (-Z)
+        private float _bump;      // nhích tới theo hướng đi
+        private float _dropHeight; // độ cao rơi lúc xuất hiện, về phía camera (-Z)
         private Coroutine _scaleRoutine, _bumpRoutine, _blinkRoutine;
         private bool _mouthOpen;
         private static readonly int FlashStrength = Shader.PropertyToID("_FlashStrength");
         private MaterialPropertyBlock _flashBlock;
 
         private GameObject _eyesOpen, _eyesClosed, _eyesStunned, _stunnedFx, _tongue;
-        private Transform _jaw;          // Snake_Head/Pivot: the top jaw hinges on its local X axis
+        private Transform _jaw;          // Snake_Head/Pivot: hàm trên quay quanh trục X
         private Quaternion _jawRest;
         private bool _stunned;
         private Vector3 _blockOffset;
         private Vector2 _lastHeadPosition;
-        private const float TeleportStep = 2f; // SpringChild._teleportStep
+        private const float TeleportStep = 2f; // gốc: SpringChild._teleportStep
         private float _jawPitch, _jawVelocity;
         private Coroutine _blockRoutine;
 
@@ -98,13 +96,12 @@ namespace SnackDash.Presentation
             session.SegmentDelivered += OnSegmentDelivered;
             session.MoveStarted += direction => PlayScale(startStretch);
             session.Stopped += cell => OnStopped();
-            // Mouth open while fruit leaves, closed while waiting: a full crate's pause closes it,
-            // the next delivered fruit opens it again [user, observed on the original].
+            // Miệng mở khi trái ra, đóng khi chờ (khay đầy thì đóng, trái kế mở lại) [user].
             session.DeliveryStarted += column => SetMouth(true);
             session.DeliveryEnded += column => SetMouth(false);
             session.CrateCompleted += (column, crate) => SetMouth(false);
             session.SegmentDelivered += (index, kind, column) => SetMouth(true);
-            session.TailBitten += count => { _blinkRoutine = StartCoroutine(BlinkSnipped(count)); SetStunned(true); CameraShake.Hit(); }; // Hit Camera Shake [PlayerView.HandleTailHit]
+            session.TailBitten += count => { _blinkRoutine = StartCoroutine(BlinkSnipped(count)); SetStunned(true); CameraShake.Hit(); }; // gốc: PlayerView.HandleTailHit
             session.TailSnipped += OnTailSnipped;
             session.MoveBlocked += OnMoveBlocked;
             session.BoomerangThrown += OnBoomerangThrown;
@@ -122,15 +119,14 @@ namespace SnackDash.Presentation
             if (_jaw != null) _jawRest = _jaw.localRotation;
             StartCoroutine(BlinkEyes());
 
-            // Spawn: the head drops onto the board [PlayerView._spawnDropHeight / _spawnDuration].
-            // Ease is inferred (falling, then the landing squash).
-            StartCoroutine(SpawnDrop()); // no swipe before it has landed and squashed [user]
+            // Đầu rơi xuống bàn lúc vào màn (gốc PlayerView._spawnDropHeight).
+            StartCoroutine(SpawnDrop()); // khoá vuốt tới khi đáp xong [user]
             LateUpdate();
         }
 
         private IEnumerator SpawnDrop()
         {
-            // Behind the loading screen the drop would play unseen: wait for it to lift, input locked meanwhile [user].
+            // Đợi màn hình loading tắt mới rơi, không thì rơi mà không ai thấy [user].
             _dropHeight = spawnDropHeight;
             while (SnackDash.UI.LoadingScreen.Busy) { _session.LockInput(0.1f); yield return null; }
             _session.LockInput(spawnDuration + scaleDuration);
@@ -151,7 +147,6 @@ namespace SnackDash.Presentation
             yield return Tween.Run(bumpReturnDuration, Tween.OutSine, t => _bump = bumpDistance * (1f - t));
         }
 
-        /// <summary>Stretch/squash for scaleDuration, then back to the default scale.</summary>
         private void PlayScale(Vector3 stretch)
         {
             if (_scaleRoutine != null) StopCoroutine(_scaleRoutine);
@@ -159,10 +154,10 @@ namespace SnackDash.Presentation
             _scaleRoutine = StartCoroutine(Tween.Punch(scaleDuration, t => _headScale = Vector3.LerpUnclamped(defaultScale, target, t)));
         }
 
-        /// <summary>Feedbacks/Blinking: eyes closed for 0.1-0.2 s, open again for 0.5-4 s, forever.</summary>
+        /// <summary>Chớp mắt ngẫu nhiên mãi mãi; bỏ qua khi đang choáng (gốc Feedbacks/Blinking).</summary>
         private IEnumerator BlinkEyes()
         {
-            yield return new WaitForSeconds(0.05f); // MMF_Player InitialDelay
+            yield return new WaitForSeconds(0.05f); // gốc: MMF_Player InitialDelay
             while (true)
             {
                 yield return new WaitForSeconds(Random.Range(blinkInterval.x, blinkInterval.y));
@@ -179,10 +174,7 @@ namespace SnackDash.Presentation
                 if (set != null) set.SetActive(set == eyes);
         }
 
-        /// <summary>
-        /// Feedbacks/Stunned (biting the tail): @@ eyes, stars over the head, tongue out, jaw a little
-        /// open; Stunned_Reset undoes it once the tail is snipped.
-        /// </summary>
+        /// <summary>Choáng khi cắn đuôi: mắt @@, sao trên đầu, lè lưỡi; hết khi đuôi đã cắt (gốc Feedbacks/Stunned).</summary>
         private void SetStunned(bool stunned)
         {
             _stunned = stunned;
@@ -191,9 +183,7 @@ namespace SnackDash.Presentation
             if (_tongue != null) _tongue.SetActive(stunned);
         }
 
-        /// <summary>
-        /// Swipe into a wall or the tail: PlayerView.HandleBump nudges the head that way and back.
-        /// </summary>
+        /// <summary>Vuốt vào tường hay đuôi: đầu nhích về hướng đó rồi về (gốc PlayerView.HandleBump).</summary>
         private void OnMoveBlocked(Direction direction)
         {
             if (_blockRoutine != null) StopCoroutine(_blockRoutine);
@@ -206,15 +196,11 @@ namespace SnackDash.Presentation
             yield return Tween.Run(bumpReturnDuration, Tween.OutSine, t => _blockOffset = direction * (blockedBumpDistance * (1f - t)));
         }
 
-        /// <summary>
-        /// SpringChild on Pivot: the top jaw lags behind the head's motion, so it opens with speed
-        /// (tiltAmount degrees per cell/s, up to maxAngle) and springs shut when the head stops. A run
-        /// cut short by an obstacle opens and closes it at once, which reads as the lips twitching.
-        /// </summary>
+        /// <summary>Hàm trên trễ theo chuyển động: chạy nhanh thì mở, dừng thì bật đóng (gốc SpringChild trên Pivot).</summary>
         private void UpdateJaw()
         {
             if (_jaw == null) return;
-            Vector2 position = _head.localPosition; // board plane only: the spawn drop is along Z
+            Vector2 position = _head.localPosition; // chỉ mặt bàn: bỏ độ rơi theo Z
             float dt = Time.deltaTime;
             if (dt > 0f)
             {
@@ -224,12 +210,12 @@ namespace SnackDash.Presentation
                 _jawPitch = Mathf.SmoothDamp(_jawPitch, target, ref _jawVelocity, jawSmoothTime, Mathf.Infinity, dt);
             }
             _lastHeadPosition = position;
-            _jaw.localRotation = _jawRest * Quaternion.Euler(-_jawPitch, 0f, 0f); // negative X lifts the top jaw
+            _jaw.localRotation = _jawRest * Quaternion.Euler(-_jawPitch, 0f, 0f); // X âm nâng hàm trên
         }
 
         private readonly List<Renderer> _hiddenHeadParts = new List<Renderer>();
 
-        /// <summary>Hides the head inside a tunnel (renderers only, so eyes and animator keep their state).</summary>
+        /// <summary>Ẩn đầu trong đường hầm; chỉ tắt renderer để mắt và animator giữ trạng thái.</summary>
         private void ShowHead(bool visible)
         {
             if (!visible && _hiddenHeadParts.Count == 0)
@@ -251,13 +237,10 @@ namespace SnackDash.Presentation
             PlayHeadState(open ? DeliveryStartState : DeliveryEndState);
         }
 
-        /// <summary>The booster's icon reached the head: the snake gulps it (SnakeHead_Controller state).</summary>
+        /// <summary>Icon booster tới đầu: rắn nuốt nó. BoosterBarView gọi.</summary>
         public void EatBooster() => PlayHeadState("SnakeHead_EatBooster");
 
-        /// <summary>
-        /// When the bite in SnakeHead_EatBooster is done: the jaw shuts at 0.53 s and the head's gulp peaks at 0.63-0.67 s;
-        /// the rest of its 1.35 s is the glow fading, which the booster need not wait for [user: no wait after the bite].
-        /// </summary>
+        /// <summary>Giây nuốt xong trong anim SnakeHead_EatBooster; phần còn lại chỉ là ánh sáng tắt, booster không cần chờ [user].</summary>
         public const float EatBoosterSwallowed = 0.67f;
 
         private void PlayHeadState(string state)
@@ -267,20 +250,20 @@ namespace SnackDash.Presentation
 
         private void OnPillEaten(Vector2Int cell, PillKind kind, int index) => CreateSegment(kind, index, pop: true);
 
-        /// <summary>Undo booster: the body goes back to what the session holds now (no pop).</summary>
+        /// <summary>Undo: dựng lại thân theo session (không nảy), rồi rắn chạy lùi theo đường cũ.</summary>
         private void OnRewound()
         {
             foreach (var segment in _segments) if (segment.root != null) Destroy(segment.root);
             _segments.Clear();
             for (int i = 0; i < _session.Segments.Count; i++) CreateSegment(_session.Segments[i], i, pop: false);
-            // The fruit the swipe ate stays on the tail until the head has run back over it [VFX_hoantac].
+            // Trái lượt đó ăn vẫn ở đuôi tới khi đầu lùi qua chỗ đó [VFX_hoantac].
             _rewindDrops.Clear();
             foreach (var drop in _session.RewindDropped)
             {
                 CreateSegment(drop.kind, _segments.Count, pop: false);
                 _rewindDrops.Add(drop.along);
             }
-            // Run back along the way the head came instead of jumping [user].
+            // Chạy lùi theo đường cũ chứ không nhảy về [user].
             _rewindLeft = 0f;
             var path = _session.RewindPath;
             for (int i = 1; i < path.Count; i++) _rewindLeft += Vector2.Distance(path[i - 1], path[i]);
@@ -289,16 +272,12 @@ namespace SnackDash.Presentation
             LateUpdate();
         }
 
-        // Undo: how far ahead of the restored head (along RewindPath) the snake is still drawn; runs to 0.
+        // Undo: rắn còn được vẽ trước đầu đã khôi phục bao xa (dọc RewindPath); giảm dần về 0.
         private float _rewindLeft;
-        // Undo: where along RewindPath each extra tail segment was eaten; it drops off once the head is back there.
+        // Undo: chỗ mỗi đốt thừa được ăn; đầu lùi tới đó thì đốt rụng.
         private readonly List<float> _rewindDrops = new List<float>();
 
-        /// <summary>
-        /// Point <paramref name="behind"/> cells behind the drawn head: while an undo runs the snake back,
-        /// the head is still <see cref="_rewindLeft"/> cells up the way it came (RewindPath).
-        /// </summary>
-        /// <summary>Like <see cref="Sample"/>: is that point inside a tube (the rewind goes back through tunnels too) [user].</summary>
+        /// <summary>Như <see cref="Sample"/> nhưng hỏi điểm đó có trong đường hầm không (undo cũng lùi qua hầm) [user].</summary>
         private bool SampleHidden(float behind)
         {
             float ahead = _rewindLeft - behind;
@@ -314,7 +293,7 @@ namespace SnackDash.Presentation
             return false;
         }
 
-        /// <summary>During an undo: the direction the head moved along the stretch of RewindPath it is drawn on.</summary>
+        /// <summary>Lúc undo: hướng đầu đã đi trên đoạn RewindPath đang vẽ.</summary>
         private Direction RewindHeading()
         {
             float ahead = _rewindLeft;
@@ -333,6 +312,7 @@ namespace SnackDash.Presentation
             return _session.Heading;
         }
 
+        /// <summary>Điểm sau đầu đang vẽ <paramref name="behind"/> ô; lúc undo đầu còn ở trước <see cref="_rewindLeft"/> ô.</summary>
         private Vector2 Sample(float behind)
         {
             float ahead = _rewindLeft - behind;
@@ -367,10 +347,7 @@ namespace SnackDash.Presentation
             }
         }
 
-        /// <summary>
-        /// Video Man_Lose: the part of the tail a snip would remove blinks white. The FakeUnlit shaders
-        /// carry _FlashStrength / _FlashColor (pale yellow-white) for exactly this kind of flash.
-        /// </summary>
+        /// <summary>Phần đuôi sắp bị cắt nhấp nháy trắng qua _FlashStrength của shader FakeUnlit (video Man_Lose).</summary>
         private IEnumerator BlinkSnipped(int keep)
         {
             if (_flashBlock == null) _flashBlock = new MaterialPropertyBlock();
@@ -381,8 +358,7 @@ namespace SnackDash.Presentation
             }
         }
 
-        /// <summary>World position of tail segment <paramref name="index"/> (0 = right behind the head).</summary>
-        /// <summary>Where segment <paramref name="index"/>'s fruit sits (raised on the body, not the road under it).</summary>
+        /// <summary>Vị trí trái trên đốt <paramref name="index"/> (0 = sát đầu), nằm trên thân chứ không phải mặt đường.</summary>
         public Vector3 SegmentWorldPosition(int index)
         {
             if (index < 0 || index >= _segments.Count) return HeadWorldPosition;
@@ -401,10 +377,7 @@ namespace SnackDash.Presentation
             }
         }
 
-        /// <summary>
-        /// Raised after every snipped segment was handed to the crates (SegmentSnipped, whose
-        /// handlers read the positions first): drop everything from <paramref name="keep"/> on.
-        /// </summary>
+        /// <summary>Đến sau SegmentSnipped (CratesView đã đọc vị trí đốt), nên giờ mới xoá các đốt từ <paramref name="keep"/>.</summary>
         private void OnTailSnipped(int keep)
         {
             if (_blinkRoutine != null) StopCoroutine(_blinkRoutine);
@@ -419,10 +392,7 @@ namespace SnackDash.Presentation
                 foreach (var segment in _segments) SetFlash(segment.root, 0f);
         }
 
-        /// <summary>
-        /// Lv7 video: as the boomerang is thrown, the body tiles of every fruit that will fly vanish
-        /// and each fruit gets the swirling wind (Vortex2 FX) while it waits on the road.
-        /// </summary>
+        /// <summary>Ném boomerang: thân của các trái sắp bay biến mất, trái nằm chờ trong gió xoáy (video Lv7).</summary>
         private void OnBoomerangThrown(int column, IReadOnlyList<int> thrown)
         {
             foreach (int index in thrown)
@@ -437,27 +407,23 @@ namespace SnackDash.Presentation
             }
         }
 
-        /// <summary>
-        /// A secret fruit shows its kind once eaten [user]: the new segment carries the real fruit and the
-        /// ? box's ExplodeFeedback burst (FX_Snake_Appear) goes off on it.
-        /// </summary>
+        /// <summary>Trái bí ẩn lộ loại khi bị ăn: đốt mới mang trái thật, FX_Snake_Appear bung trên đó [user].</summary>
         private void OnSecretRevealed(Vector2Int cell, int index)
         {
             if (secretPrefab == null || index < 0 || index >= _segments.Count) return;
             var pill = _segments[index].root.transform.Find("GameObject/PillMaster_VO");
             if (pill == null) return;
-            // On the segment root so it travels with the fruit, not under the visual that pops in from
-            // scale 0 (the burst scales with its hierarchy).
+            // Gắn vào gốc đốt, không vào visual đang nảy từ scale 0 (FX co giãn theo cha).
             var burst = Instantiate(secretPrefab, pill.position, secretPrefab.transform.rotation, _segments[index].root.transform);
             var box = burst.transform.Find("Visual");
             if (box != null) box.gameObject.SetActive(false);
-            // ExplodeFeedback: the original fires it from a feedback (playOnAwake is off).
+            // playOnAwake tắt (gốc bắn từ feedback) nên phải gọi Play.
             var appear = burst.transform.Find("Feedbacks/ExplodeFeedback/FX_Snake_Appear");
             if (appear != null && appear.TryGetComponent<ParticleSystem>(out var particles)) particles.Play(true);
             Destroy(burst, 2f);
         }
 
-        /// <summary>Boomerang: the fruit takes off now (CratesView flies a copy), so the segment goes.</summary>
+        /// <summary>Boomerang: trái cất cánh (CratesView bay bản sao) nên xoá đốt.</summary>
         private void OnSegmentThrown(int index)
         {
             Destroy(_segments[index].root);
@@ -475,7 +441,7 @@ namespace SnackDash.Presentation
         {
             Destroy(_segments[index].root);
             _segments.RemoveAt(index);
-            // Segments behind the gap keep their distance and slide forward (see LateUpdate).
+            // Đốt phía sau giữ khoảng cách cũ rồi trượt lên lấp chỗ (LateUpdate).
         }
 
         private void LateUpdate()
@@ -490,8 +456,7 @@ namespace SnackDash.Presentation
                 if (last.root != null) Destroy(last.root);
                 _segments.RemoveAt(_segments.Count - 1);
             }
-            // While an undo runs back, the head keeps facing the way it went on that stretch of the swipe and only takes
-            // the restored heading once it is back [user: it turned to the old heading at once].
+            // Lúc undo đầu giữ hướng của đoạn đang lùi, về tới nơi mới lấy hướng cũ [user].
             var heading = _rewindLeft > 0f ? RewindHeading() : _session.Heading;
             var forward = (Vector3)heading.ToVector();
             var headPosition = Sample(0f);
@@ -512,17 +477,13 @@ namespace SnackDash.Presentation
                 var along = Sample(segment.distance - 0.5f) - Sample(segment.distance + 0.5f);
                 position.z -= DeckLift(position, Mathf.Abs(along.x) >= Mathf.Abs(along.y));
                 segment.root.transform.localPosition = position;
-                // Inside a tunnel the segment is out of sight until it comes out of the other mouth.
+                // Trong đường hầm thì ẩn tới khi ra miệng bên kia.
                 bool visible = !SampleHidden(segment.distance);
                 if (segment.root.activeSelf != visible) segment.root.SetActive(visible);
             }
         }
 
-        /// <summary>
-        /// Height above the road while riding over a bridge deck (TileCov_Bridge_LR: 4.3 cells long,
-        /// top ~1.8 above the road at its middle). The deck mesh is not readable, so the hump is a
-        /// smooth cosine through those bounds; the road under the bridge stays at ground level.
-        /// </summary>
+        /// <summary>Độ nâng khi bò qua cầu (dài 4.3 ô); không đọc được mesh nên dùng đường cos. Đường dưới cầu giữ mặt đất.</summary>
         private float DeckLift(Vector2 position, bool movingHorizontally)
         {
             foreach (var bridge in _session.Board.Bridges)

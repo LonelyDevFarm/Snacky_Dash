@@ -1,6 +1,6 @@
 namespace SnackDash.LevelSystem
 {
-    /// <summary>Gameplay meaning of a tile. Values match the original game's TileType enum.</summary>
+    /// <summary>Ý nghĩa gameplay của một tile (đường, cầu, mũi tên, điểm dừng...). Giá trị khớp enum TileType gốc.</summary>
     public enum TileType
     {
         Empty = 0,
@@ -67,7 +67,7 @@ namespace SnackDash.LevelSystem
         SnakeTailStartPosition = 61,
     }
 
-    /// <summary>Visual/system grouping of a tile. Values match the original TileCategory enum.</summary>
+    /// <summary>Nhóm hình/hệ thống của tile. Giá trị khớp enum TileCategory gốc.</summary>
     public enum TileCategory
     {
         None = 0,

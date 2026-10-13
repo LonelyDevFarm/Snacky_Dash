@@ -4,8 +4,8 @@ using UnityEngine;
 namespace SnackDash.LevelSystem
 {
     /// <summary>
-    /// A parsed Tiled orthogonal map (right-down render order). Cells use board coordinates with
-    /// (0, 0) at the bottom-left, so Tiled row 0 becomes the top board row.
+    /// Map Tiled (JSON trong LevelDefinition.map) đã đọc. Ô dùng tọa độ bàn, (0, 0) ở góc dưới trái,
+    /// nên hàng 0 của Tiled là hàng trên cùng. GameBootstrap gọi Parse, BoardGraph và BoardView đọc.
     /// </summary>
     public sealed class TiledMap
     {
@@ -35,7 +35,7 @@ namespace SnackDash.LevelSystem
 
         public bool HasLayer(string name) => FindLayer(name) != null;
 
-        /// <summary>Local tile id at a board cell of a layer, or -1 when empty or the layer is absent.</summary>
+        /// <summary>Id tile cục bộ tại ô, hoặc -1 khi ô trống hay không có lớp đó.</summary>
         public int GetLocalTileId(string layerName, Vector2Int cell)
         {
             var layer = FindLayer(layerName);
@@ -45,7 +45,7 @@ namespace SnackDash.LevelSystem
             return ToLocalTileId(layer.data[tiledRow * Width + cell.x], FirstGid);
         }
 
-        /// <summary>Tiled GID -> tileset-local id: strip the flip/rotation flags, subtract firstgid.</summary>
+        /// <summary>GID Tiled -> id cục bộ: bỏ bit lật/xoay, trừ firstgid.</summary>
         public static int ToLocalTileId(long rawGid, int firstGid)
         {
             uint gid = (uint)rawGid & ~FlipMask;

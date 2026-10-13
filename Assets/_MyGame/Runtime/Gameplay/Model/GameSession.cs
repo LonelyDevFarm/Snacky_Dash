@@ -6,71 +6,40 @@ using UnityEngine;
 namespace SnackDash.Gameplay
 {
     /// <summary>
-    /// Deterministic core loop of one level, independent of GameObjects.
-    ///
-    /// Rules (source in brackets):
-    /// - A swipe starts the snake; it runs at 26 cells/s (30 in the original [PlayerView._moveSpeed], slowed [user]), follows corners
-    ///   automatically and stops on Stop cells (the small dark squares at junctions; blockers make
-    ///   no difference) and crate stops, or when the road ends [Player, video, user].
-    /// - Swipes made while moving are buffered; only the latest one is kept and applied on the next
-    ///   stop [tested on the original], unless it is over 1 s old [SwipeRecorder.maxTimeRecordSwipe].
-    ///   Only a fresh touch is buffered: further flicks of a finger that stayed down are ignored until
-    ///   the snake stops [user, tested on the original], and for a short grace after it [play-test].
-    /// - While fruit is being delivered every swipe is ignored [tested on the original]; a swipe
-    ///   buffered before reaching the crate is dropped too [inference].
-    /// - With a tail the snake cannot reverse into the segment right behind its head; a head-only
-    ///   snake can turn back [tested on the original; MovementGatekeeper validators].
-    /// - Entering a pill cell eats it; the fruit joins the END of the tail [video LV2-3].
-    /// - Tail segments trail the head path one cell apart [measured on video].
-    /// - When the current wave is fully eaten, the next one spawns [RespawnScheduler, video].
-    /// - Standing on a crate stop delivers matching fruit from the tail end, one every 0.048 s
-    ///   [CrateManager.timeBetweenPillsToCrate]; crates of a column fill in order [CrateColumn].
-    /// - The head entering a cell held by its own tail (distance &lt; 0.7, tail of 5+ segments) is
-    ///   "NO WAY OUT": everything stops until the player snips the tail or gives up
-    ///   [TailCuttingController CollisionDistance / MinSegmentsBeforeCollision, video Man_Lose].
-    /// - Snip keeps tail length / 5 (rounded down) segments counted from the head; the rest blinks
-    ///   while stuck and, on continuing, flies into crates of its kind anywhere in the stacks, not
-    ///   only the current crate [user, tested on the original; video Man_Lose]. Fruit counts match
-    ///   the crates, so nothing is left over. The bite position plays no part.
-    /// - A crate filled in advance that way is only processed (completed) once it reaches the top.
-    /// - A filled crate pauses the delivery for its completion effect [observed on the original].
-    /// - All crates filled = win [WinConditionChecker].
+    /// Luật chơi của một màn (rắn chạy, ăn trái, giao vào crate, cắn đuôi, thắng), thuần C#, không gắn prefab.
+    /// GameBootstrap tạo và gọi Tick mỗi frame; các view chỉ nghe event của lớp này.
     /// </summary>
     public sealed partial class GameSession
     {
-        public const float DefaultCellsPerSecond = 26f; // the original runs 30 [PlayerView._moveSpeed]; slowed to 26 [user]
+        public const float DefaultCellsPerSecond = 26f; // ô/giây; gốc 30 (PlayerView._moveSpeed), chậm lại [user]
         public const float SegmentSpacing = 1f;
-        public const float DeliveryInterval = 0.048f;
+        public const float DeliveryInterval = 0.048f; // giây/trái (gốc: CrateManager.timeBetweenPillsToCrate)
 
-        /// <summary>
-        /// Delivery pauses after a crate fills so its completion plays out. Measured on LV2-3 footage
-        /// (30 fps, crate combo at 24-28 s): from the last fruit leaving the head to the first fruit of
-        /// the next crate takes 0.8-1.2 s (full crate holds ~0.33 s, then flash/smoke, next crate).
-        /// </summary>
+        /// <summary>Dừng giao sau khi crate đầy để hiệu ứng hoàn thành chạy xong (video LV2-3: 0.8-1.2 s).</summary>
         public const float CrateCompletePause = 1f;
 
-        // TailCuttingController (original constants / Game.unity values).
+        // Cắn đuôi: đầu cách thân < 0.7 ô, thân từ 5 đốt (gốc: TailCuttingController).
         public const float BiteDistance = 0.7f;
         public const int MinSegmentsBeforeBite = 5;
-        /// <summary>Snip keeps tail length / KeptPerSegments segments [user, observed on the original].</summary>
+        /// <summary>Snip giữ lại (độ dài thân / 5) đốt tính từ đầu [user].</summary>
         public const int KeptPerSegments = 5;
-        /// <summary>Fruit per crate on the current game (Box_Crate_9_VO).</summary>
+        /// <summary>Số trái mỗi crate ở bản game hiện tại (gốc: Box_Crate_9_VO).</summary>
         public const int CrateCapacity = 9;
 
+        /// <summary>Một chồng crate: lấp đầy lần lượt từ trên xuống; crate bên dưới có thể được snip/nam châm lấp trước.</summary>
         public sealed class CrateColumn
         {
             private List<CrateDefinition> _crates;
             private List<int> _filled;
             public IReadOnlyList<CrateDefinition> Crates => _crates;
-            /// <summary>The extra crate column: locked (empty, a wooden floor) until bought [ExtraCrateController].</summary>
+            /// <summary>Cột crate thêm: khóa (sàn gỗ trống) tới khi mua (gốc: ExtraCrateController).</summary>
             public bool IsExtra { get; }
             public int CurrentIndex { get; internal set; }
-            /// <summary>Fruit already in the current crate.</summary>
             public int Filled => IsComplete ? 0 : _filled[CurrentIndex];
             public bool IsComplete => CurrentIndex >= Crates.Count;
             public CrateDefinition Current => Crates[CurrentIndex];
 
-            /// <summary>Fruit in any crate of the stack (crates below the top can be filled by a snip).</summary>
+            /// <summary>Số trái trong crate bất kỳ của chồng (crate dưới có thể đã được snip lấp).</summary>
             public int FilledIn(int crateIndex) => _filled[crateIndex];
             internal void Add(int crateIndex) => _filled[crateIndex]++;
             internal bool IsFull(int crateIndex) => _filled[crateIndex] >= Crates[crateIndex].requiredCount;
@@ -84,7 +53,7 @@ namespace SnackDash.Gameplay
                 IsExtra = isExtra;
             }
 
-            /// <summary>The crates still to fill (the current one and those under it), with the fruit already in them.</summary>
+            /// <summary>Lấy ra các crate chưa đầy (crate hiện tại trở xuống) kèm số trái đã có, để chia lại khi mở cột thêm.</summary>
             internal List<(CrateDefinition crate, int filled)> TakeRemaining()
             {
                 var remaining = new List<(CrateDefinition, int)>();
@@ -100,9 +69,8 @@ namespace SnackDash.Gameplay
             internal void Append(CrateDefinition crate, int filled) { _crates.Add(crate); _filled.Add(filled); }
 
             /// <summary>
-            /// v1.14.1 data still has 18/27 crates (old Box_Crate_18/27 visuals); v1.15 keeps only the
-            /// 9-fruit VO crate (CrateVisualConfig_Box_VO.CratePrefab9) and on the current game every
-            /// crate holds 9 [user], so a bigger crate becomes consecutive 9-crates of its kind.
+            /// Dữ liệu v1.14.1 còn crate 18/27 nhưng game hiện tại chỉ có crate 9 [user],
+            /// nên crate lớn được tách thành nhiều crate 9 liên tiếp cùng loại.
             /// </summary>
             private static List<CrateDefinition> SplitIntoCratesOf9(IReadOnlyList<CrateDefinition> crates)
             {
@@ -115,24 +83,24 @@ namespace SnackDash.Gameplay
         }
 
         public event Action<Vector2Int, PillKind> PillSpawned;
-        public event Action<Vector2Int, PillKind, int> PillEaten;           // cell, kind, new segment index
-        public event Action<int, PillKind, int> SegmentDelivered;           // removed segment index, kind, column
-        public event Action<int, int> CrateCompleted;                      // column, crate index
+        public event Action<Vector2Int, PillKind, int> PillEaten;           // ô, loại, chỉ số đốt mới
+        public event Action<int, PillKind, int> SegmentDelivered;           // chỉ số đốt bị lấy, loại, cột
+        public event Action<int, int> CrateCompleted;                      // cột, chỉ số crate
         public event Action<Direction> MoveStarted;
         public event Action<Vector2Int> Stopped;
-        public event Action<Direction> MoveBlocked;                        // swipe into a wall or the tail
-        public event Action<int> DeliveryStarted;                          // column
-        public event Action<int> DeliveryEnded;                            // column
-        public event Action<int> TailBitten;                               // first segment index a snip removes
-        public event Action<int, PillKind, int, int> SegmentSnipped;       // segment index, kind, column, crate index (before removal)
-        public event Action<int> TailSnipped;                              // segments kept (all from that index on removed)
-        public event Action<int, IReadOnlyList<int>> BoomerangThrown;      // column, segment indices that will fly
-        public event Action<int> SegmentRemoved;                           // segment index taken out of the middle (after SegmentSnipped)
-        public event Action<Vector2Int, Vector2Int> ArrowsFlipped;          // the two arrows of a pair, after turning round
-        public event Action<Vector2Int> ArrowNotAllowed;                    // a gate or arrow beside the head's way that it may not enter
-        public event Action<int, int> WallHealthChanged;                    // rock group, health left (after a crate completed)
-        public event Action<int> WallBroken;                                // rock group gone, its road open
-        public event Action<Vector2Int, int> SecretRevealed;                // cell, segment index: a secret fruit was eaten
+        public event Action<Direction> MoveBlocked;                        // vuốt vào tường hoặc vào thân
+        public event Action<int> DeliveryStarted;                          // cột
+        public event Action<int> DeliveryEnded;                            // cột
+        public event Action<int> TailBitten;                               // đốt đầu tiên snip sẽ cắt
+        public event Action<int, PillKind, int, int> SegmentSnipped;       // đốt, loại, cột, crate (trước khi xóa đốt)
+        public event Action<int> TailSnipped;                              // số đốt giữ lại
+        public event Action<int, IReadOnlyList<int>> BoomerangThrown;      // cột, các đốt sẽ bay
+        public event Action<int> SegmentRemoved;                           // đốt bị rút ra giữa thân (sau SegmentSnipped)
+        public event Action<Vector2Int, Vector2Int> ArrowsFlipped;          // hai mũi tên của cặp, sau khi quay
+        public event Action<Vector2Int> ArrowNotAllowed;                    // cổng một chiều cạnh đường mà đầu không được vào
+        public event Action<int, int> WallHealthChanged;                    // nhóm đá, máu còn lại
+        public event Action<int> WallBroken;                                // nhóm đá vỡ, đường mở
+        public event Action<Vector2Int, int> SecretRevealed;                // ô, đốt: vừa ăn trái bí ẩn
         public event Action Won;
 
         private readonly BoardGraph _board;
@@ -141,47 +109,41 @@ namespace SnackDash.Gameplay
         private readonly Dictionary<int, PillKind> _spawnIds;
         private readonly Dictionary<Vector2Int, PillKind> _pills = new Dictionary<Vector2Int, PillKind>();
         private readonly List<PillKind> _segments = new List<PillKind>();
-        private readonly List<Vector2> _trail = new List<Vector2>(); // cell centres passed, newest first
-        // [i] >= 0: from _trail[i] back to _trail[i+1] goes through a tunnel that long (along the body);
-        // NotTunnel for plain road. A tunnel just entered is 0 long, so never use 0 as "no tunnel"
-        // (that drew the body on the straight line between the two mouths for a frame).
+        private readonly List<Vector2> _trail = new List<Vector2>(); // tâm các ô đã qua, mới nhất trước
+        // [i] >= 0: đoạn _trail[i] -> _trail[i+1] đi trong đường hầm dài chừng đó; NotTunnel = đường thường.
+        // Hầm vừa vào dài 0, nên không dùng 0 làm "không hầm" (từng vẽ thân thẳng giữa hai miệng hầm 1 frame).
         private const float NotTunnel = -1f;
         private readonly List<float> _trailJump = new List<float>();
-        private readonly Dictionary<int, Vector2Int> _arrowEntered = new Dictionary<int, Vector2Int>(); // flip group -> arrow the head went in by
+        private readonly Dictionary<int, Vector2Int> _arrowEntered = new Dictionary<int, Vector2Int>(); // nhóm mũi tên lật -> mũi tên đầu đã đi vào
         private readonly List<int> _wallHealth = new List<int>();
         private readonly HashSet<Vector2Int> _secret = new HashSet<Vector2Int>();
 
-        /// <summary>Crates still to complete before each rock group breaks (BoardGraph.WallGroups order).</summary>
+        /// <summary>Số crate còn phải xong trước khi mỗi nhóm đá vỡ (thứ tự BoardGraph.WallGroups).</summary>
         public IReadOnlyList<int> WallHealth => _wallHealth;
 
-        /// <summary>A fruit on the board whose kind stays hidden until it is eaten.</summary>
+        /// <summary>Trái bí ẩn: ẩn loại tới khi bị ăn.</summary>
         public bool IsSecret(Vector2Int cell) => _secret.Contains(cell);
-        private float _tunnelLeft; // > 0: body still sliding into a tunnel (distance, at tunnel speed)
-        private float _tunnelWait; // > 0: whole snake inside, seconds until the head comes out
+        private float _tunnelLeft; // > 0: thân còn đang trượt vào hầm (quãng đường, ở tốc độ hầm)
+        private float _tunnelWait; // > 0: cả rắn trong hầm, số giây tới khi đầu ra
 
-        /// <summary>
-        /// Lv14 footage (15 fps steps), 16-segment snake: from the head reaching the mouth the body
-        /// is in after ~0.3 s (about twice the normal speed) [user: it speeds up into the tunnel],
-        /// then nothing shows for ~0.4 s before the head comes out at normal speed.
-        /// </summary>
+        /// <summary>Vào hầm thân trượt nhanh gấp đôi, rồi ẩn 0.4 s mới ra (video Lv14, [user]).</summary>
         public const float TunnelSpeedMultiplier = 2f;
         public const float TunnelInsideTime = 0.4f;
 
-        /// <summary>The head is inside a tunnel (hidden) until the whole body has gone in and come through [user].</summary>
+        /// <summary>Đầu ẩn trong hầm tới khi cả thân đã vào và đi qua [user].</summary>
         public bool HeadInTunnel => _tunnelLeft > 0f || _tunnelWait > 0f;
         private readonly float _speed;
 
-        /// <summary>A buffered swipe expires after this long (SwipeRecorder.maxTimeRecordSwipe, Game.unity).</summary>
+        /// <summary>Lượt vuốt nhớ sẵn hết hạn sau 1 s (gốc: SwipeRecorder.maxTimeRecordSwipe).</summary>
         public const float BufferedSwipeLifetime = 1f;
 
         /// <summary>
-        /// Seconds after a stop during which a held finger cannot start a new move: with stops close
-        /// together the slightest drag otherwise sends the snake on at once [play-test choice; the
-        /// original has no such field, its touch threshold is just larger on a phone].
+        /// Số giây sau khi dừng mà ngón đang giữ chưa được đi tiếp: điểm dừng gần nhau thì kéo nhẹ cũng
+        /// làm rắn chạy luôn [play-test; gốc không có].
         /// </summary>
         public float HeldSwipeGraceAfterStop { get; set; } = 0.15f;
 
-        /// <summary>Random fruit layout of levels without fixed spawn layers; set a seed for repeatable tests.</summary>
+        /// <summary>Rải trái ngẫu nhiên cho màn không có layer spawn cố định; test thì đặt seed.</summary>
         private System.Random _random = new System.Random();
         public void SetSeed(int seed) => _random = new System.Random(seed);
 
@@ -191,28 +153,28 @@ namespace SnackDash.Gameplay
         private float _sinceStop = float.MaxValue;
         private int _deliveryColumn = -1;
         private float _deliveryTimer;
-        private bool _deliverFromTail; // false: only completing crates a snip filled (snake not at the crate)
-        private bool _boomerang;       // the delivery is a boomerang throw (fruit fly from the body)
-        private int _boomerangLeft;    // planned fruit still to throw
+        private bool _deliverFromTail; // false: chỉ hoàn thành crate do snip lấp (rắn không đứng ở crate)
+        private bool _boomerang;       // lượt giao này là boomerang (trái bay từ thân)
+        private int _boomerangLeft;    // số trái boomerang còn phải ném
 
-        /// <summary>Lv7 video stepped at 15 fps: one boomerang fruit takes off per frame (~0.067 s), </summary>
-        public const float BoomerangInterval = 0.1f; // 0.07 from the video felt too fast on the phone [user 08/10: slower by a few tenths]
+        /// <summary>Giây giữa hai trái boomerang (video Lv7 ~0.067 s, trên điện thoại thấy nhanh quá [user]).</summary>
+        public const float BoomerangInterval = 0.1f;
 
-        /// <summary>Wait between the last fruit of a full crate and the first of the next (about one flight, CratesView boomerangFlightDuration 0.55 s in Game.unity).</summary>
+        /// <summary>Chờ giữa trái cuối của crate đầy và trái đầu crate sau, khoảng một lần bay (gốc: boomerangFlightDuration 0.55).</summary>
         public const float BoomerangCrateGap = 0.65f;
 
         public Vector2 HeadPosition { get; private set; }
         public Vector2Int CurrentCell { get; private set; }
-        /// <summary>Cell the head is running into (equals <see cref="CurrentCell"/> once it arrives).</summary>
+        /// <summary>Ô đầu đang chạy tới (bằng <see cref="CurrentCell"/> khi đã tới).</summary>
         public Vector2Int TargetCell => _target;
         public Direction Heading { get; private set; } = Direction.Up;
         public bool IsMoving { get; private set; }
         public bool IsDelivering => _deliveryColumn >= 0;
-        /// <summary>The head ran into its own tail; waiting for Snip (or the player giving up).</summary>
+        /// <summary>Đầu đã cắn đuôi: chờ snip hoặc người chơi bỏ cuộc.</summary>
         public bool IsStuck { get; private set; }
-        /// <summary>Segments a snip removes while stuck: all from index <see cref="SnipKeep"/> on.</summary>
+        /// <summary>Số đốt snip sẽ cắt: mọi đốt từ <see cref="SnipKeep"/> trở đi.</summary>
         public int SnipCount => IsStuck ? _segments.Count - SnipKeep : 0;
-        /// <summary>Segments a snip keeps, counted from the head.</summary>
+        /// <summary>Số đốt snip giữ lại, tính từ đầu.</summary>
         public int SnipKeep { get; private set; }
         public bool IsWon { get; private set; }
         public int BatchIndex { get; private set; } = -1;
@@ -220,12 +182,12 @@ namespace SnackDash.Gameplay
         public IReadOnlyDictionary<Vector2Int, PillKind> Pills => _pills;
         public IReadOnlyList<CrateColumn> Columns { get; }
 
-        /// <summary>The extra crate column (-1 when the level has none); locked until bought (TAP TO UNLOCK, 700 coins).</summary>
+        /// <summary>Cột crate thêm (-1 nếu màn không có); khóa tới khi mua (TAP TO UNLOCK, 700 xu).</summary>
         public int ExtraColumn { get; }
         public bool ExtraLocked { get; private set; }
-        public event Action<int> ExtraColumnUnlocked; // the extra column
+        public event Action<int> ExtraColumnUnlocked; // cột thêm
 
-        /// <summary>Something to share out: the snake is idle and some column still has crates waiting under its top one.</summary>
+        /// <summary>Mở được khi rắn đứng yên và còn cột có crate chờ bên dưới crate trên cùng (có cái để chia).</summary>
         public bool CanUnlockExtra
         {
             get
@@ -237,11 +199,8 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// Opens the extra column and deals the crates still to fill out again [ExtraCrateReshuffleService; the exact rule is
-        /// not in the files: inferred from the user's Level 30 screenshots, which it matches]. All of them, the ones on top
-        /// included, in the order they would come up (one level down across the columns, then the next), go one by one
-        /// to the new column first, then the open columns in turn (Level 30: the new column yellow, orange, red; the old one
-        /// yellow, red, green). Fruit already in a crate goes with it. Undo is cleared (the stacks no longer match).
+        /// Mở cột thêm và chia lại mọi crate chưa đầy theo tầng, lần lượt cột mới trước rồi các cột cũ (ảnh Level 30 [user]).
+        /// Trái đã có đi theo crate; xóa undo vì chồng crate đã khác.
         /// </summary>
         public bool UnlockExtraColumn()
         {
@@ -281,7 +240,7 @@ namespace SnackDash.Gameplay
             ExtraColumn = columns.FindIndex(c => c.IsExtra);
             ExtraLocked = ExtraColumn >= 0;
 
-            // Rock rows: the level health, or the row's own when one of its cells is listed.
+            // Máu đá: của màn, hoặc riêng của nhóm nếu một ô của nhóm có trong danh sách.
             foreach (var group in board.WallGroups)
             {
                 int health = level.wallHealth;
@@ -289,6 +248,7 @@ namespace SnackDash.Gameplay
                     if (System.Linq.Enumerable.Contains(group, own.seedCell)) health = own.health;
                 _wallHealth.Add(Mathf.Max(1, health));
             }
+            SetUpMechanics(level);
 
             CurrentCell = board.PlayerStart;
             HeadPosition = CurrentCell;
@@ -296,47 +256,48 @@ namespace SnackDash.Gameplay
             _trailJump.Add(NotTunnel);
         }
 
-        /// <summary>Spawns the first wave. Separate from the constructor so views can subscribe first.</summary>
+        /// <summary>Rải đợt trái đầu; tách khỏi constructor để view kịp đăng ký event.</summary>
         public void Begin()
         {
             if (BatchIndex < 0) SpawnNextBatch();
         }
 
-        /// <summary>Tutorial: while set, only this swipe is taken (others do nothing); cleared once it starts a move.</summary>
+        /// <summary>Tutorial: chỉ nhận đúng hướng vuốt này; tự xóa khi rắn bắt đầu chạy.</summary>
         public Direction? ForcedSwipe { get; set; }
 
-        /// <summary>Tutorial message on screen: swipes are ignored until it is tapped away.</summary>
+        /// <summary>Đang hiện thông báo tutorial: bỏ qua vuốt tới khi chạm tắt.</summary>
         public bool InputBlocked { get; set; }
 
         private float _lockLeft;
 
         /// <summary>
-        /// An effect is playing (the snake dropping in, fruit jumping onto the road, a crate being swapped): swipes and
-        /// boosters wait for it, so a swipe can no longer cut it short [user]. Timed rather than released by the effect,
-        /// so an effect that is destroyed half-way cannot leave the input locked.
+        /// Khóa vuốt và booster trong lúc hiệu ứng chạy để vuốt không cắt ngang [user]. Tính theo thời gian,
+        /// để hiệu ứng bị hủy giữa chừng không làm khóa mãi.
         /// </summary>
         public void LockInput(float seconds) => _lockLeft = Mathf.Max(_lockLeft, seconds);
 
         public bool InputLocked => _lockLeft > 0f;
 
         /// <summary>
-        /// A forced booster tutorial is up: swipes are ignored (not even buffered) while boosters still work, until
-        /// the player has used the booster [user: a fast swipe on Level 4 moved the snake past the shovel tutorial].
+        /// Tutorial booster bắt buộc: bỏ qua vuốt (không nhớ sẵn), booster vẫn dùng được, tới khi dùng booster
+        /// [user: Level 4 vuốt nhanh làm rắn chạy qua tutorial xẻng].
         /// </summary>
         public bool SwipesHeld { get; set; }
 
+        /// <summary>
+        /// Vuốt khi đang chạy thì chỉ nhớ lượt mới nhất, áp dụng ở điểm dừng kế tiếp (đã thử trên bản gốc).
+        /// Có thân thì không quay đầu vào đốt ngay sau đầu.
+        /// </summary>
         /// <param name="fingerHeld">
-        /// True for a further flick of a finger that stayed down: while moving it is ignored, so a
-        /// held finger only steers again once the snake has stopped [user, tested on the original],
-        /// and not during <see cref="HeldSwipeGraceAfterStop"/> right after a stop [play-test choice].
+        /// Ngón vẫn giữ và vuốt tiếp: bỏ qua khi rắn đang chạy và trong <see cref="HeldSwipeGraceAfterStop"/> sau khi dừng [user].
         /// </param>
         public bool RequestMove(Direction direction, bool fingerHeld = false)
         {
-            if (IsWon || IsStuck || IsDelivering || IsRewinding) return false; // no input until an undo has run back [user]
-            if (InputBlocked) return false; // a tutorial message is up
-            if (_lockLeft > 0f) return false; // an effect is still playing: not even buffered
-            if (SwipesHeld) return false; // a forced booster tutorial waits for the booster
-            if (ForcedSwipe.HasValue && direction != ForcedSwipe.Value) return false; // Level 1 tutorial: only the shown way [user]
+            if (IsWon || IsStuck || IsDelivering || IsRewinding) return false; // đang giao trái / undo chưa chạy lùi xong: bỏ qua vuốt [user]
+            if (InputBlocked) return false;
+            if (_lockLeft > 0f) return false; // hiệu ứng đang chạy: không nhớ sẵn luôn
+            if (SwipesHeld) return false;
+            if (ForcedSwipe.HasValue && direction != ForcedSwipe.Value) return false; // tutorial Level 1: chỉ hướng được chỉ [user]
             if (IsMoving)
             {
                 if (!fingerHeld)
@@ -373,22 +334,22 @@ namespace SnackDash.Gameplay
             if (!IsMoving) _sinceStop += deltaTime;
             if (IsMoving) Advance(_speed * deltaTime);
             else if (_deliveryColumn >= 0) TickDelivery(deltaTime);
+            RaiseLeftBlocks();
         }
 
-        /// <summary>World-plane position of tail segment <paramref name="index"/> (0 = right behind the head).</summary>
+        /// <summary>Vị trí đốt <paramref name="index"/> (0 = ngay sau đầu); các đốt cách nhau 1 ô trên đường đầu đã đi.</summary>
         public Vector2 SegmentPosition(int index) => SampleTrail((index + 1) * SegmentSpacing);
 
-        /// <summary>Point on the head's recent path, <paramref name="distance"/> cells behind the head.</summary>
+        /// <summary>Điểm trên đường đầu vừa đi, cách đầu <paramref name="distance"/> ô.</summary>
         public Vector2 PathPoint(float distance) => SampleTrail(distance);
 
-        /// <summary>True when the point <paramref name="distance"/> cells behind the head is inside a tunnel.</summary>
         public bool PathInTunnel(float distance)
         {
             SampleTrail(distance, out bool inTunnel);
             return inTunnel;
         }
 
-        /// <summary>Fruit spawned by waves 0..<paramref name="lastWave"/> together.</summary>
+        /// <summary>Tổng trái của các đợt 0..<paramref name="lastWave"/>.</summary>
         public int FruitInWaves(int lastWave)
         {
             int total = 0;
@@ -397,15 +358,14 @@ namespace SnackDash.Gameplay
             return total;
         }
 
-        /// <summary>Fruit of every wave of the level.</summary>
         public int TotalFruit => FruitInWaves(_level.batches.Count - 1);
 
-        /// <summary>Fruit eaten so far: everything spawned minus what still lies on the board.</summary>
+        /// <summary>Đã ăn = đã rải trừ số còn trên bàn.</summary>
         public int FruitEaten => BatchIndex < 0 ? 0 : FruitInWaves(BatchIndex) - _pills.Count;
 
         public int WaveCount => _level.batches.Count;
 
-        /// <summary>True when the snake carries fruit the column's current crate accepts.</summary>
+        /// <summary>Rắn có mang trái mà crate hiện tại của cột nhận.</summary>
         public bool CanDeliverTo(int column)
         {
             if (column < 0 || column >= Columns.Count || Columns[column].IsComplete) return false;
@@ -413,18 +373,17 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// Keeps the first <see cref="SnipKeep"/> segments and sends every other one into a crate of
-        /// its kind (the current crate or one further down a stack). Crates a snip fills are completed
-        /// once they reach the top. Price checks (coins) are the caller's job, see SnipOffer.
+        /// Cắt đuôi: giữ <see cref="SnipKeep"/> đốt đầu, các đốt còn lại bay vào crate cùng loại ở bất kỳ chồng nào
+        /// (video Man_Lose, [user]). Kiểm tra xu do người gọi lo (SnipOffer).
         /// </summary>
         public bool Snip()
         {
             if (!IsStuck) return false;
-            ForgetUndo(); // like a booster: undo waits for the next swipe, it never brings snipped fruit back [user]
+            ForgetUndo(); // như booster: undo không bao giờ trả lại trái đã cắt [user]
             int keep = SnipKeep;
             int removed = _segments.Count - keep;
 
-            // From the tail end, so the indices handed to the views stay valid while removing.
+            // Xóa từ cuối đuôi để chỉ số gửi cho view vẫn đúng trong lúc xóa.
             var leftovers = new List<(Vector2Int cell, PillKind kind)>();
             for (int i = _segments.Count - 1; i >= keep; i--)
             {
@@ -432,7 +391,7 @@ namespace SnackDash.Gameplay
                 if (TryReserveCrate(kind, out int column, out int crate))
                     SegmentSnipped?.Invoke(i, kind, column, crate);
                 else
-                    leftovers.Add((Vector2Int.RoundToInt(SegmentPosition(i)), kind)); // data mismatch only
+                    leftovers.Add((Vector2Int.RoundToInt(SegmentPosition(i)), kind)); // chỉ khi dữ liệu lệch
                 _segments.RemoveAt(i);
             }
 
@@ -440,7 +399,7 @@ namespace SnackDash.Gameplay
             SnipKeep = 0;
             TailSnipped?.Invoke(keep);
 
-            // Should not happen (fruit counts match the crates); keep such fruit in play anyway.
+            // Không nên xảy ra (số trái khớp crate); nếu có thì thả trái lại lên bàn.
             foreach (var (near, kind) in leftovers)
             {
                 var cell = FreeCellNear(near);
@@ -454,10 +413,8 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// Boomerang booster (BoomerangDeliveryPlanner): fruit fly from anywhere in the snake into the
-        /// chosen column, crate by crate: the current crate takes its kind (segments nearest the head
-        /// first) and the next crate is only planned once that one would be full [Lv7 video].
-        /// Returns the planned (segment index, crate index) pairs, indices as they are now.
+        /// Lên kế hoạch boomerang: lấy đốt cùng loại gần đầu nhất cho crate hiện tại; crate kế chỉ được tính
+        /// khi crate trước sẽ đầy (video Lv7, gốc: BoomerangDeliveryPlanner).
         /// </summary>
         public List<(int segment, int crate)> PlanBoomerang(int columnIndex)
         {
@@ -477,7 +434,7 @@ namespace SnackDash.Gameplay
                     plan.Add((i, crate));
                     room--;
                 }
-                if (room > 0) break; // this crate stays part filled: nothing further down is reached
+                if (room > 0) break; // crate này chưa đầy thì không tới được crate dưới
             }
             return plan;
         }
@@ -485,10 +442,7 @@ namespace SnackDash.Gameplay
         public bool CanBoomerang(int columnIndex) => PlanBoomerang(columnIndex).Count > 0;
 
         /// <summary>
-        /// Throws the boomerang at a column (see <see cref="PlanBoomerang"/>). Stock is the caller's job.
-        /// Runs like a delivery from afar [Lv7 video]: one fruit every <see cref="BoomerangInterval"/>,
-        /// the current crate's kind nearest the head first; after a full crate the next kind waits
-        /// <see cref="BoomerangCrateGap"/>. <see cref="BoomerangThrown"/> lists the segments that will go.
+        /// Ném boomerang vào cột theo <see cref="PlanBoomerang"/>, chạy như giao từ xa (video Lv7). Số lượng booster do người gọi lo.
         /// </summary>
         public bool UseBoomerang(int columnIndex)
         {
@@ -496,17 +450,17 @@ namespace SnackDash.Gameplay
             if (plan.Count == 0) return false;
             var segments = new List<int>();
             foreach (var entry in plan) segments.Add(entry.segment);
-            ForgetUndo(); // a booster was used: undo waits for the next swipe [user]
+            ForgetUndo(); // đã dùng booster: undo chờ lượt vuốt mới [user]
             BoomerangThrown?.Invoke(columnIndex, segments);
             _deliveryColumn = columnIndex;
             _deliverFromTail = true;
             _boomerang = true;
             _boomerangLeft = plan.Count;
-            _deliveryTimer = BoomerangInterval; // the first fruit leaves at once
+            _deliveryTimer = BoomerangInterval; // trái đầu bay ngay
             return true;
         }
 
-        /// <summary>First crate of this kind with room, columns in order, each from its current crate down.</summary>
+        /// <summary>Crate còn chỗ đầu tiên cùng loại: duyệt cột theo thứ tự, mỗi cột từ crate hiện tại xuống.</summary>
         private bool TryReserveCrate(PillKind kind, out int column, out int crate)
         {
             for (column = 0; column < Columns.Count; column++)
@@ -523,7 +477,7 @@ namespace SnackDash.Gameplay
             return false;
         }
 
-        /// <summary>A snip can fill a column's current crate: complete it like a delivery would.</summary>
+        /// <summary>Snip/nam châm có thể lấp đầy crate trên cùng: hoàn thành nó như khi giao.</summary>
         private void StartSettlingFullCrates(float delay = 0f)
         {
             for (int column = 0; column < Columns.Count; column++)
@@ -532,12 +486,12 @@ namespace SnackDash.Gameplay
                 if (stack.IsComplete || !stack.IsFull(stack.CurrentIndex)) continue;
                 _deliveryColumn = column;
                 _deliverFromTail = false;
-                _deliveryTimer = -delay; // let the snipped fruit stream in first
+                _deliveryTimer = -delay; // chờ trái đã cắt bay vào xong
                 return;
             }
         }
 
-        /// <summary>Nearest walkable cell (breadth-first along the roads) without pill, head or tail.</summary>
+        /// <summary>Ô đi được gần nhất (BFS theo đường) không có trái, đầu hay thân.</summary>
         private Vector2Int? FreeCellNear(Vector2Int start)
         {
             var occupied = new HashSet<Vector2Int> { CurrentCell };
@@ -549,11 +503,11 @@ namespace SnackDash.Gameplay
             while (queue.Count > 0)
             {
                 var cell = queue.Dequeue();
-                if (_board.IsWalkable(cell) && !occupied.Contains(cell) && !_pills.ContainsKey(cell)) return cell;
+                if (_board.IsWalkable(cell) && !_board.IsCovered(cell) && !NoFruitOnBlock(cell) && !occupied.Contains(cell) && !_pills.ContainsKey(cell)) return cell;
                 foreach (var direction in DirectionExtensions.All)
                 {
                     var next = cell + direction.ToCell();
-                    if (_board.IsWalkable(next) && seen.Add(next)) queue.Enqueue(next);
+                    if (_board.IsWalkable(next) && !_board.IsCovered(next) && seen.Add(next)) queue.Enqueue(next);
                 }
             }
             return null;
@@ -564,7 +518,7 @@ namespace SnackDash.Gameplay
             if (_segments.Count < MinSegmentsBeforeBite) return false;
             for (int i = 1; i < _segments.Count; i++)
             {
-                if (SegmentInTunnel(i)) continue; // out of reach inside a tunnel
+                if (SegmentInTunnel(i)) continue; // đốt trong hầm thì không cắn được
                 if (Vector2.Distance(SegmentPosition(i), HeadPosition) >= BiteDistance) continue;
                 if (OnOtherLevelOfBridge(i)) continue;
                 IsStuck = true;
@@ -576,8 +530,7 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// At a bridge the deck and the road under it never touch [user]: a segment crossing the bridge
-        /// on the other axis than the head is on the other level.
+        /// Ở cầu, mặt cầu và đường dưới không chạm nhau [user]: đốt đi khác trục với đầu là ở tầng kia, không tính cắn.
         /// </summary>
         private bool OnOtherLevelOfBridge(int segment)
         {
@@ -589,7 +542,7 @@ namespace SnackDash.Gameplay
             return segmentHorizontal != Heading.IsHorizontal();
         }
 
-        /// <summary>A swipe that way would set the head going now (road open, not straight into its own tail).</summary>
+        /// <summary>Vuốt hướng này thì đầu chạy ngay (đường mở, không đâm vào đốt sau đầu).</summary>
         public bool CanGo(Direction direction) => _board.CanMove(CurrentCell, direction) && !BlockedByTail(direction);
 
         private bool BlockedByTail(Direction direction)
@@ -606,7 +559,7 @@ namespace SnackDash.Gameplay
                 float boosted = distance * TunnelSpeedMultiplier;
                 float used = Mathf.Min(boosted, _tunnelLeft);
                 _tunnelLeft -= used;
-                _trailJump[0] += used; // the tunnel link the head is in is always the newest
+                _trailJump[0] += used; // đoạn hầm đầu đang ở luôn là đoạn mới nhất
                 distance = (boosted - used) / TunnelSpeedMultiplier;
                 if (_tunnelLeft > 0f) return;
             }
@@ -635,6 +588,7 @@ namespace SnackDash.Gameplay
                 _swipeUnderground.Add(false);
                 PruneTrail();
                 if (_trail.Count > 1) LeftCell(Vector2Int.RoundToInt(_trail[1]));
+                PassRisingBlock(CurrentCell);
                 if (CheckBite())
                 {
                     IsMoving = false;
@@ -642,7 +596,7 @@ namespace SnackDash.Gameplay
                     return;
                 }
                 Enter(CurrentCell);
-                if (_stopOnArrival) // came up from a shovel hole: waits there
+                if (_stopOnArrival) // vừa trồi lên từ hố xẻng: đứng chờ ở đó
                 {
                     _stopOnArrival = false;
                     Stop();
@@ -651,12 +605,12 @@ namespace SnackDash.Gameplay
                 var arrivedHeading = Heading;
                 if (IsWon || !ContinueFrom(CurrentCell))
                 {
-                    // Arriving at a stop shakes the closed gates and arrows around it too, every time [user].
-                    if (!IsWon && _board.IsStop(CurrentCell)) SignalClosedArrows(CurrentCell, arrivedHeading, arrivedHeading.Opposite()); // not when it just ran into one
+                    // Tới điểm dừng cũng rung các cổng một chiều đóng quanh đó, mỗi lần [user]; không rung khi vừa đâm vào cổng.
+                    if (!IsWon && _board.IsStop(CurrentCell)) SignalClosedArrows(CurrentCell, arrivedHeading, arrivedHeading.Opposite());
                     Stop();
                     return;
                 }
-                if (HeadInTunnel) return; // the tunnel trip starts next tick
+                if (HeadInTunnel) return; // chuyến qua hầm bắt đầu từ tick sau
                 SignalClosedArrows(CurrentCell, arrivedHeading, Heading);
 
             }
@@ -664,18 +618,15 @@ namespace SnackDash.Gameplay
 
         private bool ContinueFrom(Vector2Int cell)
         {
-            // Into a tunnel mouth [user]: the tunnel holds the whole snake. The head travels inside
-            // (hidden) while the body slides in after it, and comes out of the other mouth once the
-            // tail is in, onto that mouth's road; the body then comes out behind it, never back at
-            // the first mouth.
+            // Vào miệng hầm [user]: đầu ẩn, thân trượt vào hết rồi đầu mới ra ở miệng kia; thân ra theo sau, không quay lại miệng đầu.
             if (_board.TryTunnel(cell, Heading, out var exit, out var exitHeading))
             {
                 CurrentCell = exit;
                 HeadPosition = exit;
                 _trail.Insert(0, exit);
                 _swipePath.Add(exit);
-                _swipeUnderground.Add(true); // from the mouth it went into to this one, inside the tube
-                _trailJump.Insert(0, 0f); // grows as the head goes through (Advance)
+                _swipeUnderground.Add(true); // đoạn này đi trong hầm
+                _trailJump.Insert(0, 0f); // dài dần khi thân đi vào (Advance)
                 _tunnelLeft = (_segments.Count + 1) * SegmentSpacing;
                 _tunnelWait = TunnelInsideTime;
                 PruneTrail();
@@ -690,16 +641,15 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// Where a snake running with <paramref name="heading"/> goes from <paramref name="cell"/>:
-        /// straight on, or round a corner (the only way on that is not straight back). False at a
-        /// stop, a dead end or a junction.
+        /// Rắn tự đi thẳng hoặc tự rẽ khi chỉ còn một lối (không tính quay lại).
+        /// False ở điểm dừng, ngõ cụt hoặc ngã rẽ.
         /// </summary>
         private bool NextStep(Vector2Int cell, Direction heading, out Direction next)
         {
             next = heading;
-            if (_board.IsStop(cell)) return false; // a stop square always stops, whatever arrows, gates or rocks close [user]
+            if (_board.IsStop(cell)) return false; // điểm dừng luôn dừng, dù cổng hay đá có chặn lối nào [user]
             if (_board.CanMove(cell, heading)) return true;
-            if (_board.IsBridge(cell)) return false; // straight through only (never happens on real maps)
+            if (_board.IsBridge(cell)) return false; // cầu chỉ đi thẳng (map thật không gặp)
 
             Direction? turn = null;
             foreach (var exit in _board.Exits(cell))
@@ -714,8 +664,7 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// The cells a swipe <paramref name="direction"/> would run over from where the head stands, up to the
-        /// next stop (tutorial path highlight, TutorialPathOverlayService). Tunnels are not followed.
+        /// Các ô một lượt vuốt sẽ chạy qua tới điểm dừng kế, để tutorial tô đường (TutorialPathOverlayService). Không đi theo hầm.
         /// </summary>
         public List<Vector2Int> PreviewPath(Direction direction)
         {
@@ -732,14 +681,14 @@ namespace SnackDash.Gameplay
             return path;
         }
 
-        /// <summary>Cells the head still runs over before its next stop (the current cell included).</summary>
+        /// <summary>Các ô đầu còn chạy qua trước điểm dừng kế (gồm ô hiện tại), để không rải trái lên đó.</summary>
         private HashSet<Vector2Int> PathToNextStop()
         {
             var path = new HashSet<Vector2Int> { CurrentCell };
             if (!IsMoving) return path;
             var cell = CurrentCell;
             var heading = Heading;
-            if (cell != _target) { cell = _target; path.Add(cell); } // already on its way to the next cell
+            if (cell != _target) { cell = _target; path.Add(cell); } // đang chạy dở sang ô kế
             while (true)
             {
                 if (_board.TryTunnel(cell, heading, out var exit, out var exitHeading))
@@ -761,6 +710,7 @@ namespace SnackDash.Gameplay
             _sinceStop = 0f;
             if (_bufferedAge > BufferedSwipeLifetime) _bufferedSwipe = null;
             Stopped?.Invoke(CurrentCell);
+            OpenPendingCurtains();
             OnStoppedForBoosters();
 
             int column = _board.CrateColumnAt(CurrentCell);
@@ -768,8 +718,8 @@ namespace SnackDash.Gameplay
             {
                 _deliveryColumn = column;
                 _deliverFromTail = true;
-                _deliveryTimer = DeliveryInterval; // first fruit leaves immediately
-                _bufferedSwipe = null;
+                _deliveryTimer = DeliveryInterval; // trái đầu bay ngay
+                _bufferedSwipe = null; // vuốt nhớ sẵn trước khi tới crate bị bỏ
                 DeliveryStarted?.Invoke(column);
                 return;
             }
@@ -783,14 +733,8 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// The head has just left <paramref name="cell"/>. A flipping arrow pair turns round once the head
-        /// has gone in by one arrow and out by the other [user]; a stop in between changes nothing.
-        /// Counted on leaving the cell, so the arrow under the head never turns against it.
-        /// </summary>
-        /// <summary>
-        /// Running past a gate or arrow that points out of its branch shakes it, to show that way is
-        /// closed (ArrowGroupController.AnimateNotAllowedArrowsAround). Driving straight into one does
-        /// not (only the snake bumps) [user].
+        /// Chạy ngang cổng một chiều hướng ra khỏi nhánh thì rung nó báo lối đóng (gốc: AnimateNotAllowedArrowsAround);
+        /// đâm thẳng vào thì không rung, chỉ rắn khựng [user].
         /// </summary>
         private void SignalClosedArrows(Vector2Int cell, Direction arrivedHeading, Direction leaving)
         {
@@ -803,6 +747,10 @@ namespace SnackDash.Gameplay
             }
         }
 
+        /// <summary>
+        /// Cặp mũi tên lật quay đầu khi rắn vào bằng mũi này và ra bằng mũi kia [user]; tính lúc rời ô
+        /// để mũi tên dưới đầu không quay ngược với rắn.
+        /// </summary>
         private void LeftCell(Vector2Int cell)
         {
             if (!_board.FlippingArrows.TryGetValue(cell, out int group)) return;
@@ -822,6 +770,7 @@ namespace SnackDash.Gameplay
             _eatenSinceSwipe.Add((cell, kind));
             _segments.Add(kind);
             PillEaten?.Invoke(cell, kind, _segments.Count - 1);
+            CountCurtainFruit(kind);
             if (_secret.Remove(cell)) SecretRevealed?.Invoke(cell, _segments.Count - 1);
             if (_pills.Count == 0) SpawnNextBatch();
         }
@@ -841,6 +790,7 @@ namespace SnackDash.Gameplay
             {
                 var cell = new Vector2Int(x, y);
                 if (!_spawnIds.TryGetValue(_map.GetLocalTileId(layer, cell), out var kind)) continue;
+                if (NoFruitOnBlock(cell) && FreeCellNear(cell) is Vector2Int free) cell = free; // không rải lên khối nâng đang dựng
                 _pills[cell] = kind;
                 if (_board.IsSecretSpawn(BatchIndex, cell)) _secret.Add(cell);
                 PillSpawned?.Invoke(cell, kind);
@@ -848,30 +798,22 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// Levels without fixed spawn layers, as observed on the original [user, videos]:
-        /// - the level has a fixed set of slots split into segments (BoardGraph.PillSlotGroups);
-        /// - every wave picks again at random, even the first one, so each play differs;
-        /// - segments holding priority slots (PillSpawnPoint) come first;
-        /// - segments are taken whole, in random order, each from a random end; only the last one may
-        ///   stop part way, the others stay empty (Level 12 footage: every run fills its whole segment);
-        /// - within a segment each kind is one block and never comes back (no red-blue-red), so long
-        ///   runs of one kind are common: the kinds are shuffled and laid out as one block each.
-        /// Cells the head will still run over before its next stop are left out, or the snake would
-        /// eat the new fruit straight away. Fruit may land under the body (it waits beside it).
-        /// If the slots run out, the rest goes to the nearest free road cell.
+        /// Màn không có layer spawn: mỗi đợt rải ngẫu nhiên lại, lấp trọn từng đoạn ô, mỗi loại một khối liền
+        /// (video Level 12, [user]); bỏ các ô đầu sắp chạy qua để rắn không ăn ngay.
         /// </summary>
         private void SpawnOnMapSlots(SpawnBatchDefinition batch)
         {
             var blocked = PathToNextStop();
+            var reach = ReachableWhileCurtained();
 
-            // Usable runs: segments cut at blocked or occupied cells.
+            // Đoạn dùng được: cắt tại ô bị chặn hoặc đã có trái.
             var runs = new List<List<Vector2Int>>();
             foreach (var segment in _board.PillSlotGroups)
             {
                 var run = new List<Vector2Int>();
                 foreach (var cell in segment)
                 {
-                    if (blocked.Contains(cell) || _pills.ContainsKey(cell))
+                    if (blocked.Contains(cell) || _pills.ContainsKey(cell) || _board.IsCovered(cell) || NoFruitOnBlock(cell) || (reach != null && !reach.Contains(cell)))
                     {
                         if (run.Count > 0) runs.Add(run);
                         run = new List<Vector2Int>();
@@ -882,7 +824,7 @@ namespace SnackDash.Gameplay
                 if (run.Count > 0) runs.Add(run);
             }
 
-            // Random order, each run from a random end.
+            // Thứ tự đoạn ngẫu nhiên, mỗi đoạn bắt đầu từ một đầu ngẫu nhiên.
             for (int i = runs.Count - 1; i > 0; i--)
             {
                 int j = _random.Next(i + 1);
@@ -891,7 +833,7 @@ namespace SnackDash.Gameplay
             foreach (var run in runs)
                 if (_random.Next(2) == 1) run.Reverse();
 
-            // Runs holding priority slots (PillSpawnPoint) go first, still in random order.
+            // Đoạn có ô ưu tiên (gốc: PillSpawnPoint) được rải trước.
             var priority = _board.PrioritySlots;
             if (priority.Count > 0)
             {
@@ -900,7 +842,7 @@ namespace SnackDash.Gameplay
                 runs.InsertRange(0, first);
             }
 
-            // Kinds in random order, one block each.
+            // Mỗi loại trái một khối liền, không xen kẽ (không có đỏ-xanh-đỏ).
             var kinds = new List<PillKind>();
             var order = new List<PillCount>(batch.pills);
             for (int i = order.Count - 1; i > 0; i--)
@@ -911,7 +853,7 @@ namespace SnackDash.Gameplay
             foreach (var pill in order)
                 for (int n = 0; n < pill.count; n++) kinds.Add(pill.kind);
 
-            // Whole runs in turn; only the last one may stop part way.
+            // Lấp trọn từng đoạn, chỉ đoạn cuối được dở dang; hết ô thì rải ô trống gần nhất.
             int next = 0;
             for (int i = 0; i < runs.Count && next < kinds.Count; i++)
                 for (int k = 0; k < runs[i].Count && next < kinds.Count; k++)
@@ -955,14 +897,14 @@ namespace SnackDash.Gameplay
             var column = Columns[columnIndex];
             if (column.IsComplete) return false;
 
-            // A crate a snip filled in advance completes as soon as it reaches the top.
+            // Crate được snip lấp trước chỉ hoàn thành khi lên tới trên cùng.
             if (column.IsFull(column.CurrentIndex)) return CompleteCurrent(columnIndex);
             if (!_deliverFromTail) return false;
 
             var kind = column.Current.kind;
             if (_boomerang)
             {
-                // Boomerang: from the head side, flying out of the body (no snake at the stop).
+                // Boomerang: lấy đốt gần đầu nhất, bay ra từ thân (rắn không đứng ở crate).
                 int thrown = _boomerangLeft > 0 ? _segments.IndexOf(kind) : -1;
                 if (thrown < 0) return false;
                 _boomerangLeft--;
@@ -972,9 +914,8 @@ namespace SnackDash.Gameplay
                 SegmentRemoved?.Invoke(thrown);
                 if (column.IsFull(column.CurrentIndex))
                 {
-                    // Lv7 video: the next kind lifts off as the full crate's last fruit lands (one
-                    // flight), not after the whole 1 s crate pause, so it arrives as the new crate
-                    // comes up. Without the gap it flew into the crate still hidden underneath (bug1).
+                    // Loại kế bay sau một lần bay, không chờ đủ 1 s, để tới đúng lúc crate mới lên (video Lv7).
+                    // Thiếu khoảng chờ này trái bay vào crate còn khuất bên dưới (bug1).
                     bool more = CompleteCurrent(columnIndex);
                     _deliveryTimer = BoomerangInterval - BoomerangCrateGap;
                     return more && _boomerangLeft > 0;
@@ -999,18 +940,19 @@ namespace SnackDash.Gameplay
             var column = Columns[columnIndex];
             int completed = column.CurrentIndex;
             column.CurrentIndex++;
-            _deliveryTimer = -CrateCompletePause; // the snake stays locked during the pause
+            _deliveryTimer = -CrateCompletePause; // rắn vẫn bị khóa trong lúc chờ
             CrateCompleted?.Invoke(columnIndex, completed);
             WearWalls();
+            LowerRisenBlocks();
             if (!AllColumnsComplete()) return true;
             IsWon = true;
             Won?.Invoke();
             return false;
         }
 
-        // ------------------------------------------------------------------ cheats (SnackDashCheats)
+        // ------------------------------------------------------------------ cheat (SnackDashCheats)
 
-        /// <summary>Cheat: the level is won now, through the usual <see cref="Won"/> (win screen, coins, events); the crates stay as they are.</summary>
+        /// <summary>Cheat: thắng ngay qua <see cref="Won"/> như thường (màn thắng, xu); crate giữ nguyên.</summary>
         public bool CheatWin()
         {
             if (IsWon || IsStuck) return false;
@@ -1020,7 +962,7 @@ namespace SnackDash.Gameplay
             return true;
         }
 
-        /// <summary>Cheat: the head bites its tail where it stands (NO WAY OUT, then the usual lose flow). Only while the snake stands still with a tail.</summary>
+        /// <summary>Cheat: cắn đuôi tại chỗ (NO WAY OUT rồi luồng thua thường); chỉ khi rắn đứng yên và có thân.</summary>
         public bool CheatBite()
         {
             if (IsWon || IsStuck || IsMoving || IsDelivering || _segments.Count == 0) return false;
@@ -1030,7 +972,7 @@ namespace SnackDash.Gameplay
             return true;
         }
 
-        /// <summary>Every completed crate takes one off every rock row; at 0 it breaks and its road opens [user].</summary>
+        /// <summary>Mỗi crate xong trừ 1 máu mọi nhóm đá; về 0 thì đá vỡ, đường mở [user].</summary>
         private void WearWalls()
         {
             for (int group = 0; group < _wallHealth.Count; group++)
@@ -1053,7 +995,7 @@ namespace SnackDash.Gameplay
 
         private Vector2 SampleTrail(float distanceBehindHead) => SampleTrail(distanceBehindHead, out _);
 
-        /// <summary>True while tail segment <paramref name="index"/> is inside a tunnel (hidden, cannot be bitten).</summary>
+        /// <summary>Đốt trong hầm: bị ẩn và không cắn được.</summary>
         public bool SegmentInTunnel(int index)
         {
             SampleTrail((index + 1) * SegmentSpacing, out bool inTunnel);
@@ -1061,8 +1003,7 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// Point on the head's path; a tunnel link counts as long as the stretch of body that went in,
-        /// and anything on it is inside the tunnel (placed at the mouth it went into).
+        /// Điểm trên đường đầu đã đi; đoạn hầm dài bằng phần thân đã vào, điểm nằm trên đó thì ở trong hầm (đặt tại miệng vào).
         /// </summary>
         private Vector2 SampleTrail(float distanceBehindHead, out bool inTunnel)
         {

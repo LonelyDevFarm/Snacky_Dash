@@ -7,17 +7,12 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// The purple guidance arrows of the first levels (original GuidanceController, GuidanceConfig, prefab
-    /// Prefabs/InGame/guidance/GuidanceArrow): when the snake has stood at a stop for 3 s, purple arrows (S_Hint_Arrow, 0.175, alpha 0.9) show the
-    /// way to go, one on each cell up to the next stop (20 at most), fading in one after another (0.3 s each, 0.05 s
-    /// apart), staying 1.5 s, fading out together in 0.3 s, then after 0.5 s the cycle repeats until the player moves.
-    /// The way: the one that reaches soonest (cells walked) a crate the snake can fill when it carries enough of its
-    /// fruit (or nothing is left to eat), otherwise a fruit (GuidanceDirectionResolver; its exact rule is not in the files).
-    /// Only up to Level 7 (MaxLevelActive index 6), never during a tutorial or a popup.
+    /// Mũi tên tím chỉ đường ở màn 1-7 (prefab Prefabs/InGame/guidance/GuidanceArrow, gốc GuidanceController) khi rắn đứng yên 3 s.
+    /// GameBootstrap gắn lên bàn; không hiện khi có tutorial hay popup.
     /// </summary>
     public class GuidanceView : MonoBehaviour
     {
-        // GuidanceConfig.asset
+        // gốc: GuidanceConfig.asset
         public const int MaxLevel = 7, MaxArrows = 20;
         public const float IdleDelay = 3f, FadeIn = 0.3f, Cascade = 0.05f, Hold = 1.5f, FadeOut = 0.3f, Pause = 0.5f, MaxAlpha = 0.9f;
 
@@ -55,7 +50,7 @@ namespace SnackDash.Presentation
             float length = CycleLength;
             int before = Mathf.FloorToInt(_cycle / length);
             _cycle += Time.deltaTime;
-            // Each new cycle looks again (a new wave, OnNewBatchReceived; fruit taken by a booster), never in the middle of one.
+            // Chỉ tìm lại đường ở đầu chu kỳ (đợt trái mới, booster lấy trái), không giữa chừng.
             if (Mathf.FloorToInt(_cycle / length) != before) { Show(); return; }
             Animate(_cycle);
         }
@@ -75,7 +70,7 @@ namespace SnackDash.Presentation
             for (int i = 0; i < _shown; i++)
             {
                 var arrow = Arrow(i);
-                arrow.transform.localPosition = BoardView.CellToWorld(cells[i].cell) + new Vector3(0f, 0f, -0.15f); // above the stop marks (Stop_Visual plane at z -0.1) [user]
+                arrow.transform.localPosition = BoardView.CellToWorld(cells[i].cell) + new Vector3(0f, 0f, -0.15f); // nằm trên dấu điểm dừng (Stop_Visual z -0.1) [user]
                 arrow.transform.localRotation = Quaternion.Euler(0f, 0f, Rotation(cells[i].heading));
                 arrow.gameObject.SetActive(true);
             }
@@ -96,7 +91,7 @@ namespace SnackDash.Presentation
             return _arrows[index];
         }
 
-        /// <summary>GuidanceArrowView.DirectionToRotationZ: the sprite points up.</summary>
+        /// <summary>Sprite mũi tên hướng lên (gốc: GuidanceArrowView.DirectionToRotationZ).</summary>
         private static float Rotation(Direction heading)
         {
             switch (heading)
@@ -108,7 +103,7 @@ namespace SnackDash.Presentation
             }
         }
 
-        /// <summary>One cycle: cascade in, hold, all out, pause; then again.</summary>
+        /// <summary>Một chu kỳ: hiện lần lượt, giữ, tắt cùng lúc, nghỉ; rồi lặp.</summary>
         private float CycleLength => (_shown - 1) * Cascade + FadeIn + Hold + FadeOut + Pause;
 
         private void Animate(float time)
@@ -125,9 +120,9 @@ namespace SnackDash.Presentation
             }
         }
 
-        // ------------------------------------------------------------------ the way to show
+        // ------------------------------------------------------------------ chọn đường
 
-        /// <summary>The cells (after the head's) of the way to take, each with the heading the snake has there.</summary>
+        /// <summary>Các ô của đường nên đi (bỏ ô đầu), kèm hướng rắn ở mỗi ô.</summary>
         private List<(Vector2Int cell, Direction heading)> Way()
         {
             var result = new List<(Vector2Int, Direction)>();
@@ -135,12 +130,12 @@ namespace SnackDash.Presentation
             foreach (var direction in DirectionExtensions.All) if (_session.CanGo(direction)) allowed.Add(direction);
             if (allowed.Count == 0) return result;
 
-            // The targets: crates it can fill (or deliver to when nothing is left to eat), else the fruit.
+            // Đích: crate rắn lấp đầy được (hoặc giao được khi hết trái), không thì trái.
             var targets = new HashSet<Vector2Int>();
             if (GuideToCrate()) { foreach (var pair in _session.Board.CrateStops) if (_session.CanDeliverTo(pair.Key)) targets.Add(pair.Value); }
             else foreach (var cell in _session.Pills.Keys) targets.Add(cell);
 
-            // The way that reaches one soonest (cells walked); if none does, the one passing nearest to one.
+            // Chọn đường tới đích sớm nhất (số ô); không đường nào tới thì đường đi gần đích nhất (luật gốc không có trong file).
             Direction best = allowed[0];
             float bestScore = float.MaxValue;
             foreach (var direction in allowed)
@@ -151,7 +146,7 @@ namespace SnackDash.Presentation
                 if (score == float.MaxValue)
                     foreach (var cell in path)
                         foreach (var target in targets) score = Mathf.Min(score, 1000f + (cell - target).sqrMagnitude);
-                if (direction == _session.Heading.Opposite() && allowed.Count > 1) score += 0.5f; // rather not straight back
+                if (direction == _session.Heading.Opposite() && allowed.Count > 1) score += 0.5f; // ưu tiên không quay đầu
                 if (score < bestScore) { bestScore = score; best = direction; }
             }
 
@@ -165,7 +160,7 @@ namespace SnackDash.Presentation
             return result;
         }
 
-        /// <summary>The snake carries enough of a crate's fruit to fill it, or there is no fruit left to eat but some to deliver.</summary>
+        /// <summary>Đúng khi rắn mang đủ trái để lấp đầy một crate, hoặc hết trái để ăn nhưng còn trái để giao.</summary>
         private bool GuideToCrate()
         {
             bool any = false;

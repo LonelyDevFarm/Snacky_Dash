@@ -224,6 +224,7 @@ MonoBehaviour:
   snake: {fileID: 1087866752}
   pills: {fileID: 1453462839}
   crates: {fileID: 1658309292}
+  curtains: {fileID: 1247804679}
   input: {fileID: 2115557413}
   gameAudio: {fileID: 1090080154}
   loseFlow: {fileID: 1971052263}
@@ -243,6 +244,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1624512986}
     m_Modifications:
+    - target: {fileID: 276921165023429728, guid: 50fe43e4275cbf644ae3e3d05310fcc8, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 8306502614001546690, guid: 50fe43e4275cbf644ae3e3d05310fcc8, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -636,6 +641,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1247804677}
   - component: {fileID: 1247804678}
+  - component: {fileID: 1247804679}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -683,6 +689,40 @@ MonoBehaviour:
   wallBreakStep: 0.067
   flipDuration: 0.15
   flipNotAllowedShake: {x: 0.1, y: 0.1, z: 0}
+--- !u!114 &1247804679
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1247804676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1a8be7a3c772544b8770d3681c02427, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  root: {fileID: 0}
+  innerPrefab: {fileID: 3078951572003292031, guid: e8a1bf4c15f57d843bc29feefae7aa0b, type: 3}
+  sidePrefab: {fileID: 3326577293762857538, guid: 0fc914e297610c8449bc088df4d88142, type: 3}
+  cornerPrefab: {fileID: 7269738550672744126, guid: 5cdb1555017a4154ca853b6dc1f33239, type: 3}
+  innerCornerPrefab: {fileID: 2081149821188528968, guid: 9e245b6074d41cf4aa52610f0335dec0, type: 3}
+  sideAngleUp: 180
+  cornerAngleUpRight: 0
+  innerCornerAngleUpRight: 0
+  coverScale: {x: 0.65, y: 0.65, z: 0.15}
+  coverOffset: {x: 0, y: 0, z: -0.05}
+  counterPrefab: {fileID: 2081547477675749964, guid: 60320e094fa77d2429dbed3bd0325459, type: 3}
+  counterOffset: {x: 0, y: 0, z: -0.5}
+  fruits: {fileID: 11400000, guid: d3c98e83b43b46e4db7da0948ab44049, type: 2}
+  revealStartDelay: 0.15
+  groupStartDelay: 0.1
+  flashTime: 0.2
+  shutterTime: 0.4
+  completeDelay: 0.2
+  revealFxPrefab: {fileID: 0}
+  smokePrefab: {fileID: 14978117503043264, guid: e6ae66fdad9bb6946be8ea1dbc91764f, type: 3}
+  smokePerCell: 2
+  smokeHeight: -1.5
 --- !u!1 &1357079899
 GameObject:
   m_ObjectHideFlags: 0
@@ -776,6 +816,14 @@ MonoBehaviour:
   checkInterval: 0.1
   minClearTime: 0.3
   waitZ: -1.1
+  restZ: -0.5
+  idleHeight: 0.45
+  shadowAtTop: 0.75
+  idleDuration: 1.2
+  idleMaxDelay: 0.3
+  idleRandomness: 0.25
+  spinDuration: 5.5
+  spinPause: 0.5
 --- !u!1 &1485867755
 GameObject:
   m_ObjectHideFlags: 0
@@ -896,6 +944,7 @@ MonoBehaviour:
   appearDuration: 0.35
   exitDuration: 0.3
   easeBack: 3
+  curtains: {fileID: 1247804679}
 --- !u!4 &1658309293
 Transform:
   m_ObjectHideFlags: 0

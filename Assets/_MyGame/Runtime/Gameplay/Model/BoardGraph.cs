@@ -5,9 +5,8 @@ using UnityEngine;
 namespace SnackDash.Gameplay
 {
     /// <summary>
-    /// Walkable road network of a level, read from the "map" layer. Two cells are connected when both
-    /// are walkable and each allows the shared direction: straight roads only allow their own axis,
-    /// every other walkable tile (corners, crossings, stops) opens towards any walkable neighbour.
+    /// Mạng đường của màn, đọc từ map Tiled (lớp map, ldf, ldf_above, spawn): ô đi được, điểm dừng, cầu, cổng, đá, rèm, khối nâng.
+    /// Lớp C# thuần, không gắn prefab; GameBootstrap tạo, GameSession và các View đọc.
     /// </summary>
     public sealed class BoardGraph
     {
@@ -23,40 +22,29 @@ namespace SnackDash.Gameplay
 
         public Vector2Int PlayerStart { get; }
 
-        // Bridge cells -> true when the deck runs left-right (BridgeLR), false for up-down (BridgeUD).
         private readonly Dictionary<Vector2Int, bool> _bridges = new Dictionary<Vector2Int, bool>();
 
         /// <summary>
-        /// Bridge cells (value: deck runs left-right). On a bridge the two roads do not meet: the snake
-        /// only goes straight on, never stops or turns, and the deck and the road under it never touch
-        /// [user, tested on the original].
+        /// Ô cầu (true = mặt cầu chạy ngang). Trên cầu rắn chỉ đi thẳng, không dừng, không rẽ;
+        /// mặt cầu và đường dưới không chạm nhau [user].
         /// </summary>
         public IReadOnlyDictionary<Vector2Int, bool> Bridges => _bridges;
 
         public bool IsBridge(Vector2Int cell) => _bridges.ContainsKey(cell);
 
-        // Fixed one-way gates (TileCov_Arrow_Fixed, ldf layer over a straight road) -> the way through.
         private readonly Dictionary<Vector2Int, Direction> _oneWay = new Dictionary<Vector2Int, Direction>();
 
-        /// <summary>
-        /// Fixed arrow gates: passable only in the arrow's direction, a wall the other way [user].
-        /// </summary>
+        /// <summary>Cổng một chiều (TileCov_Arrow_Fixed): chỉ qua theo chiều mũi tên, chiều kia là tường [user].</summary>
         public IReadOnlyDictionary<Vector2Int, Direction> OneWayGates => _oneWay;
 
-        // Tunnel mouths (ldf layer): the side their road comes from, and the other mouth of the pair.
+        // Miệng đường hầm: phía đường nối vào, và miệng còn lại của cặp.
         private readonly Dictionary<Vector2Int, Direction> _tunnelSide = new Dictionary<Vector2Int, Direction>();
         private readonly Dictionary<Vector2Int, Vector2Int> _tunnelOther = new Dictionary<Vector2Int, Vector2Int>();
 
-        /// <summary>
-        /// Tunnel mouths: a road split in two [user]. The snake runs into one mouth from its road,
-        /// comes out of the other mouth of the pair (same tunnelIndex) onto that mouth's road and runs on.
-        /// </summary>
+        /// <summary>Miệng đường hầm: rắn chui vào một miệng, ra ở miệng kia cùng tunnelIndex rồi chạy tiếp [user].</summary>
         public IReadOnlyDictionary<Vector2Int, Direction> TunnelMouths => _tunnelSide;
 
-        /// <summary>
-        /// True when a snake heading <paramref name="heading"/> on mouth <paramref name="cell"/> goes into
-        /// the tunnel; it comes out on <paramref name="exit"/> heading <paramref name="exitHeading"/>.
-        /// </summary>
+        /// <summary>True khi rắn đi hướng <paramref name="heading"/> trên miệng <paramref name="cell"/> thì chui vào hầm.</summary>
         public bool TryTunnel(Vector2Int cell, Direction heading, out Vector2Int exit, out Direction exitHeading)
         {
             exit = cell;
@@ -67,42 +55,76 @@ namespace SnackDash.Gameplay
             return true;
         }
 
-        // Destructible walls (rocks): rows of wall cells on the road, closed until their group breaks.
         private readonly List<List<Vector2Int>> _wallGroups = new List<List<Vector2Int>>();
         private readonly HashSet<Vector2Int> _closedWalls = new HashSet<Vector2Int>();
 
-        /// <summary>Rock rows (destructible_walls_H/V ends, MIDDLE inside), each a connected group of cells.</summary>
+        /// <summary>Các hàng đá (destructible_walls_H/V), mỗi nhóm là các ô liền nhau.</summary>
         public IReadOnlyList<IReadOnlyList<Vector2Int>> WallGroups => _wallGroups;
 
         public bool IsClosedWall(Vector2Int cell) => _closedWalls.Contains(cell);
 
-        /// <summary>The group's rocks are gone: the road under them opens.</summary>
         public void OpenWall(int group)
         {
             foreach (var cell in _wallGroups[group]) _closedWalls.Remove(cell);
         }
 
-        // Secret fruit [user: a fruit whose kind shows once eaten]: ldfN cells marked SecretCollectible
-        // make the fruit wave N puts there secret.
+        private readonly Dictionary<Vector2Int, int> _curtainGroup = new Dictionary<Vector2Int, int>();
+        private readonly HashSet<Vector2Int> _covered = new HashSet<Vector2Int>();
+
+        /// <summary>Mọi ô rèm (ldf_above) với id nhóm; id lấy từ dữ liệu màn (curtainCells).</summary>
+        public IReadOnlyDictionary<Vector2Int, int> CurtainCells => _curtainGroup;
+
+        /// <summary>Ô dưới rèm chưa mở: không vào được, không có trái.</summary>
+        public bool IsCovered(Vector2Int cell) => _covered.Contains(cell);
+
+        /// <summary>Ô dữ liệu màn không liệt kê giữ nhóm 0.</summary>
+        public void SetCurtainGroups(IEnumerable<(Vector2Int cell, int group)> cells)
+        {
+            foreach (var (cell, group) in cells)
+                if (_curtainGroup.ContainsKey(cell)) _curtainGroup[cell] = group;
+        }
+
+        public void OpenCurtain(int group)
+        {
+            foreach (var pair in _curtainGroup)
+                if (pair.Value == group) _covered.Remove(pair.Key);
+        }
+
+        // Khối nâng (ô Plot lớp ldf): đóng đường khi đang nâng.
+        private readonly List<Vector2Int> _risingBlocks = new List<Vector2Int>();
+        private readonly HashSet<Vector2Int> _risen = new HashSet<Vector2Int>();
+
+        /// <summary>Ô khối nâng theo thứ tự trên bàn (chỉ số là id khối).</summary>
+        public IReadOnlyList<Vector2Int> RisingBlocks => _risingBlocks;
+
+        public bool IsRisen(Vector2Int cell) => _risen.Contains(cell);
+
+        public void SetRisen(Vector2Int cell, bool risen)
+        {
+            if (risen) _risen.Add(cell);
+            else _risen.Remove(cell);
+        }
+
+        // Trái bí ẩn [user]: ô SecretCollectible ở lớp ldfN làm trái của đợt N tại đó thành bí ẩn.
         private readonly Dictionary<int, HashSet<Vector2Int>> _secretCells = new Dictionary<int, HashSet<Vector2Int>>();
 
-        /// <summary>True when the fruit wave <paramref name="wave"/> (0-based) spawns on <paramref name="cell"/> is secret.</summary>
+        /// <summary><paramref name="wave"/> tính từ 0.</summary>
         public bool IsSecretSpawn(int wave, Vector2Int cell) =>
             _secretCells.TryGetValue(wave, out var cells) && cells.Contains(cell);
 
-        // Flipping arrows (TileCov_Arrow): gates whose way turns round, in pairs.
         private readonly Dictionary<Vector2Int, int> _flipGroup = new Dictionary<Vector2Int, int>();
         private readonly Dictionary<Vector2Int, Vector2Int> _flipPartner = new Dictionary<Vector2Int, Vector2Int>();
 
         /// <summary>
-        /// Flipping arrows, paired like tunnel mouths [user]: a gate like the fixed ones, but once the
-        /// head has gone in through one arrow of a pair and out through the other, both turn round.
+        /// Mũi tên đổi chiều (TileCov_Arrow), theo cặp như đường hầm [user]: đầu vào qua một mũi tên
+        /// và ra qua mũi tên kia thì cả hai quay ngược.
         /// </summary>
         public IReadOnlyDictionary<Vector2Int, int> FlippingArrows => _flipGroup;
 
         public bool TryGetFlipPartner(Vector2Int arrow, out Vector2Int partner) => _flipPartner.TryGetValue(arrow, out partner);
 
-        /// <summary>Turns a flipping arrow and its partner round.</summary>
+        public bool TryGetTunnelOther(Vector2Int mouth, out Vector2Int other) => _tunnelOther.TryGetValue(mouth, out other);
+
         public void FlipPair(Vector2Int arrow)
         {
             if (_oneWay.TryGetValue(arrow, out var way)) _oneWay[arrow] = way.Opposite();
@@ -110,18 +132,20 @@ namespace SnackDash.Gameplay
                 _oneWay[partner] = other.Opposite();
         }
 
-        /// <summary>What a booster undo has to put back: open rocks and the way every arrow points.</summary>
-        internal (HashSet<Vector2Int> closedWalls, Dictionary<Vector2Int, Direction> ways) SaveState() =>
-            (new HashSet<Vector2Int>(_closedWalls), new Dictionary<Vector2Int, Direction>(_oneWay));
+        /// <summary>Booster hoàn tác cần trả lại: đá, chiều mũi tên, khối nâng.</summary>
+        internal (HashSet<Vector2Int> closedWalls, Dictionary<Vector2Int, Direction> ways, HashSet<Vector2Int> risen) SaveState() =>
+            (new HashSet<Vector2Int>(_closedWalls), new Dictionary<Vector2Int, Direction>(_oneWay), new HashSet<Vector2Int>(_risen));
 
-        internal void RestoreState((HashSet<Vector2Int> closedWalls, Dictionary<Vector2Int, Direction> ways) state)
+        internal void RestoreState((HashSet<Vector2Int> closedWalls, Dictionary<Vector2Int, Direction> ways, HashSet<Vector2Int> risen) state)
         {
             _closedWalls.Clear();
             _closedWalls.UnionWith(state.closedWalls);
             foreach (var way in state.ways) _oneWay[way.Key] = way.Value;
+            _risen.Clear();
+            _risen.UnionWith(state.risen);
         }
 
-        /// <summary>Half the length of the bridge deck along its road (TileCov_Bridge_LR mesh: 4.3 cells).</summary>
+        /// <summary>Nửa chiều dài mặt cầu, tính bằng ô (gốc: mesh TileCov_Bridge_LR dài 4.3 ô).</summary>
         public const float BridgeDeckHalfLength = 2.15f;
 
         public BoardGraph(TiledMap map, TileDefinitionDatabase database)
@@ -137,6 +161,14 @@ namespace SnackDash.Gameplay
                     && database.TryGet(start, out var startDef) && startDef.tileType == TileType.PlayerStartPosition)
                     PlayerStart = position;
 
+                // Rèm che cả cỏ lẫn đường: mọi ô rèm ldf_above đều tính.
+                if (map.HasLayer("ldf_above") && map.GetLocalTileId("ldf_above", position) is int above && above >= 0
+                    && database.TryGet(above, out var aboveDef) && aboveDef.category == TileCategory.Curtain)
+                {
+                    _curtainGroup[position] = 0;
+                    _covered.Add(position);
+                }
+
                 int id = map.GetLocalTileId("map", position);
                 if (id < 0 || !database.TryGet(id, out var definition)) continue;
                 if (definition.category == TileCategory.CrateEndPoint) endPoints.Add(position);
@@ -146,12 +178,13 @@ namespace SnackDash.Gameplay
                 _cells[position] = new Cell { type = definition.tileType, crateColumn = column };
                 if (column >= 0) _crateStops[column] = position;
 
-                // Bridges sit on the ldf layer above a crossing ("path_Cross" Stop) of the map layer.
+                // Cầu nằm ở lớp ldf, trên ô ngã tư (path_Cross) của lớp map.
                 if (map.GetLocalTileId("ldf", position) is int ldf && ldf >= 0 && database.TryGet(ldf, out var ldfDef)
                     && (ldfDef.tileType == TileType.BridgeLR || ldfDef.tileType == TileType.BridgeUD))
                     _bridges[position] = ldfDef.tileType == TileType.BridgeLR;
                 if (map.GetLocalTileId("ldf", position) is int gate && gate >= 0 && database.TryGet(gate, out var gateDef))
                 {
+                    if (gateDef.tileType == TileType.Plot) _risingBlocks.Add(position);
                     if (FixedArrowDirection(gateDef.tileType) is Direction way) _oneWay[position] = way;
                     if (FlippingArrowDirection(gateDef.tileType) is Direction flipWay)
                     {
@@ -161,7 +194,7 @@ namespace SnackDash.Gameplay
                 }
             }
 
-            // Rocks: connected wall cells of the ldf layer form one group.
+            // Đá: các ô tường liền nhau ở lớp ldf thành một nhóm.
             var walls = new HashSet<Vector2Int>();
             for (int y = 0; y < map.Height; y++)
             for (int x = 0; x < map.Width; x++)
@@ -191,7 +224,7 @@ namespace SnackDash.Gameplay
                 foreach (var cell in group) _closedWalls.Add(cell);
             }
 
-            // Secret fruit marks: layers ldf1, ldf2... go with spawn1, spawn2...
+            // Dấu trái bí ẩn: lớp ldf1, ldf2... đi với spawn1, spawn2...
             for (int wave = 0; map.HasLayer("ldf" + (wave + 1)); wave++)
             {
                 var cells = new HashSet<Vector2Int>();
@@ -205,13 +238,13 @@ namespace SnackDash.Gameplay
                 _secretCells[wave] = cells;
             }
 
-            // Flipping arrows come in pairs sharing arrowGroupId.
+            // Mũi tên đổi chiều đi theo cặp cùng arrowGroupId.
             foreach (var a in _flipGroup)
             foreach (var b in _flipGroup)
                 if (a.Key != b.Key && a.Value == b.Value) _flipPartner[a.Key] = b.Key;
 
-            // Tunnel mouths, paired by tunnelIndex. tunnelDirection is the side the road joins
-            // (0 up, 1 down, 2 left, 3 right: path_Tunnel_Down_A has its road below).
+            // Miệng hầm ghép cặp theo tunnelIndex; tunnelDirection = phía đường nối vào
+            // (0 lên, 1 xuống, 2 trái, 3 phải: path_Tunnel_Down_A có đường ở dưới).
             var mouthsByIndex = new Dictionary<int, List<Vector2Int>>();
             for (int y = 0; y < map.Height; y++)
             for (int x = 0; x < map.Width; x++)
@@ -231,7 +264,7 @@ namespace SnackDash.Gameplay
                     _tunnelOther[pair[1]] = pair[0];
                 }
 
-            // The crate stands on the delivery end point next to its stop cell.
+            // Khay đứng trên ô end point giao hàng cạnh điểm dừng của nó.
             foreach (var stop in _crateStops)
             foreach (var end in endPoints)
                 if ((end - stop.Value).sqrMagnitude == 1) _crateAnchors[stop.Key] = end;
@@ -240,15 +273,12 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// Cells fruit may spawn on in levels without fixed spawn1..N layers (RespawnScheduler
-        /// "map pill" slots): every road except stops, NoPill roads, NonPillSpawnPlace cells and the
-        /// start; PillSpawnPoint cells are priority slots (see <see cref="PrioritySlots"/>).
-        /// Split into segments (FloodFillGroupBuilder groups): straight runs of slots joined by road,
-        /// broken at excluded cells, junctions and corners, each listed from one end to the other.
+        /// Ô rải trái cho màn không có lớp spawn1..N cố định (gốc: RespawnScheduler, FloodFillGroupBuilder):
+        /// các đoạn đường thẳng, trừ điểm dừng, NoPill, NonPillSpawnPlace, ô xuất phát và quanh vật trên đường.
         /// </summary>
         public IReadOnlyList<IReadOnlyList<Vector2Int>> PillSlotGroups { get; }
 
-        /// <summary>PillSpawnPoint cells (category PrioritySpawnPoint): their segments are filled first.</summary>
+        /// <summary>Ô PillSpawnPoint (PrioritySpawnPoint): đoạn chứa chúng được rải trước.</summary>
         public IReadOnlyCollection<Vector2Int> PrioritySlots { get; private set; } = new HashSet<Vector2Int>();
 
         private List<IReadOnlyList<Vector2Int>> BuildPillSlotGroups(TiledMap map, TileDefinitionDatabase database)
@@ -264,8 +294,7 @@ namespace SnackDash.Gameplay
                 }
             }
 
-            // No fruit on or under a bridge [user]: Level 5 marks exactly these cells non-spawn (2 cells
-            // each way along the deck, 1 each way along the road under it); other levels leave it implied.
+            // Không trái trên/dưới cầu [user]: 2 ô mỗi phía dọc mặt cầu, 1 ô mỗi phía đường dưới (như Level 5 đánh dấu).
             foreach (var bridge in _bridges)
             {
                 var along = bridge.Value ? Vector2Int.right : Vector2Int.up;
@@ -275,37 +304,34 @@ namespace SnackDash.Gameplay
                 excluded.Add(bridge.Key - across);
             }
 
-            // No fruit on any object standing on the road (bridges, gates, later rocks, pipes...): they
-            // all sit on the "ldf" layer [user]. Nor right next to one: gate doors reach over the
-            // neighbouring cells (Level 10 play-test).
+            // Không trái trên vật lớp ldf và ô kề nó (cửa cổng che ô bên cạnh, Level 10) [user].
+            // Trừ khối nâng: lúc hạ vẫn nhận trái (GameSession loại khi đang nâng) [user].
             foreach (var cell in _cells.Keys)
             {
-                if (!HasRoadObject(map, cell)) continue;
+                if (!HasRoadObject(map, cell) || _risingBlocks.Contains(cell)) continue;
                 excluded.Add(cell);
                 foreach (var direction in DirectionExtensions.All) excluded.Add(cell + direction.ToCell());
             }
 
-            // PillSpawnPoint (277) is in the PrioritySpawnPoint category: those cells are filled first,
-            // they do not restrict the slots (Level 6 has only 2 of them for waves of ~30 fruit).
-            // The no-fruit rules win over them too: some levels (24, 27, 30) put spawn points on or
-            // next to an arrow or a bridge.
+            // PillSpawnPoint chỉ là ô ưu tiên, không giới hạn ô rải (Level 6 chỉ có 2 ô cho ~30 trái).
+            // Luật cấm trái vẫn thắng: Level 24, 27, 30 đặt spawn point sát mũi tên/cầu.
             spawnPoints.ExceptWith(excluded);
             PrioritySlots = spawnPoints;
             var slots = new HashSet<Vector2Int>(spawnPoints);
             foreach (var pair in _cells)
                 if (!excluded.Contains(pair.Key) && IsPillRoad(pair.Value.type)) slots.Add(pair.Key);
 
-            // Junctions inside the slot set would branch a segment: leave them out.
+            // Bỏ ngã ba/ngã tư để đoạn không rẽ nhánh.
             var junctions = new List<Vector2Int>();
             foreach (var cell in slots)
                 if (SlotNeighbours(cell, slots).Count >= 3) junctions.Add(cell);
             foreach (var cell in junctions) slots.Remove(cell);
 
             var ordered = new List<Vector2Int>(slots);
-            ordered.Sort((a, b) => a.y != b.y ? b.y.CompareTo(a.y) : a.x.CompareTo(b.x)); // stable order
+            ordered.Sort((a, b) => a.y != b.y ? b.y.CompareTo(a.y) : a.x.CompareTo(b.x)); // thứ tự cố định
             var segments = new List<IReadOnlyList<Vector2Int>>();
             var visited = new HashSet<Vector2Int>();
-            // Open runs from an end first, then whatever is left (closed loops) from any cell.
+            // Đoạn hở đi từ một đầu trước, phần còn lại (vòng kín) đi từ ô bất kỳ.
             foreach (var start in ordered)
                 if (!visited.Contains(start) && SlotNeighbours(start, slots).Count <= 1)
                     segments.Add(Walk(start, slots, visited));
@@ -313,8 +339,7 @@ namespace SnackDash.Gameplay
                 if (!visited.Contains(start))
                     segments.Add(Walk(start, slots, visited));
 
-            // Footage: a run of one kind never turns a corner, so segments are straight. Cut at
-            // every change of direction (the corner cell ends the run it comes from).
+            // Một dải trái cùng loại không bao giờ qua góc (video gốc): cắt đoạn ở mỗi chỗ đổi hướng.
             var straight = new List<IReadOnlyList<Vector2Int>>();
             foreach (var segment in segments)
             {
@@ -330,11 +355,10 @@ namespace SnackDash.Gameplay
             return straight;
         }
 
-        /// <summary>True when an object of the "ldf" (mechanics) layer stands on <paramref name="cell"/>.</summary>
+        /// <summary>True khi có vật của lớp "ldf" (cơ chế) trên <paramref name="cell"/>.</summary>
         public static bool HasRoadObject(TiledMap map, Vector2Int cell) =>
             map.HasLayer("ldf") && map.GetLocalTileId("ldf", cell) >= 0;
 
-        /// <summary>Follows a run of slots from <paramref name="start"/> along the road.</summary>
         private List<Vector2Int> Walk(Vector2Int start, HashSet<Vector2Int> slots, HashSet<Vector2Int> visited)
         {
             var run = new List<Vector2Int>();
@@ -350,7 +374,6 @@ namespace SnackDash.Gameplay
             return run;
         }
 
-        /// <summary>Slots connected to <paramref name="cell"/> by road.</summary>
         private List<Vector2Int> SlotNeighbours(Vector2Int cell, HashSet<Vector2Int> slots)
         {
             var neighbours = new List<Vector2Int>(4);
@@ -368,22 +391,24 @@ namespace SnackDash.Gameplay
 
         public bool IsWalkable(Vector2Int cell) => _cells.ContainsKey(cell);
 
-        /// <summary>Every stop cell (stop squares and crate stops, not bridge crossings).</summary>
+        /// <summary>Loại đường lớp "map" (Empty khi ngoài đường).</summary>
+        public TileType RoadTypeAt(Vector2Int cell) => _cells.TryGetValue(cell, out var c) ? c.type : TileType.Empty;
+
         public IEnumerable<Vector2Int> StopCells
         {
             get { foreach (var cell in _cells.Keys) if (IsStop(cell)) yield return cell; }
         }
 
-        /// <summary>Stop squares and crate stops; the crossing under a bridge is not a stop (no way to turn there). Tunnel mouths never are.</summary>
+        /// <summary>Ô Stop và điểm dừng khay; ngã tư dưới cầu và miệng hầm không phải điểm dừng (không rẽ được).</summary>
         public bool IsStop(Vector2Int cell) =>
             _cells.TryGetValue(cell, out var c) && (c.type == TileType.Stop || IsCrateStop(c.type)) && !IsBridge(cell);
 
-        /// <summary>Crate column delivered from this cell, or -1.</summary>
+        /// <summary>Cột khay giao từ ô này, hoặc -1.</summary>
         public int CrateColumnAt(Vector2Int cell) => _cells.TryGetValue(cell, out var c) ? c.crateColumn : -1;
 
         public IReadOnlyDictionary<int, Vector2Int> CrateStops => _crateStops;
 
-        /// <summary>Delivery end-point cell (where the crate stands) per crate column.</summary>
+        /// <summary>Ô khay đứng (end point giao hàng) theo cột khay.</summary>
         public IReadOnlyDictionary<int, Vector2Int> CrateAnchors => _crateAnchors;
 
         public bool CanMove(Vector2Int from, Direction direction)
@@ -393,10 +418,12 @@ namespace SnackDash.Gameplay
                    && Allows(a.type, direction) && Allows(b.type, direction.Opposite())
                    && PassesGate(from, direction) && PassesGate(to, direction)
                    && MouthOpens(from, direction) && MouthOpens(to, direction.Opposite())
-                   && !_closedWalls.Contains(from) && !_closedWalls.Contains(to);
+                   && !_closedWalls.Contains(from) && !_closedWalls.Contains(to)
+                   && !_covered.Contains(from) && !_covered.Contains(to)
+                   && !_risen.Contains(to);
         }
 
-        /// <summary>Like <see cref="CanMove"/> but ignoring arrow gates: is there road that way at all?</summary>
+        /// <summary>Như <see cref="CanMove"/> nhưng bỏ qua cổng, đá, rèm, khối nâng: chỉ hỏi có đường không.</summary>
         public bool HasRoad(Vector2Int from, Direction direction)
         {
             var to = from + direction.ToCell();
@@ -407,7 +434,7 @@ namespace SnackDash.Gameplay
 
         public bool IsCrateStopCell(Vector2Int cell) => _cells.TryGetValue(cell, out var c) && IsCrateStop(c.type);
 
-        /// <summary>A tunnel mouth only joins the road on its own side (the way in is TryTunnel).</summary>
+        /// <summary>Miệng hầm chỉ nối đường phía của nó (lối vào hầm đi qua TryTunnel).</summary>
         private bool MouthOpens(Vector2Int cell, Direction towards) =>
             !_tunnelSide.TryGetValue(cell, out var side) || side == towards;
 
@@ -457,6 +484,7 @@ namespace SnackDash.Gameplay
             return exits;
         }
 
+        // Đường thẳng chỉ cho đi theo trục của nó; mọi ô đi được khác mở mọi hướng.
         private static bool Allows(TileType type, Direction direction)
         {
             switch (type)

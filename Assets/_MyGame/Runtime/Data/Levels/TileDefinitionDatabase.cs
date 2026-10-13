@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace SnackDash.LevelSystem
 {
-    /// <summary>One tileset entry. Field set mirrors the original TileDefinitionDatabase.Entry.</summary>
+    /// <summary>Một tile của tileset; các trường giống TileDefinitionDatabase.Entry gốc.</summary>
     [Serializable]
     public class TileDefinition
     {
@@ -25,8 +25,8 @@ namespace SnackDash.LevelSystem
     }
 
     /// <summary>
-    /// Maps local Tiled tile ids (raw GID with flip bits stripped, minus firstgid) to tile semantics
-    /// and cover prefabs. Generated from the original TileDefinitionDatabaseVO asset.
+    /// Tra id tile cục bộ của Tiled ra ý nghĩa ô và prefab phủ. Asset Data/Levels/TileDefinitionDatabase.asset,
+    /// sinh từ TileDefinitionDatabaseVO gốc; GameBootstrap (cho BoardGraph) và BoardView tham chiếu.
     /// </summary>
     [CreateAssetMenu(menuName = "SnackDash/Tile Definition Database")]
     public class TileDefinitionDatabase : ScriptableObject

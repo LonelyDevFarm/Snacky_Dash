@@ -4,7 +4,10 @@ using UnityEngine;
 
 namespace SnackDash.LevelSystem
 {
-    /// <summary>Per-fruit visuals. Generated from the original GraphicSet_VO._graphicDatas.</summary>
+    /// <summary>
+    /// Hình của từng loại trái (sprite, material khay, màu viền). Asset Data/FruitGraphicSet.asset, sinh từ
+    /// GraphicSet_VO._graphicDatas gốc; CratesView, CurtainsView tham chiếu.
+    /// </summary>
     [CreateAssetMenu(menuName = "SnackDash/Fruit Graphic Set")]
     public class FruitGraphicSet : ScriptableObject
     {

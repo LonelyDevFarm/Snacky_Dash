@@ -45,3 +45,11 @@ Thumbs.db
 
 # Ảnh gốc / số đo để so khi tái cấu trúc (chỉ trên máy)
 /Baseline/
+
+# Bản build và file debug của bản build (không đưa lên git)
+/APK/
+# Cấu hình công cụ AI cá nhân
+/.codex/
+# Tài nguyên trích từ game gốc không dùng (chỉ để tra cứu trên máy)
+/Assets/Reference/
+/Assets/Reference.meta

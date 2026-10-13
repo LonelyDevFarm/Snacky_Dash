@@ -6,37 +6,33 @@ using UnityEngine;
 namespace SnackDash.Gameplay
 {
     /// <summary>
-    /// Booster rules besides the Boomerang (GameSession.UseBoomerang) [booster video, user]:
-    /// Undo rewinds the last swipe (any number of times, but only the latest swipe is remembered, so
-    /// never twice in a row) [user], Magnet pulls fruit near the moving head into the crates for five swipes
-    /// [user] (_magnetPullIntervalSeconds 0.05), Shovel digs from the
-    /// head's stop to another stop. None of them works once the tail is bitten (that is a loss) [user].
-    /// Stock is the caller's job.
+    /// Phần booster của GameSession: undo, nam châm, xẻng (boomerang ở GameSession.cs); không dùng được khi đã cắn đuôi [user].
+    /// Thanh booster gọi các hàm Use*/Undo; số lượng booster do người gọi lo.
     /// </summary>
     public sealed partial class GameSession
     {
-        /// <summary>No move, delivery, bite or win in progress: a booster may be used.</summary>
+        /// <summary>Không chạy, không giao, không cắn đuôi, chưa thắng, không đang undo: được dùng booster.</summary>
         public bool IsIdle => !IsMoving && !IsDelivering && !IsStuck && !IsWon && !IsRewinding;
 
         // ------------------------------------------------------------------ Undo
 
-        /// <summary>The last swipe was rewound: views rebuild the snake and the fruit (crates stay).</summary>
+        /// <summary>Đã undo lượt vuốt cuối: view dựng lại rắn và trái (crate giữ nguyên).</summary>
         public event Action Rewound;
 
-        /// <summary>Last undo: the head's way from its restored cell (first) to where it was (last).</summary>
+        /// <summary>Đường của đầu trong lần undo cuối, từ ô được trả về (đầu danh sách) tới chỗ cũ (cuối).</summary>
         public IReadOnlyList<Vector2> RewindPath { get; private set; } = new List<Vector2>();
 
-        /// <summary>Per RewindPath point: the way to it ran inside a tunnel (the snake runs back through the tube too) [user].</summary>
+        /// <summary>Theo từng điểm RewindPath: đoạn tới điểm đó đi trong hầm (chạy lùi cũng qua hầm) [user].</summary>
         public IReadOnlyList<bool> RewindUnderground { get; private set; } = new List<bool>();
 
-        /// <summary>Last undo: fruit the swipe ate that drops off the tail again, in eating order, with how far along RewindPath it was eaten.</summary>
+        /// <summary>Trái lượt vuốt đã ăn sẽ rơi khỏi đuôi khi lùi, theo thứ tự ăn, kèm quãng trên RewindPath lúc ăn.</summary>
         public IReadOnlyList<(PillKind kind, float along)> RewindDropped { get; private set; } = new List<(PillKind, float)>();
 
-        /// <summary>Views are still running the snake back after an undo: swipes and boosters wait until it is done [user].</summary>
+        /// <summary>View còn đang chạy lùi rắn sau undo: vuốt và booster chờ xong [user].</summary>
         public bool IsRewinding => _rewindTime > 0f;
         private float _rewindTime;
 
-        /// <summary>How fast views run the snake back on undo (cells per second; VFX_hoantac measured about 12, the user found that a bit slow and 20 too fast; settled on 18; on the phone 18 still looked fast, then 14 felt slow, now 16 [user 08/10]).</summary>
+        /// <summary>Tốc độ chạy lùi khi undo, ô/giây (VFX_hoantac ~12, chỉnh theo điện thoại [user 08/10]).</summary>
         public const float RewindSpeed = 16f;
 
         private sealed class Snapshot
@@ -51,26 +47,26 @@ namespace SnackDash.Gameplay
             public HashSet<Vector2Int> secret;
             public Dictionary<int, Vector2Int> arrowEntered;
             public int batch;
-            public (HashSet<Vector2Int>, Dictionary<Vector2Int, Direction>) board;
+            public (HashSet<Vector2Int> closedWalls, Dictionary<Vector2Int, Direction> ways, HashSet<Vector2Int> risen) board;
+            public MechanicsState mechanics;
         }
 
-        // Only the latest swipe is kept: after an undo there is nothing more to go back to until the next swipe.
+        // Chỉ nhớ lượt vuốt mới nhất: undo xong thì không lùi tiếp được tới lượt vuốt sau.
         private Snapshot _beforeLastMove;
         private readonly List<PillKind> _deliveredSinceSwipe = new List<PillKind>();
-        // The head's way on this swipe (the trail is cut to the body's length, so it cannot be used) and the fruit eaten on it.
+        // Đường đầu đi trong lượt vuốt này (không dùng _trail vì nó bị cắt theo độ dài thân) và trái đã ăn trên đó.
         private readonly List<Vector2> _swipePath = new List<Vector2>();
-        private readonly List<bool> _swipeUnderground = new List<bool>(); // per point: the way to it ran inside a tunnel
+        private readonly List<bool> _swipeUnderground = new List<bool>(); // theo từng điểm: đoạn tới đó đi trong hầm
         private readonly List<(Vector2Int cell, PillKind kind)> _eatenSinceSwipe = new List<(Vector2Int, PillKind)>();
 
         /// <summary>
-        /// Undo is greyed out right after an undo or any other booster, and while the magnet works: it
-        /// needs a fresh swipe first [user].
+        /// Undo bị mờ ngay sau một undo hay booster khác và khi nam châm đang bật: cần một lượt vuốt mới [user].
         /// </summary>
         public bool CanUndo => _beforeLastMove != null && IsIdle && !_magnetOn;
 
         private void ForgetUndo() => _beforeLastMove = null;
 
-        /// <summary>Called as a swipe starts a move: the state Undo goes back to.</summary>
+        /// <summary>Gọi khi lượt vuốt bắt đầu chạy: lưu trạng thái để undo quay về.</summary>
         private void SaveForUndo()
         {
             _beforeLastMove = new Snapshot
@@ -80,7 +76,7 @@ namespace SnackDash.Gameplay
                 trail = new List<Vector2>(_trail), trailJump = new List<float>(_trailJump),
                 pills = new Dictionary<Vector2Int, PillKind>(_pills), secret = new HashSet<Vector2Int>(_secret),
                 arrowEntered = new Dictionary<int, Vector2Int>(_arrowEntered),
-                batch = BatchIndex, board = _board.SaveState(),
+                batch = BatchIndex, board = _board.SaveState(), mechanics = SaveMechanics(),
             };
             _deliveredSinceSwipe.Clear();
             _swipePath.Clear();
@@ -91,15 +87,13 @@ namespace SnackDash.Gameplay
         }
 
         /// <summary>
-        /// Puts the snake and the fruit it ate back as before the last swipe. Fruit already delivered
-        /// stays in its crate [user]: crates, rocks and the delivered segments are kept as they are now.
+        /// Trả rắn và trái đã ăn về như trước lượt vuốt cuối. Trái đã giao vẫn nằm trong crate; crate và đá giữ như hiện tại [user].
         /// </summary>
         public bool Undo()
         {
             if (!CanUndo) return false;
             var s = _beforeLastMove;
-            // The way the head came on this swipe, from where it goes back to (0) to where it is now:
-            // views run the snake back along it [user: undo rewinds gradually].
+            // View chạy lùi rắn dần theo đường này [user].
             var path = new List<Vector2>(_swipePath) { HeadPosition };
             RewindPath = path;
             RewindUnderground = new List<bool>(_swipeUnderground) { false };
@@ -112,7 +106,7 @@ namespace SnackDash.Gameplay
             {
                 int index = segments.LastIndexOf(kind);
                 if (index >= 0) { segments.RemoveAt(index); continue; }
-                // Eaten on this swipe and delivered too: it does not come back to the board.
+                // Ăn trong lượt này rồi giao luôn: không trả lại lên bàn.
                 foreach (var pill in s.pills)
                     if (pill.Value == kind && pills.ContainsKey(pill.Key) && !_pills.ContainsKey(pill.Key)) { pills.Remove(pill.Key); break; }
             }
@@ -121,7 +115,7 @@ namespace SnackDash.Gameplay
             _trail.Clear(); _trail.AddRange(s.trail);
             _trailJump.Clear(); _trailJump.AddRange(s.trailJump);
             _pills.Clear(); foreach (var pill in pills) _pills[pill.Key] = pill.Value;
-            // Eaten fruit that goes back to the board drops off the tail as the head runs back over it [VFX_hoantac].
+            // Trái trả lại bàn rơi khỏi đuôi khi đầu lùi qua ô đó (VFX_hoantac).
             var dropped = new List<(PillKind, float)>();
             foreach (var eaten in _eatenSinceSwipe)
             {
@@ -139,7 +133,9 @@ namespace SnackDash.Gameplay
             _secret.Clear(); foreach (var cell in s.secret) if (_pills.ContainsKey(cell)) _secret.Add(cell);
             _arrowEntered.Clear(); foreach (var a in s.arrowEntered) _arrowEntered[a.Key] = a.Value;
             BatchIndex = s.batch;
-            _board.RestoreState((_board.SaveState().closedWalls, s.board.Item2)); // arrows back, rocks as now
+            var now = _board.SaveState();
+            _board.RestoreState((now.closedWalls, s.board.ways, now.risen)); // mũi tên trả về, đá giữ như hiện tại
+            RestoreMechanics(s.mechanics, s.board.risen); // trả về số đếm rèm và khối nâng
             _deliveredSinceSwipe.Clear();
             _bufferedSwipe = null;
             _tunnelLeft = _tunnelWait = 0f;
@@ -148,20 +144,17 @@ namespace SnackDash.Gameplay
             return true;
         }
 
-        // ------------------------------------------------------------------ Magnet
+        // ------------------------------------------------------------------ Nam châm
 
-        /// <summary>BoosterData._magnetPullIntervalSeconds: one fruit pulled this often.</summary>
+        /// <summary>Giây giữa hai lần hút (gốc: BoosterData._magnetPullIntervalSeconds 0.05).</summary>
         public const float MagnetPullInterval = 0.05f;
-        /// <summary>The field lasts five swipes and goes once the fifth has run [user, booster video].</summary>
+        /// <summary>Nam châm kéo dài 5 lượt vuốt, tắt khi lượt thứ 5 chạy xong (video booster, [user]).</summary>
         public const int MagnetSwipes = 5;
-        /// <summary>
-        /// Remote config (MagnetBoosterConfig.Radius) in the original, so no value in the build; booster.mp4
-        /// at 18.7 s: the field reaches about five cells from the head [user: 1.6 and 2.5 were too small].
-        /// </summary>
+        /// <summary>Bán kính hút, ô (gốc là remote config; video booster ~5 ô [user]).</summary>
         public const float MagnetRadius = 5f;
 
         public event Action<bool> MagnetChanged;
-        public event Action<Vector2Int, PillKind, int, int> PillMagnetized; // cell, kind, column, crate index
+        public event Action<Vector2Int, PillKind, int, int> PillMagnetized; // ô, loại, cột, crate
 
         private bool _magnetOn;
         private int _magnetSwipesLeft;
@@ -183,28 +176,27 @@ namespace SnackDash.Gameplay
         private void TickMagnet(float deltaTime)
         {
             if (!_magnetOn || IsStuck || IsWon) return;
-            // Only while the head moves, as in the original: fruit in reach when it is switched on, or where the shovel
-            // brought the head up, waits for the next swipe (pulling at once let shovel + magnet clear a lot for free) [user].
-            if (!IsMoving || _stopOnArrival) { _magnetTimer = 0f; return; } // a shovel trip is no swipe [user]
+            // Chỉ hút khi đầu đang chạy bằng vuốt, như bản gốc; chuyến xẻng không tính,
+            // vì hút ngay khi xẻng trồi lên thì xẻng + nam châm dọn quá nhiều miễn phí [user].
+            if (!IsMoving || _stopOnArrival) { _magnetTimer = 0f; return; }
             _magnetTimer += deltaTime;
             while (_magnetTimer >= MagnetPullInterval)
             {
                 _magnetTimer -= MagnetPullInterval;
-                // Every fruit in reach goes, nearest first [user: all in range, Level 16]. One per interval was too
-                // few: at 26 cells/s the lane under the head used every pull and the lanes beside it were missed.
+                // Hút hết trái trong tầm, gần trước [user, Level 16]; mỗi nhịp một trái thì sót các làn bên cạnh.
                 int pulled = 0;
                 while (true)
                 {
                     int before = _pills.Count;
                     if (!PullNearestFruit()) break;
                     pulled++;
-                    if (_pills.Count >= before) break; // the last one brought the next wave: it lands first
+                    if (_pills.Count >= before) break; // trái vừa hút làm ra đợt mới: chờ đợt đó rơi xuống trước
                 }
                 if (pulled == 0) break;
             }
         }
 
-        /// <summary>The nearest fruit in reach whose kind a crate still takes flies into that crate.</summary>
+        /// <summary>Trái gần nhất trong tầm mà còn crate nhận thì bay vào crate đó.</summary>
         private bool PullNearestFruit()
         {
             Vector2Int? best = null;
@@ -224,7 +216,7 @@ namespace SnackDash.Gameplay
             _secret.Remove(cell);
             PillMagnetized?.Invoke(cell, kind, column, crate);
             if (_pills.Count == 0) SpawnNextBatch();
-            if (IsIdle) StartSettlingFullCrates(); // pulled while standing: a filled crate completes now
+            if (IsIdle) StartSettlingFullCrates(); // hút lúc đứng yên: crate đầy hoàn thành luôn
             return true;
         }
 
@@ -236,34 +228,33 @@ namespace SnackDash.Gameplay
             return false;
         }
 
-        /// <summary>A swipe started: it uses up one magnet swipe.</summary>
         private void OnMoveStartedForBoosters()
         {
             if (_magnetOn) _magnetSwipesLeft--;
         }
 
-        /// <summary>The snake stopped: the field goes after its fifth swipe; crates it filled complete.</summary>
+        /// <summary>Rắn dừng: tắt nam châm sau lượt thứ 5; crate nó lấp đầy thì hoàn thành.</summary>
         private void OnStoppedForBoosters()
         {
             if (_magnetOn && _magnetSwipesLeft <= 0)
             {
                 _magnetOn = false;
-                ForgetUndo(); // the swipes ran with the magnet on: undo waits for a fresh one
+                ForgetUndo(); // các lượt vừa rồi chạy với nam châm: undo chờ lượt vuốt mới
                 MagnetChanged?.Invoke(false);
             }
             if (IsIdle) StartSettlingFullCrates();
         }
 
-        // ------------------------------------------------------------------ Shovel
+        // ------------------------------------------------------------------ Xẻng
 
-        /// <summary>Booster video: after the body has gone down, the head comes up about a second later.</summary>
+        /// <summary>Thân xuống hết thì khoảng 1 s sau đầu mới trồi lên (video booster).</summary>
         public const float ShovelUndergroundTime = 1f;
 
-        public event Action<Vector2Int, Vector2Int> ShovelDug; // from (the head's stop), to (the chosen stop)
+        public event Action<Vector2Int, Vector2Int> ShovelDug; // từ (điểm dừng của đầu), tới (điểm dừng được chọn)
 
         private bool _stopOnArrival;
 
-        /// <summary>Stops the shovel can dig to [user: stop squares, not delivery points]: all but the head's and the body's.</summary>
+        /// <summary>Điểm dừng xẻng đào tới được: không phải điểm giao crate [user], trừ chỗ đầu và thân đang nằm.</summary>
         public List<Vector2Int> ShovelTargets()
         {
             var targets = new List<Vector2Int>();
@@ -272,14 +263,13 @@ namespace SnackDash.Gameplay
             for (int i = 0; i < _segments.Count; i++)
                 if (!SegmentInTunnel(i)) body.Add(Vector2Int.RoundToInt(SegmentPosition(i)));
             foreach (var cell in _board.StopCells)
-                if (cell != CurrentCell && !body.Contains(cell) && !_board.IsCrateStopCell(cell)) targets.Add(cell); // not delivery points [user]
+                if (cell != CurrentCell && !body.Contains(cell) && !_board.IsCrateStopCell(cell)) targets.Add(cell);
             return targets;
         }
 
         /// <summary>
-        /// Digs down at the head's stop and comes up at <paramref name="to"/>, like a tunnel the length of
-        /// the snake: the body slides down (tunnel speed), the head comes up after
-        /// <see cref="ShovelUndergroundTime"/> and waits there; the body follows out as it moves on.
+        /// Đào xuống tại chỗ đầu và trồi lên ở <paramref name="to"/>, như đường hầm: thân trượt xuống, sau
+        /// <see cref="ShovelUndergroundTime"/> đầu trồi lên và đứng chờ; thân ra theo khi rắn chạy tiếp.
         /// </summary>
         public bool UseShovel(Vector2Int to)
         {
@@ -290,7 +280,7 @@ namespace SnackDash.Gameplay
             CurrentCell = to;
             HeadPosition = to;
             _trail.Insert(0, to);
-            _trailJump.Insert(0, 0f); // grows as the body goes down (Advance)
+            _trailJump.Insert(0, 0f); // dài dần khi thân đi xuống (Advance)
             _tunnelLeft = (_segments.Count + 1) * SegmentSpacing;
             _tunnelWait = ShovelUndergroundTime;
             _target = to;

@@ -2,6 +2,7 @@ using UnityEngine;
 
 namespace SnackDash.Gameplay
 {
+    /// <summary>Bốn hướng đi của rắn trên lưới ô; dùng chung cho input, BoardGraph và GameSession.</summary>
     public enum Direction
     {
         Up,
@@ -10,6 +11,7 @@ namespace SnackDash.Gameplay
         Right,
     }
 
+    /// <summary>Đổi hướng sang bước ô / vector, lấy hướng ngược.</summary>
     public static class DirectionExtensions
     {
         public static readonly Direction[] All = { Direction.Up, Direction.Down, Direction.Left, Direction.Right };

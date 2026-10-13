@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace SnackDash.LevelSystem
 {
-    /// <summary>Fruit kinds. Values match the original PillKind enum.</summary>
+    /// <summary>Loại trái. Giá trị khớp enum PillKind gốc.</summary>
     public enum PillKind
     {
         Strawberry = 0,
@@ -38,7 +38,7 @@ namespace SnackDash.LevelSystem
         public int count;
     }
 
-    /// <summary>One respawn wave. Its pills are placed on the matching Tiled layer spawn{index + 1}.</summary>
+    /// <summary>Một đợt rải trái; trái đặt theo lớp Tiled spawn{index + 1}.</summary>
     [Serializable]
     public class SpawnBatchDefinition
     {
@@ -46,8 +46,8 @@ namespace SnackDash.LevelSystem
     }
 
     /// <summary>
-    /// A playable level: the Tiled board plus the data the original kept in LevelDataSO
-    /// (crate columns, respawn waves, timer). Generated from the original assets.
+    /// Dữ liệu một màn: map Tiled cùng phần gốc giữ trong LevelDataSO (cột khay, đợt rải trái, thời gian...).
+    /// Asset ở Data/Levels/Definitions, sinh từ asset gốc; GameBootstrap nạp qua LevelList.
     /// </summary>
     [CreateAssetMenu(menuName = "SnackDash/Level Definition")]
     public class LevelDefinition : ScriptableObject
@@ -55,16 +55,39 @@ namespace SnackDash.LevelSystem
         public TextAsset map;
         public List<CrateColumnDefinition> columns = new List<CrateColumnDefinition>();
         public List<SpawnBatchDefinition> batches = new List<SpawnBatchDefinition>();
-        [Tooltip("Original LevelDataSO._timeLimitSeconds; 0 = untimed.")]
+        [Tooltip("Giới hạn thời gian (giây), 0 = không giới hạn (gốc: LevelDataSO._timeLimitSeconds).")]
         public float timeLimitSeconds;
-        [Tooltip("Original LevelDataSO.speedPlayer; 0 = use the default speed.")]
+        [Tooltip("Tốc độ rắn riêng, 0 = mặc định (gốc: LevelDataSO.speedPlayer).")]
         public float speedOverride;
-        [Tooltip("Original destructibleWallHealth: crates to complete before a rock row breaks.")]
+        [Tooltip("Số khay phải xong để một hàng đá vỡ (gốc: destructibleWallHealth).")]
         public int wallHealth;
-        [Tooltip("Original LevelDataSO difficulty: 0 normal, 2 hard, 4 super hard (win reward 20 / 30 / 40 coins).")]
+        [Tooltip("Độ khó: 0 thường, 2 khó, 4 siêu khó; thưởng 20 / 30 / 40 xu (gốc: LevelDataSO).")]
         public int difficulty;
-        [Tooltip("Original destructibleWallGroupHealths: rock rows with their own health (found by a cell).")]
+        [Tooltip("Hàng đá có máu riêng, tìm theo một ô (gốc: destructibleWallGroupHealths).")]
         public List<WallGroupHealth> wallGroupHealths = new List<WallGroupHealth>();
+        [Tooltip("Mọi ô dưới rèm và nhóm của nó (gốc: curtainCells).")]
+        public List<CurtainCell> curtainCells = new List<CurtainCell>();
+        [Tooltip("Mỗi rèm: trái phải ăn để mở và chỗ đặt bộ đếm (gốc: curtainGroups).")]
+        public List<CurtainGroupDefinition> curtainGroups = new List<CurtainGroupDefinition>();
+        [Tooltip("Số khay phải xong để khối nâng hạ lại (gốc: risingBlockDeliveriesToLower).")]
+        public int risingBlockDeliveriesToLower = 3;
+    }
+
+    [Serializable]
+    public struct CurtainCell
+    {
+        public Vector2Int cell;
+        public int groupId;
+    }
+
+    [Serializable]
+    public struct CurtainGroupDefinition
+    {
+        public int groupId;
+        [Tooltip("Bộ đếm đặt giữa hộp ô này (gốc: counterPlacementMin/MaxCell).")]
+        public Vector2Int counterMin, counterMax;
+        public PillKind kind;
+        public int count;
     }
 
     [Serializable]

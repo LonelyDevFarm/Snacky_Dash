@@ -7,16 +7,8 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Fruit lying on the board, one PillMaster_VO per pill cell. New pills jump in from above
-    /// [PillView: _respawnSpawnZ -3, _respawnJumpHeight 2, _respawnJumpDuration 0.2].
-    /// A whole wave does not pop in at once: measured on LV2-3 (wave 2, 15 fps) the first fruit
-    /// lands ~0.2 s after the last one of the previous wave was eaten, and the rest follow over
-    /// ~0.25 s, nearest to the snake first (RespawnScheduler.SpawnWaveFromPlayer sorts by distance).
-    ///
-    /// Fruit whose cell is under the snake's body waits beside it and drops back in once the body
-    /// has gone (video Man_Lose, user) [PillView: _respawnPushDuration 0.12, _respawnCheckInterval
-    /// 0.1, _respawnMinClearTime 0.3, _tailWaitPosZ -1.1]. The footage shows it on the grass side of
-    /// the road, about one cell away on screen.
+    /// Trái nằm trên bàn (mỗi ô một PillMaster_VO, gốc PillView): nhảy vào theo đợt, nhún khi nằm yên, né sang bên khi thân
+    /// rắn đè lên. Nằm trong scene Game, GameBootstrap gọi Bind.
     /// </summary>
     public class PillsView : MonoBehaviour
     {
@@ -27,17 +19,17 @@ namespace SnackDash.Presentation
             public bool landed, pushed;
             public Vector3 waitPosition;
             public float clearTime;
-            public Transform fruit;          // the shown kind; bobs while the shadow stays on the board
+            public Transform fruit;          // trái đang hiện; nhún còn bóng nằm yên trên bàn
             public float fruitZ, bobTime, bobDuration;
             public Transform shadow;
             public Vector3 shadowScale;
-            public Transform question;       // ? of a secret box; spins
+            public Transform question;       // dấu ? của hộp bí ẩn, xoay liên tục
             public Quaternion questionRest;
             public float spinTime, spinDuration;
         }
 
         [SerializeField] private GameObject pillPrefab;
-        [Tooltip("GameObject/View_Secret_Collectible: the ? box a secret fruit shows until it is eaten.")]
+        [Tooltip("View_Secret_Collectible: hộp ? che trái bí ẩn tới khi bị ăn.")]
         [SerializeField] private GameObject secretPrefab;
         [SerializeField] private float spawnZ = -3f;
         [SerializeField] private float jumpHeight = 2f;
@@ -48,37 +40,36 @@ namespace SnackDash.Presentation
         [SerializeField] private float waveSpread = 0.25f;
 
         [Header("Waiting beside the body (PillView)")]
-        [Tooltip("Sideways offset next to a vertical stretch. Man_Lose shows ~1 cell on screen " +
-                 "(PillView._respawnSideDistance is 1.25, in units we could not match).")]
+        [Tooltip("Lệch ngang cạnh đoạn thân dọc, ~1 ô trên màn (video Man_Lose).")]
         [SerializeField] private float sideDistanceHorizontal = 1f;
-        [Tooltip("Offset above/below a horizontal stretch: smaller, the raised wait height already shifts it ~0.4 cell up on screen.")]
+        [Tooltip("Lệch trên/dưới đoạn thân ngang; nhỏ hơn vì độ cao chờ đã đẩy lên ~0.4 ô.")]
         [SerializeField] private float sideDistanceVertical = 0.65f;
         [SerializeField] private float pushDuration = 0.12f;
         [SerializeField] private float checkInterval = 0.1f;
         [SerializeField] private float minClearTime = 0.3f;
         [SerializeField] private float waitZ = -1.1f;
-        [Tooltip("Độ cao trái nằm trên ô (PillController._zOffset -0.5): trái nổi trên mặt đường, bóng (Shadow của prefab) nằm sát đường và lộ ra khi trái nhún.")]
+        [Tooltip("Độ cao trái trên ô (gốc PillController._zOffset -0.5); bóng nằm sát đường.")]
         [SerializeField] private float restZ = -0.5f;
 
         [Header("Idle (PillView / SecretCollectibleView)")]
-        [Tooltip("Trái nằm chờ nổi lên cao chừng này rồi hạ xuống; bóng nằm yên trên bàn. Gốc: _idleAnimationZOffset -0.8 so với _zOffset -0.5 của PillController, tức cao 0.3; 0.8 nhìn quá cao, chốt 0.45 [user]. Đường cong không có trong dữ liệu: dùng nhún êm.")]
+        [Tooltip("Độ cao nhún của trái nằm yên (gốc 0.3, chốt 0.45 [user]).")]
         [SerializeField] private float idleHeight = 0.45f;
-        [Tooltip("Bóng (Shadow trong prefab trái) nhỏ lại còn phần này khi trái lên cao nhất, cho thấy rõ độ nhún [user; bản gốc không ghi].")]
+        [Tooltip("Tỉ lệ bóng khi trái lên cao nhất [user].")]
         [SerializeField, Range(0.3f, 1f)] private float shadowAtTop = 0.75f;
-        [Tooltip("Giây cho một lượt lên (hoặc xuống) (_idleAnimationDuration).")]
+        [Tooltip("Giây cho một lượt lên hoặc xuống (_idleAnimationDuration).")]
         [SerializeField] private float idleDuration = 1.75f;
         [Tooltip("Trễ ngẫu nhiên tối đa trước lượt đầu (_idleAnimationMaxDelay).")]
         [SerializeField] private float idleMaxDelay = 0.3f;
         [Tooltip("Thời lượng lệch ngẫu nhiên ± phần này (_idleAnimationRandomness).")]
         [SerializeField] private float idleRandomness = 0.25f;
-        [Tooltip("Dấu ? của hộp bí ẩn: giây cho một vòng xoay quanh trục đứng (SecretCollectibleView._idleAnimationDuration).")]
+        [Tooltip("Giây cho một vòng xoay của dấu ? (SecretCollectibleView._idleAnimationDuration).")]
         [SerializeField] private float spinDuration = 5.5f;
         [Tooltip("Nghỉ giữa hai vòng xoay (_idleAnimationDelay).")]
         [SerializeField] private float spinPause = 0.5f;
 
         private readonly Dictionary<Vector2Int, Pill> _pills = new Dictionary<Vector2Int, Pill>();
         private readonly List<(Vector2Int cell, PillKind kind)> _pending = new List<(Vector2Int, PillKind)>();
-        private readonly Dictionary<Vector2Int, int> _occupied = new Dictionary<Vector2Int, int>(); // cell -> segment index (-1 head)
+        private readonly Dictionary<Vector2Int, int> _occupied = new Dictionary<Vector2Int, int>(); // ô -> chỉ số đốt thân (-1 là đầu)
         private GameSession _session;
         private float _checkTimer;
 
@@ -88,8 +79,7 @@ namespace SnackDash.Presentation
             session.PillSpawned += (cell, kind) => _pending.Add((cell, kind));
             session.PillEaten += (cell, kind, segment) => Remove(cell);
             session.PillMagnetized += (cell, kind, column, crate) => Remove(cell);
-            // Undo booster: fruit the swipe ate comes back as the snake runs back over it [user];
-            // fruit of a wave the swipe brought goes again.
+            // Undo: trái đã ăn hiện lại khi rắn lùi qua [user]; trái của đợt mới do lượt đó sinh ra thì bỏ.
             session.Rewound += () =>
             {
                 _pending.Clear();
@@ -126,7 +116,7 @@ namespace SnackDash.Presentation
             foreach (var pill in _pills.Values) CheckBlocked(pill, elapsed);
         }
 
-        /// <summary>Pills spawned in the same frame form a wave; stagger them by distance to the head.</summary>
+        /// <summary>Trái sinh cùng frame là một đợt: rơi lần lượt, gần đầu rắn trước (gốc RespawnScheduler; đo ở LV2-3).</summary>
         private void SpawnPending()
         {
             bool wave = _pending.Count > 1;
@@ -142,7 +132,7 @@ namespace SnackDash.Presentation
             float last = -1f;
             foreach (var (cell, kind) in _pending)
             {
-                if (!_session.Pills.ContainsKey(cell)) continue; // eaten in the frame it spawned
+                if (!_session.Pills.ContainsKey(cell)) continue; // bị ăn ngay frame vừa sinh
                 float delay = 0f;
                 if (wave)
                 {
@@ -153,7 +143,7 @@ namespace SnackDash.Presentation
                 last = Mathf.Max(last, delay);
             }
             _pending.Clear();
-            if (last >= 0f) _session.LockInput(last + jumpDuration); // no swipe until every fruit has landed [user]
+            if (last >= 0f) _session.LockInput(last + jumpDuration); // khoá vuốt tới khi mọi trái đáp xong [user]
         }
 
         private void Spawn(Vector2Int cell, PillKind kind, float delay, bool inPlace = false)
@@ -168,7 +158,7 @@ namespace SnackDash.Presentation
             _pills[cell] = pill;
             go.SetActive(delay <= 0f);
 
-            // Landing on the snake: jump straight to the waiting spot beside it.
+            // Ô đang bị rắn đè: nhảy thẳng tới chỗ chờ bên cạnh.
             var landing = Rest(cell);
             if (_occupied.ContainsKey(cell))
             {
@@ -179,7 +169,7 @@ namespace SnackDash.Presentation
             StartCoroutine(JumpIn(pill, landing, delay, inPlace));
         }
 
-        /// <summary>Secret fruit: the fruit mesh hides under the ? box (PillView puts it in SecreteCollectibleParent).</summary>
+        /// <summary>Trái bí ẩn: ẩn trái, hiện hộp ? trong SecreteCollectibleParent (như gốc PillView).</summary>
         private void ShowSecret(Pill pill)
         {
             if (secretPrefab == null) return;
@@ -189,7 +179,7 @@ namespace SnackDash.Presentation
             fruits.gameObject.SetActive(false);
             var box = Instantiate(secretPrefab, parent, false);
             var burst = box.transform.Find("Feedbacks");
-            if (burst != null) burst.gameObject.SetActive(false); // the reveal burst plays when eaten (SnakeView)
+            if (burst != null) burst.gameObject.SetActive(false); // FX lộ trái do SnakeView chạy khi ăn
             pill.question = box.transform.Find("Visual/SecretiCollectibleQuestionMark");
             if (pill.question == null) return;
             pill.questionRest = pill.question.localRotation;
@@ -208,10 +198,7 @@ namespace SnackDash.Presentation
             pill.bobTime = -Random.Range(0f, idleMaxDelay);
         }
 
-        /// <summary>
-        /// Trái nằm yên trên ô thì nhún lên xuống (đẩy sang bên hay đang nhảy thì về chỗ, bóng luôn nằm trên bàn); dấu ? luôn xoay.
-        /// Một vòng lặp cho mọi trái, không coroutine riêng.
-        /// </summary>
+        /// <summary>Nhún trái nằm yên và xoay dấu ?; một vòng lặp cho mọi trái thay vì mỗi trái một coroutine, cho nhẹ.</summary>
         private void Idle(float dt)
         {
             foreach (var pill in _pills.Values)
@@ -222,12 +209,12 @@ namespace SnackDash.Presentation
                     if (pill.landed && !pill.pushed)
                     {
                         pill.bobTime += dt;
-                        // một lượt lên trong bobDuration rồi một lượt xuống, chậm ở đỉnh và đáy
+                        // lên rồi xuống, chậm ở đỉnh và đáy
                         if (pill.bobTime > 0f) rise = 0.5f - 0.5f * Mathf.Cos(pill.bobTime / pill.bobDuration * Mathf.PI);
                     }
                     else pill.bobTime = 0f;
                     var p = pill.fruit.localPosition;
-                    float scale = pill.fruit.parent.localScale.z; // FruitsParent 1.1: độ cao tính theo đơn vị bàn
+                    float scale = pill.fruit.parent.localScale.z; // FruitsParent scale 1.1: đổi về đơn vị bàn
                     pill.fruit.localPosition = new Vector3(p.x, p.y, pill.fruitZ - idleHeight * rise / scale);
                     if (pill.shadow != null) pill.shadow.localScale = pill.shadowScale * Mathf.Lerp(1f, shadowAtTop, rise);
                 }
@@ -236,7 +223,7 @@ namespace SnackDash.Presentation
                     pill.spinTime += dt;
                     if (pill.spinTime >= pill.spinDuration + spinPause) pill.spinTime -= pill.spinDuration + spinPause;
                     float turn = pill.spinTime > 0f ? Mathf.Min(pill.spinTime / pill.spinDuration, 1f) * 360f : 0f;
-                    pill.question.localRotation = pill.questionRest * Quaternion.Euler(0f, turn, 0f); // quanh trục dọc của chính dấu ?, giữ độ nghiêng 40° về camera
+                    pill.question.localRotation = pill.questionRest * Quaternion.Euler(0f, turn, 0f); // xoay quanh trục riêng, giữ độ nghiêng 40° về camera
                 }
             }
         }
@@ -244,21 +231,20 @@ namespace SnackDash.Presentation
         private IEnumerator JumpIn(Pill pill, Vector3 landing, float delay, bool inPlace)
         {
             var go = pill.go;
-            // Undo: the fruit is left on the road where the tail drops it, no jump [user, VFX_hoantac].
+            // Undo: trái hiện tại chỗ đuôi nhả ra, không nhảy [user, VFX_hoantac].
             go.transform.localPosition = inPlace ? landing : landing + new Vector3(0f, 0f, spawnZ);
             if (delay > 0f)
             {
                 yield return new WaitForSeconds(delay);
-                if (go == null) yield break; // eaten before it showed up
+                if (go == null) yield break; // bị ăn trước khi kịp hiện
                 go.SetActive(true);
             }
-            while (SnackDash.UI.LoadingScreen.Busy) yield return null; // the start fruit jump in once the loading screen has lifted
+            while (SnackDash.UI.LoadingScreen.Busy) yield return null; // trái đầu màn đợi màn hình loading tắt mới nhảy vào
             if (go == null) yield break;
             if (!inPlace) yield return Jump(go, landing + new Vector3(0f, 0f, spawnZ), landing);
             pill.landed = true;
         }
 
-        /// <summary>Up and down on the way from <paramref name="from"/> to <paramref name="to"/>.</summary>
         private IEnumerator Jump(GameObject go, Vector3 from, Vector3 to)
         {
             yield return Tween.Run(jumpDuration, Tween.Linear, t =>
@@ -306,10 +292,7 @@ namespace SnackDash.Presentation
             pill.landed = true;
         }
 
-        /// <summary>
-        /// Beside the body, on the grass side of the road (footage: never onto another road);
-        /// up / right when both or neither side is grass.
-        /// </summary>
+        /// <summary>Chỗ chờ cạnh thân, phía bãi cỏ (không bao giờ lên đường khác); hai phía như nhau thì lên trên / sang phải.</summary>
         private Vector3 WaitPosition(Vector2Int cell)
         {
             Vector2 along = Vector2.right;
@@ -322,8 +305,7 @@ namespace SnackDash.Presentation
             bool horizontal = Mathf.Abs(along.x) >= Mathf.Abs(along.y);
             var side = horizontal ? Vector2Int.up : Vector2Int.right;
             if (_session.Board.IsWalkable(cell + side) && !_session.Board.IsWalkable(cell - side)) side = -side;
-            // Through the -20° camera the raised wait height reads as ~0.4 cell up on screen, so the
-            // fruit goes less far above the road and further below it to look one cell away.
+            // Camera nghiêng -20° làm độ cao chờ trông như lên ~0.4 ô: phía trên đặt gần, phía dưới đặt xa hơn.
             const float raisedShift = 0.4f;
             float distance = !horizontal ? sideDistanceHorizontal
                 : side.y > 0 ? sideDistanceVertical : sideDistanceVertical + 2f * raisedShift;

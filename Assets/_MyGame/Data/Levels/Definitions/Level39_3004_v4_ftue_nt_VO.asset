@@ -131,3 +131,6 @@ MonoBehaviour:
   wallHealth: 3
   difficulty: 4
   wallGroupHealths: []
+  curtainCells: []
+  curtainGroups: []
+  risingBlockDeliveriesToLower: 3

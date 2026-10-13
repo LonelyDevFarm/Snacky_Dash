@@ -43,6 +43,7 @@ namespace SnackDash.Audio
             session.PillSpawned += (cell, kind) => PlayOncePerFrame("SpawnPill");
             session.Won += () => { Play("Confetti"); Haptics.Heavy(); };
             session.TailBitten += count => { Play("HitTail"); Haptics.Medium(); };
+            session.RisingBlockChanged += (cell, risen) => Play(risen ? "RisingBlockUp" : "RisingBlockDown"); // khối nâng [SoundManager]
         }
 
         private int _lastSpawnSoundFrame = -1;
