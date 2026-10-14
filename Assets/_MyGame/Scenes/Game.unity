@@ -408,6 +408,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1087866751}
   - component: {fileID: 1087866752}
+  - component: {fileID: 1087866753}
   m_Layer: 0
   m_Name: Snake
   m_TagString: Untagged
@@ -466,6 +467,20 @@ MonoBehaviour:
   jawTiltPerSpeed: 10
   jawSmoothTime: 0.05
   jawMaxAngle: 45
+--- !u!114 &1087866753
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1087866750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56505eba48cc2444aa022fe2de3401e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  feelEnabled: 1
+  cornerRadius: 0.8
 --- !u!1 &1090080152
 GameObject:
   m_ObjectHideFlags: 0

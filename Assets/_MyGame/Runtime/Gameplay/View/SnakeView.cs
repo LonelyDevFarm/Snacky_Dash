@@ -62,6 +62,8 @@ namespace SnackDash.Presentation
 
         private readonly List<Segment> _segments = new List<Segment>();
         private GameSession _session;
+        private SnakeTailFeel _feel;
+        private System.Func<float, Vector2> _sample; // Sample dựng một lần, khỏi cấp phát mỗi frame
         private Transform _head;
         private Animator _headAnimator;
         private Vector3 _headScale;
@@ -87,6 +89,8 @@ namespace SnackDash.Presentation
         public void Bind(GameSession session)
         {
             _session = session;
+            _feel = GetComponent<SnakeTailFeel>();
+            _sample = Sample;
             _head = Instantiate(headPrefab, transform).transform;
             _head.name = "SnakeHead";
             _headAnimator = _head.GetComponentInChildren<Animator>();
@@ -467,20 +471,57 @@ namespace SnackDash.Presentation
             UpdateJaw();
             ShowHead(_rewindLeft > 0f ? !SampleHidden(0f) : !_session.HeadInTunnel);
 
-            float step = spacingSpeed * Time.deltaTime;
+            float dt = Time.deltaTime;
+            float step = spacingSpeed * dt;
+            float radius = _feel != null ? _feel.Radius : 0f;
+            float previousLogical = 0f, previousShown = 0f; // đốt trước (đầu = 0): khoảng theo luật / khoảng vẽ dọc đường
+            var previousPoint = PathPoint3(0f, radius);
             for (int i = 0; i < _segments.Count; i++)
             {
                 var segment = _segments[i];
                 if (segment.frozen) continue;
                 segment.distance = Mathf.MoveTowards(segment.distance, (i + 1) * GameSession.SegmentSpacing, step);
-                Vector3 position = Sample(segment.distance);
-                var along = Sample(segment.distance - 0.5f) - Sample(segment.distance + 0.5f);
-                position.z -= DeckLift(position, Mathf.Abs(along.x) >= Mathf.Abs(along.y));
-                segment.root.transform.localPosition = position;
+                // Trên vòm cầu đường lên xuống nên 1 ô mặt phẳng dài hơn 1 ô thật: xếp đốt theo khoảng thật (có độ cao)
+                // để thân sát nhau như gốc (ảnh user 15/10), không hở. Ngoài cầu giữ đúng khoảng của luật.
+                float gap = segment.distance - previousLogical;
+                float distance = previousShown + gap;
+                var point = PathPoint3(distance, radius);
+                if (point.z < 0f || previousPoint.z < 0f)
+                    for (int k = 0; k < 3; k++)
+                    {
+                        float chord = Vector3.Distance(point, previousPoint);
+                        if (chord < 0.001f) break;
+                        distance = previousShown + (distance - previousShown) * gap / chord;
+                        point = PathPoint3(distance, radius);
+                    }
+                previousLogical = segment.distance;
+                previousShown = distance;
+                previousPoint = point;
+                // Đang chạy: góc rẽ bo tròn (SnakeTailFeel); dừng: đúng đường, gãy vuông ở góc như gốc.
+                var flat = _feel != null ? _feel.Smooth(_sample, distance, radius) : Sample(distance);
+                var ahead = _feel != null ? _feel.Smooth(_sample, distance - 0.15f, radius) : Sample(distance - 0.15f);
+                var way = ahead - flat;
+                if (way.sqrMagnitude < 0.000001f) way = Sample(distance - 0.5f) - Sample(distance + 0.5f);
+                bool horizontal = Mathf.Abs(way.x) >= Mathf.Abs(way.y);
+                Vector3 position = flat;
+                float lift = DeckLift(flat, horizontal);
+                position.z -= lift;
                 // Trong đường hầm thì ẩn tới khi ra miệng bên kia.
-                bool visible = !SampleHidden(segment.distance);
+                bool visible = !SampleHidden(distance);
                 if (segment.root.activeSelf != visible) segment.root.SetActive(visible);
+                var root = segment.root.transform;
+                // Hộp đốt không xoay: thân cong nhờ đốt lệch khỏi đường thẳng, hộp vẫn thẳng trục như gốc [user 15/10].
+                root.localPosition = position;
             }
+        }
+
+        /// <summary>Điểm trên đường (đã bo góc) kèm độ cao trên cầu (z âm là lên).</summary>
+        private Vector3 PathPoint3(float distance, float radius)
+        {
+            var flat = _feel != null ? _feel.Smooth(_sample, distance, radius) : Sample(distance);
+            var way = Sample(distance - 0.05f) - Sample(distance);
+            if (way.sqrMagnitude < 0.000001f) way = Sample(distance - 0.5f) - Sample(distance + 0.5f);
+            return new Vector3(flat.x, flat.y, -DeckLift(flat, Mathf.Abs(way.x) >= Mathf.Abs(way.y)));
         }
 
         /// <summary>Độ nâng khi bò qua cầu (dài 4.3 ô); không đọc được mesh nên dùng đường cos. Đường dưới cầu giữ mặt đất.</summary>
