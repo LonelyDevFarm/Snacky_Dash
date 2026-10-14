@@ -404,6 +404,10 @@ namespace SnackDash.Presentation
                 if (materials.Length > 1) materials[1] = entry.crateMaterial; // gốc: _materialIndexToColor = 1
                 renderer.sharedMaterials = materials;
             }
+            // Viền khay theo loại trái (gốc: Crate._outline, GetCrateOutlineColor); prefab để sẵn màu xanh navy.
+            var outline = crate.transform.Find("BoxVisual_VO/Outline");
+            if (outline != null && entry != null && outline.TryGetComponent<SpriteRenderer>(out var sprite))
+                sprite.color = entry.outlineColor;
             // Khay trống trong video không có icon; gốc tắt bằng code.
             var icon = crate.transform.Find("BoxVisual_VO/BoxFloor_VO/Mesh_Crate/Fruit_Icon");
             if (icon != null) icon.gameObject.SetActive(false);
