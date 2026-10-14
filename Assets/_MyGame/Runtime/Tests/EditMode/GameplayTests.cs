@@ -582,6 +582,15 @@ namespace SnackDash.Tests
                 Assert.IsTrue(session.Board.CanMove(gate.Key, way), "a gate lets the snake through its way");
                 Assert.IsFalse(session.Board.CanMove(gate.Key + way.ToCell(), way.Opposite()), "a gate is a wall the other way");
             }
+            // A rock under a bridge (ldf_below) shuts the road below, not the deck.
+            foreach (var bridge in session.Board.Bridges)
+            {
+                if (!session.Board.IsClosedWall(bridge.Key)) continue;
+                var deck = bridge.Value ? Direction.Right : Direction.Up;
+                var below = bridge.Value ? Direction.Up : Direction.Right;
+                Assert.IsTrue(session.Board.CanMove(bridge.Key, deck) || session.Board.CanMove(bridge.Key, deck.Opposite()), "the deck stays open over a rock");
+                Assert.IsFalse(session.Board.CanMove(bridge.Key, below) || session.Board.CanMove(bridge.Key, below.Opposite()), "the rock shuts the road under the bridge");
+            }
             // A rising block that is down takes fruit like a road [user].
             bool RoadObject(Vector2Int cell) => BoardGraph.HasRoadObject(map, cell) && !session.Board.RisingBlocks.Contains(cell);
             if (!map.HasLayer("spawn1"))

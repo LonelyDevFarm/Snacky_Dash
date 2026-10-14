@@ -102,7 +102,7 @@ namespace SnackDash.Gameplay
 
         /// <summary>
         /// Ô rắn tới được khi còn rèm đóng; trái chỉ rải vào đây, nếu không màn bị kẹt (Level 41) (gốc: PillSpawnEligibility).
-        /// Null khi không còn rèm đóng. Đá, cổng, khối nâng coi như mở; đường hầm nối hai miệng.
+        /// Null khi không còn rèm đóng. Đá đang đóng cũng chặn (Level 48: đá dưới cầu ngăn vùng dưới); cổng, khối nâng coi như mở; đường hầm nối hai miệng.
         /// </summary>
         private HashSet<Vector2Int> ReachableWhileCurtained()
         {
@@ -116,7 +116,8 @@ namespace SnackDash.Gameplay
                 foreach (var direction in DirectionExtensions.All)
                 {
                     var next = cell + direction.ToCell();
-                    if (_board.HasRoad(cell, direction) && !_board.IsCovered(next) && reach.Add(next)) queue.Enqueue(next);
+                    if (_board.HasRoad(cell, direction) && !_board.IsCovered(next) && !_board.WallBlocks(cell, direction)
+                        && !_board.WallBlocks(next, direction) && reach.Add(next)) queue.Enqueue(next);
                 }
                 if (_board.TryGetTunnelOther(cell, out var other) && reach.Add(other)) queue.Enqueue(other);
             }

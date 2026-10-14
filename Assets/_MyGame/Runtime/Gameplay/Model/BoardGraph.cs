@@ -63,6 +63,14 @@ namespace SnackDash.Gameplay
 
         public bool IsClosedWall(Vector2Int cell) => _closedWalls.Contains(cell);
 
+        /// <summary>Lớp có đá; ldf_below là đá dưới gầm cầu (Level 24, 25, 30, 35, 37, 45, 47, 48).</summary>
+        public static readonly string[] WallLayers = { "ldf", "ldf_below" };
+
+        /// <summary>Đá chặn bước đi qua ô; đá dưới gầm cầu chỉ chặn đường dưới, mặt cầu vẫn đi được.</summary>
+        public bool WallBlocks(Vector2Int cell, Direction direction) =>
+            _closedWalls.Contains(cell)
+            && !(_bridges.TryGetValue(cell, out bool leftRight) && (direction == Direction.Left || direction == Direction.Right) == leftRight);
+
         public void OpenWall(int group)
         {
             foreach (var cell in _wallGroups[group]) _closedWalls.Remove(cell);
@@ -194,14 +202,18 @@ namespace SnackDash.Gameplay
                 }
             }
 
-            // Đá: các ô tường liền nhau ở lớp ldf thành một nhóm.
+            // Đá: các ô tường liền nhau ở lớp ldf / ldf_below (đá dưới gầm cầu) thành một nhóm.
             var walls = new HashSet<Vector2Int>();
-            for (int y = 0; y < map.Height; y++)
-            for (int x = 0; x < map.Width; x++)
+            foreach (var layer in WallLayers)
             {
-                var position = new Vector2Int(x, y);
-                if (map.GetLocalTileId("ldf", position) is int id && id >= 0 && database.TryGet(id, out var definition)
-                    && definition.tileType == TileType.Wall) walls.Add(position);
+                if (!map.HasLayer(layer)) continue;
+                for (int y = 0; y < map.Height; y++)
+                for (int x = 0; x < map.Width; x++)
+                {
+                    var position = new Vector2Int(x, y);
+                    if (map.GetLocalTileId(layer, position) is int id && id >= 0 && database.TryGet(id, out var definition)
+                        && definition.tileType == TileType.Wall) walls.Add(position);
+                }
             }
             var grouped = new HashSet<Vector2Int>();
             foreach (var start in walls)
@@ -355,9 +367,10 @@ namespace SnackDash.Gameplay
             return straight;
         }
 
-        /// <summary>True khi có vật của lớp "ldf" (cơ chế) trên <paramref name="cell"/>.</summary>
+        /// <summary>True khi có vật của lớp "ldf" (cơ chế) hoặc "ldf_below" (đá dưới cầu) trên <paramref name="cell"/>.</summary>
         public static bool HasRoadObject(TiledMap map, Vector2Int cell) =>
-            map.HasLayer("ldf") && map.GetLocalTileId("ldf", cell) >= 0;
+            (map.HasLayer("ldf") && map.GetLocalTileId("ldf", cell) >= 0)
+            || (map.HasLayer("ldf_below") && map.GetLocalTileId("ldf_below", cell) >= 0);
 
         private List<Vector2Int> Walk(Vector2Int start, HashSet<Vector2Int> slots, HashSet<Vector2Int> visited)
         {
@@ -418,7 +431,7 @@ namespace SnackDash.Gameplay
                    && Allows(a.type, direction) && Allows(b.type, direction.Opposite())
                    && PassesGate(from, direction) && PassesGate(to, direction)
                    && MouthOpens(from, direction) && MouthOpens(to, direction.Opposite())
-                   && !_closedWalls.Contains(from) && !_closedWalls.Contains(to)
+                   && !WallBlocks(from, direction) && !WallBlocks(to, direction)
                    && !_covered.Contains(from) && !_covered.Contains(to)
                    && !_risen.Contains(to);
         }

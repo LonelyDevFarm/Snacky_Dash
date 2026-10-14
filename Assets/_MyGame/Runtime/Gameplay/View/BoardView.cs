@@ -12,8 +12,8 @@ namespace SnackDash.Presentation
     /// </summary>
     public class BoardView : MonoBehaviour
     {
-        // "map": nền và đường; "ldf": cơ chế (đá, mũi tên...).
-        private static readonly string[] CoverLayers = { "map", "ldf" };
+        // "map": nền và đường; "ldf": cơ chế (đá, mũi tên...); "ldf_below": đá dưới gầm cầu.
+        private static readonly string[] CoverLayers = { "map", "ldf", "ldf_below" };
 
         [SerializeField] private TileDefinitionDatabase database;
         [SerializeField] private Transform coverRoot;
@@ -29,6 +29,7 @@ namespace SnackDash.Presentation
         private readonly List<GameObject> _spawned = new List<GameObject>();
         private readonly Dictionary<Vector2Int, GameObject> _mapCovers = new Dictionary<Vector2Int, GameObject>();
         private readonly Dictionary<Vector2Int, GameObject> _ldfCovers = new Dictionary<Vector2Int, GameObject>();
+        private readonly Dictionary<Vector2Int, GameObject> _belowCovers = new Dictionary<Vector2Int, GameObject>(); // đá dưới cầu
 
         [Header("Fixed arrow gates (ArrowView on TileCov_Arrow_Fixed)")]
         [SerializeField] private float gateRotateAngle = 60f;
@@ -82,7 +83,8 @@ namespace SnackDash.Presentation
                     cover.transform.localRotation = Quaternion.Euler(0f, 0f, definition.coverZRotation);
                     _spawned.Add(cover);
                     if (layer == "map") _mapCovers[cell] = cover;
-                    else _ldfCovers[cell] = cover;
+                    else if (layer == "ldf") _ldfCovers[cell] = cover;
+                    else _belowCovers[cell] = cover;
                 }
             }
 
@@ -242,7 +244,8 @@ namespace SnackDash.Presentation
                 var coverCells = new List<Vector2Int>();
                 foreach (var cell in session.Board.WallGroups[group])
                 {
-                    if (!_ldfCovers.TryGetValue(cell, out var cover)) continue;
+                    // Ô cầu có đá dưới: mặt cầu ở ldf, đá ở ldf_below.
+                    if (!_belowCovers.TryGetValue(cell, out var cover) && !_ldfCovers.TryGetValue(cell, out cover)) continue;
                     covers.Add(cover);
                     coverCells.Add(cell);
                     int variant = Mathf.Abs(cell.x * 7 + cell.y * 13) % 3 + 1;
@@ -441,6 +444,7 @@ namespace SnackDash.Presentation
         {
             _mapCovers.Clear();
             _ldfCovers.Clear();
+            _belowCovers.Clear();
             _gates.Clear();
             _flips.Clear();
             _wallCovers.Clear();
