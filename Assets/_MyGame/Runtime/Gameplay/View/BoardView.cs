@@ -263,6 +263,12 @@ namespace SnackDash.Presentation
                     text.outlineWidth = wallTextOutline;
                     text.outlineColor = Color.black;
                     text.transform.localPosition += wallTextOffset;
+                    // Đá dọc là prefab đá ngang xoay 90° (coverZRotation): bỏ phần xoay đó khỏi chữ (cả hướng lẫn chỗ đặt quanh tâm đá),
+                    // số luôn đứng thẳng và nằm như trên đá ngang [user 15/10].
+                    var board = cover.transform.parent.rotation;
+                    var unturn = board * Quaternion.Inverse(cover.transform.localRotation) * Quaternion.Inverse(board);
+                    var center = cover.transform.position;
+                    text.transform.SetPositionAndRotation(center + unturn * (text.transform.position - center), unturn * text.transform.rotation);
                 }
                 SetWallText(group, session.WallHealth[group]);
             }

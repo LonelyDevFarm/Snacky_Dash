@@ -1179,6 +1179,7 @@ MonoBehaviour:
   boardRefitDuration: 0.35
   bottomHeight: 500
   topHeight: 145
+  hud: {fileID: 212566520}
 --- !u!1 &2003831875
 GameObject:
   m_ObjectHideFlags: 0

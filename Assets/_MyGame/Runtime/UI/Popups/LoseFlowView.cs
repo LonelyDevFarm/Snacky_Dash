@@ -21,6 +21,8 @@ namespace SnackDash.UI
         [SerializeField] private float boardRefitDuration = 0.35f;
         [Tooltip("Bottom_Container (500) và Top_Container_Version_B (130 + 15) của LoseInBoardPopup.")]
         [SerializeField] private float bottomHeight = 500f, topHeight = 145f;
+        [Tooltip("HUD trong scene: lúc NO WAY OUT nút cài đặt nhường chỗ cho ô xu (video Man_Lose).")]
+        [SerializeField] private HudView hud;
 
         private GameSession _session;
         private Action _restart;
@@ -53,6 +55,7 @@ namespace SnackDash.UI
             CloseOpen();
             var popup = UI.Show<T>();
             _open = popup;
+            if (hud != null) hud.ShowCoins(false); // NO WAY OUT bật ô xu cùng lúc với nút SNIP TAIL
             return popup;
         }
 
@@ -60,6 +63,7 @@ namespace SnackDash.UI
         {
             if (_open != null) Destroy(_open.gameObject);
             _open = null;
+            if (hud != null) hud.ShowCoins(false);
         }
 
         private IEnumerator NoWayOut()
@@ -71,7 +75,11 @@ namespace SnackDash.UI
             popup.Setup(SnipCost, Forced);
             popup.Snip += Snip;
             popup.GiveUp += SecondChance;
-            popup.StartCoroutine(popup.Reveal(() => { if (_cameraFitter != null) _cameraFitter.FitBetween(bottomHeight, 1920f - topHeight, boardRefitDuration); }));
+            popup.StartCoroutine(popup.Reveal(() =>
+            {
+                if (_cameraFitter != null) _cameraFitter.FitBetween(bottomHeight, 1920f - topHeight, boardRefitDuration);
+                if (hud != null && _open == popup) hud.ShowCoins(true); // cùng đợt với SNIP TAIL [user 15/10]
+            }));
         }
 
         private void Snip()

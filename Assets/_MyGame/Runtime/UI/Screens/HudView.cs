@@ -36,10 +36,23 @@ namespace SnackDash.UI
         [Tooltip("Ô \"+N\" của một combo đứng bao lâu rồi ẩn.")]
         [SerializeField] private float coinTagHold = 1.2f;
 
+        [Header("Lúc NO WAY OUT (Top_Container_Version_B của LoseInBoardPopup gốc)")]
+        [Tooltip("ProgressBar: thu hẹp lại để chừa chỗ cho ô xu.")]
+        [SerializeField] private RectTransform progressBar;
+        [Tooltip("CurrencyCoins: ô xu góc phải, thế chỗ nút cài đặt; tắt sẵn.")]
+        [SerializeField] private GameObject coinsBox;
+        [SerializeField] private TMP_Text coinsText;
+        [Tooltip("Thanh lúc hiện xu: tâm X và phần bớt bề ngang (gốc: Panel -107.86 / -242.09, ProgressBar -176.29).")]
+        [SerializeField] private float coinsBarX = -107.86f, coinsBarWidthDelta = -418.38f;
+        [Tooltip("Giây ô xu hiện dần, cùng nhịp với nút SNIP TAIL (NoWayOutPopup Body Fade Duration).")]
+        [SerializeField] private float coinsFadeDuration = 0.2f;
+
         private readonly List<(float fraction, int fruit, GameObject pending)> _markers = new List<(float, int, GameObject)>();
         private GameSession _session;
         private float _shown, _total;
         private Coroutine _coinTagShow;
+        private Vector2 _barPosition, _barSize;
+        private int _coinsShown = -1;
 
         /// <summary>Đích bay của xu combo.</summary>
         public RectTransform CoinTag => coinTag;
@@ -69,6 +82,28 @@ namespace SnackDash.UI
             Time.timeScale = 0f;
             settings.Closed += () => Time.timeScale = 1f;
             settings.Setup(levelNumber >= backToHomeFromLevel ? () => { PlayerEconomy.Shared.Lose(); Core.EventBus.Publish(new Core.LevelLostEvent(levelNumber)); LoadingScreen.Load(LoadingScreen.HomeScene); } : (System.Action)null);
+        }
+
+        /// <summary>
+        /// Lúc NO WAY OUT: nút cài đặt nhường chỗ cho ô xu để người chơi thấy còn bao nhiêu xu (video Man_Lose, ảnh user 15/10).
+        /// </summary>
+        public void ShowCoins(bool show)
+        {
+            if (coinsBox == null || coinsBox.activeSelf == show) return;
+            if (show) { _barPosition = progressBar.anchoredPosition; _barSize = progressBar.sizeDelta; }
+            settingsButton.gameObject.SetActive(!show);
+            coinsBox.SetActive(show);
+            if (show) StartCoroutine(FadeIn(coinsBox));
+            progressBar.anchoredPosition = show ? new Vector2(coinsBarX, _barPosition.y) : _barPosition;
+            progressBar.sizeDelta = show ? new Vector2(coinsBarWidthDelta, _barSize.y) : _barSize;
+            _coinsShown = -1;
+        }
+
+        private IEnumerator FadeIn(GameObject box)
+        {
+            if (!box.TryGetComponent<CanvasGroup>(out var group)) group = box.AddComponent<CanvasGroup>();
+            group.alpha = 0f;
+            yield return Tween.Run(coinsFadeDuration, Tween.Linear, t => group.alpha = t);
         }
 
         /// <summary>Xu của một combo [user]: ô bật lên với "+N" của riêng combo đó, đứng một lúc rồi ẩn; tổng cả màn chỉ cộng ở màn thắng.</summary>
@@ -116,6 +151,11 @@ namespace SnackDash.UI
         private void Update()
         {
             if (_session == null) return;
+            if (coinsBox != null && coinsBox.activeSelf && PlayerEconomy.Shared.Coins != _coinsShown)
+            {
+                _coinsShown = PlayerEconomy.Shared.Coins;
+                coinsText.text = _coinsShown.ToString();
+            }
             int eaten = _session.FruitEaten;
             _shown = Mathf.MoveTowards(_shown, eaten / _total, fillSpeed * Time.deltaTime);
             fill.anchorMax = new Vector2(_shown, 1f);
