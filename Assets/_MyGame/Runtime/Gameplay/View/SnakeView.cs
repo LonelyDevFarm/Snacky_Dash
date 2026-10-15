@@ -86,6 +86,12 @@ namespace SnackDash.Presentation
 
         public Vector3 HeadWorldPosition => _head != null ? _head.position : transform.position;
 
+        /// <summary>Đầu rắn (SnakeHead_VO); SnakeIdleView lấy mắt ở đây.</summary>
+        public Transform Head => _head;
+
+        /// <summary>Mắt vừa chớp xong (mở lại); SnakeIdleView liếc sau mỗi lần chớp.</summary>
+        public event System.Action Blinked;
+
         public void Bind(GameSession session)
         {
             _session = session;
@@ -168,7 +174,9 @@ namespace SnackDash.Presentation
                 if (_stunned) continue;
                 ShowEyes(_eyesClosed);
                 yield return new WaitForSeconds(Random.Range(blinkDuration.x, blinkDuration.y));
-                if (!_stunned) ShowEyes(_eyesOpen);
+                if (_stunned) continue;
+                ShowEyes(_eyesOpen);
+                Blinked?.Invoke();
             }
         }
 
