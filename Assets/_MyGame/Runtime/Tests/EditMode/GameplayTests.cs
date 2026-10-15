@@ -506,9 +506,17 @@ namespace SnackDash.Tests
             Assert.IsFalse(session.CanUndo, "not twice in a row");
             Assert.IsTrue(session.IsRewinding && !session.RequestMove(session.Heading) && !session.RequestMove(session.Heading.Opposite()), "no swipe while it runs back [user]");
             for (int i = 0; i < 600 && session.IsRewinding; i++) session.Tick(1f / 60f);
+            Assert.IsFalse(session.UndoReady, "the button stays dim until the next swipe");
+            bool dimWhileMoving = false;
             for (int m = 0; m < 50 && !session.CanUndo; m++)
-                if (session.RequestMove((Direction)random.Next(4))) Run();
+                if (session.RequestMove((Direction)random.Next(4)))
+                    for (int i = 0; i < 3600 && (session.IsMoving || session.IsDelivering); i++)
+                    {
+                        session.Tick(1f / 60f);
+                        dimWhileMoving |= session.IsMoving && !session.UndoReady;
+                    }
             Assert.IsTrue(session.CanUndo, "again after the next swipe");
+            Assert.IsFalse(dimWhileMoving, "the button does not blink while the snake runs [user]");
 
             // Magnet: pulls fruit near the head into crates while it moves, for five swipes, then goes [user].
             int pulled = 0;

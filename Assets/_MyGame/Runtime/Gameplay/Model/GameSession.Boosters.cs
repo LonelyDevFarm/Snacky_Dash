@@ -60,9 +60,13 @@ namespace SnackDash.Gameplay
         private readonly List<(Vector2Int cell, PillKind kind)> _eatenSinceSwipe = new List<(Vector2Int, PillKind)>();
 
         /// <summary>
-        /// Undo bị mờ ngay sau một undo hay booster khác và khi nam châm đang bật: cần một lượt vuốt mới [user].
+        /// Nút Undo sáng: có lượt vuốt để quay lại. Mờ ngay sau một undo hay booster khác và khi nam châm đang bật,
+        /// tới lượt vuốt mới [user]; không mờ chỉ vì rắn đang chạy (nút nhấp nháy mỗi lượt, user 15/10).
         /// </summary>
-        public bool CanUndo => _beforeLastMove != null && IsIdle && !_magnetOn;
+        public bool UndoReady => _beforeLastMove != null && !_magnetOn;
+
+        /// <summary>Undo dùng được ngay: nút sáng và rắn đang đứng yên.</summary>
+        public bool CanUndo => UndoReady && IsIdle;
 
         private void ForgetUndo() => _beforeLastMove = null;
 

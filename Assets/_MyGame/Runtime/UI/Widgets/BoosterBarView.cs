@@ -460,9 +460,9 @@ namespace SnackDash.UI
             if (_session == null) return;
             bool hide = HideWhen != null && HideWhen();
             if (_bar.gameObject.activeSelf == hide) _bar.gameObject.SetActive(!hide);
-            // Số còn lại / FREE / dấu +; Undo xám và mờ khi tạm không dùng được (ngay sau booster, hoặc trước lần vuốt mới) [user].
+            // Số còn lại / FREE / dấu +; Undo xám và mờ ngay sau booster / undo, tới lần vuốt mới [user]; rắn chạy thì không mờ.
             foreach (var booster in _boosters)
-                if (booster.unlocked) booster.view.Show(booster.free, booster.Stock, booster.id != Booster.Undo || _session.CanUndo);
+                if (booster.unlocked) booster.view.Show(booster.free, booster.Stock, booster.id != Booster.Undo || _session.UndoReady);
 
             FollowHead();
 
