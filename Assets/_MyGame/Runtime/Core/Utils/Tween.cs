@@ -15,6 +15,7 @@ namespace SnackDash.Presentation
         public static float InOutSine(float t) => -(Mathf.Cos(Mathf.PI * t) - 1f) * 0.5f;
         public static float InQuad(float t) => t * t;
         public static float OutQuad(float t) => 1f - (1f - t) * (1f - t);
+        public static float OutCubic(float t) => 1f - (1f - t) * (1f - t) * (1f - t); // DOTween Ease 9
         public static float InOutCubic(float t) => t < 0.5f ? 4f * t * t * t : 1f - Mathf.Pow(-2f * t + 2f, 3f) * 0.5f;
 
         public static Func<float, float> OutBack(float overshoot) => t =>
