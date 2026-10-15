@@ -34,6 +34,20 @@ namespace SnackDash.Presentation
         [SerializeField] private Vector3 bubbleOffset = new Vector3(0.6f, 1.4f, -2.5f);
         [SerializeField] private float popDuration = 0.25f;
 
+        [Header("Tức giận")]
+        [Tooltip("Hình dấu tức giận trong bong bóng (Source/Art/InGame/Textures/S_Mood_Angry).")]
+        [SerializeField] private Sprite angrySprite;
+        [Tooltip("Vuốt vào tường / vật cản bấy nhiêu lần liên tiếp (không đi được bước nào) thì tức giận.")]
+        [SerializeField] private int angryHits = 3;
+        [Tooltip("Hai lần đập cách nhau quá bấy nhiêu giây thì không tính là liên tiếp, đếm lại từ đầu [user].")]
+        [SerializeField] private float angryHitGap = 1.5f;
+        [Tooltip("Giây bong bóng tức giận giữ (3-7 s [user]); hết thì về bình thường, đếm đứng yên lại từ đầu.")]
+        [SerializeField] private float angryDuration = 5f;
+        [Tooltip("Dấu tức giận lắc bao nhiêu độ, nhanh bao nhiêu lần mỗi giây.")]
+        [SerializeField] private float angryShakeAngle = 10f, angryShakeSpeed = 9f;
+        [Tooltip("Chỉ lắc bấy nhiêu giây lúc mới hiện (2-3 lần) rồi đứng yên [user].")]
+        [SerializeField] private float angryShakeTime = 0.35f;
+
         private GameSession _session;
         private SnakeView _snake;
         private Func<bool> _blocked;
@@ -42,7 +56,9 @@ namespace SnackDash.Presentation
         private Transform _bubble;
         private Vector3 _bubbleScale; // tỉ lệ của prefab (Canvas 0.01), bật nảy nhân lên đó
         private UnityEngine.UI.Image _icon;
-        private Coroutine _glance, _talk;
+        private Coroutine _glance, _talk, _angry;
+        private int _hits; // lần vuốt bị chặn liên tiếp
+        private float _lastHit = -99f;
         private float _idle, _glanceSide = -1f;
 
         public void Bind(GameSession session, SnakeView snake, Func<bool> blocked)
@@ -64,7 +80,8 @@ namespace SnackDash.Presentation
                 _icon = icon != null ? icon.GetComponent<UnityEngine.UI.Image>() : null;
                 _bubble.gameObject.SetActive(false);
             }
-            session.MoveStarted += _ => Stop();
+            session.MoveStarted += _ => { _hits = 0; Stop(); };
+            session.MoveBlocked += _ => OnBlocked();
             snake.Blinked += OnBlinked;
         }
 
@@ -77,7 +94,7 @@ namespace SnackDash.Presentation
             if (_session == null) return;
             if (!CanShow) { Stop(); return; }
             _idle += Time.deltaTime;
-            if (_talk == null && _bubble != null && _idle >= bubbleDelay) _talk = StartCoroutine(Talk());
+            if (_talk == null && _angry == null && _bubble != null && _idle >= bubbleDelay) _talk = StartCoroutine(Talk());
         }
 
         private void LateUpdate()
@@ -94,6 +111,8 @@ namespace SnackDash.Presentation
             _idle = 0f;
             if (_glance != null) { StopCoroutine(_glance); _glance = null; }
             if (_talk != null) { StopCoroutine(_talk); _talk = null; }
+            if (_angry != null) { StopCoroutine(_angry); _angry = null; }
+            if (_icon != null) _icon.rectTransform.localRotation = Quaternion.identity;
             SetPupils(0f);
             if (_bubble != null) _bubble.gameObject.SetActive(false);
         }
@@ -118,6 +137,46 @@ namespace SnackDash.Presentation
             yield return new WaitForSeconds(glanceHold);
             yield return Tween.Run(glanceMove, Tween.OutSine, t => SetPupils(side * (1f - t)));
             _glance = null;
+        }
+
+        /// <summary>
+        /// Vuốt vào tường / vật cản: từ lần thứ <see cref="angryHits"/> liên tiếp thì bong bóng thành dấu tức giận; mỗi lần đập
+        /// tiếp sau đó bật lại và tính lại thời gian [user]. Đang có bong bóng trái thì đổi sang tức giận.
+        /// </summary>
+        private void OnBlocked()
+        {
+            if (Time.time - _lastHit > angryHitGap) _hits = 0; // phải liên tiếp [user]
+            _lastHit = Time.time;
+            _hits++;
+            if ((_hits < angryHits && _angry == null) || _bubble == null || _icon == null || angrySprite == null || _session == null || !CanShow) return;
+            if (_talk != null) { StopCoroutine(_talk); _talk = null; }
+            if (_angry != null) StopCoroutine(_angry);
+            _angry = StartCoroutine(Angry());
+        }
+
+        private IEnumerator Angry()
+        {
+            _icon.sprite = angrySprite;
+            _bubble.gameObject.SetActive(true);
+            LateUpdate();
+            float time = 0f;
+            var icon = _icon.rectTransform;
+            while (time < angryDuration)
+            {
+                float pop = Mathf.Clamp01(time / popDuration);
+                _bubble.localScale = _bubbleScale * Tween.OutBack(2.5f)(pop);
+                float shake = time < angryShakeTime ? (1f - time / angryShakeTime) * angryShakeAngle : 0f; // lắc nhỏ dần rồi đứng yên
+                icon.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(time * angryShakeSpeed * Mathf.PI * 2f) * shake);
+                time += Time.deltaTime;
+                yield return null;
+            }
+            icon.localRotation = Quaternion.identity;
+            _bubble.gameObject.SetActive(false);
+            // Hết giận thì về bình thường: đếm đứng yên lại từ đầu, trạng thái tiếp theo tuỳ điều kiện nào đạt trước [user].
+            _angry = null;
+            _talk = null;
+            _idle = 0f;
+            _hits = 0;
         }
 
         /// <summary>Bong bóng bật lên một lần rồi đứng yên tới khi rắn chạy [user].</summary>

@@ -503,6 +503,13 @@ MonoBehaviour:
   bubbleDelay: 6
   bubbleOffset: {x: 0.6, y: 1.4, z: -2.5}
   popDuration: 0.25
+  angrySprite: {fileID: 21300000, guid: 52119dfd76864e34facd3d87befb7597, type: 3}
+  angryHits: 3
+  angryHitGap: 1.5
+  angryDuration: 5
+  angryShakeAngle: 10
+  angryShakeSpeed: 9
+  angryShakeTime: 0.35
 --- !u!1 &1090080152
 GameObject:
   m_ObjectHideFlags: 0
