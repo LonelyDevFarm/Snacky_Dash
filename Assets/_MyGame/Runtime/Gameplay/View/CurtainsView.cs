@@ -105,7 +105,7 @@ namespace SnackDash.Presentation
                     group.counter = Instantiate(counterPrefab, group.root);
                     group.counter.transform.localPosition = counterOffset;
                     var entry = fruits != null ? fruits.Get(curtain.Kind) : null;
-                    group.counter.Init(entry != null ? entry.sprite : null, curtain.Remaining);
+                    group.counter.Init(entry == null ? null : entry.fieldSprite != null ? entry.fieldSprite : entry.sprite, curtain.Remaining);
                 }
                 _groups.Add(group);
                 SetShutter(group, 0f);

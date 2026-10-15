@@ -17,6 +17,8 @@ namespace SnackDash.LevelSystem
             public PillKind kind;
             public Sprite sprite;
             public Sprite spriteNoOutline;
+            [Tooltip("Icon theo hình trái trên sân (bản 1.15): bộ đếm trên rèm. Trống thì dùng Sprite.")]
+            public Sprite fieldSprite;
             public Material crateMaterial;
             public Color outlineColor = Color.black;
         }

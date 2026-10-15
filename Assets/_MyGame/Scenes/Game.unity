@@ -818,7 +818,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac57735324446a84ebc05d23b68cf31c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pillPrefab: {fileID: 1709254077376921, guid: b8a15aca78976124c9b80a9633021761, type: 3}
+  pillPrefab: {fileID: 1709254077376921, guid: ab757c8903738cd49b64bad1a238a19b, type: 3}
   secretPrefab: {fileID: 1709254077376921, guid: 6cc2a3ce91c3b384f963199e40407d62, type: 3}
   spawnZ: -3
   jumpHeight: 2
@@ -941,7 +941,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   crate9Prefab: {fileID: 1709254077376921, guid: 62fec3aa4c22edd46ac542c580b79d35, type: 3}
   holePrefab: {fileID: 1709254077376921, guid: 71f986c1a774a0041a129231c0d05409, type: 3}
-  pillPrefab: {fileID: 1709254077376921, guid: b8a15aca78976124c9b80a9633021761, type: 3}
+  pillPrefab: {fileID: 1709254077376921, guid: ab757c8903738cd49b64bad1a238a19b, type: 3}
   fruits: {fileID: 11400000, guid: d3c98e83b43b46e4db7da0948ab44049, type: 2}
   board: {fileID: 1247804678}
   snake: {fileID: 1087866752}
