@@ -34,11 +34,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2886380737419388476, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -57.64
+      value: -57.63
       objectReference: {fileID: 0}
     - target: {fileID: 2886380737419388476, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -66.66
+      value: -63.86
       objectReference: {fileID: 0}
     - target: {fileID: 4641821733258659378, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
       propertyPath: m_Sprite
@@ -186,17 +186,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &3488396790425948462 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3090340511895896453, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
-  m_PrefabInstance: {fileID: 1912444571191496875}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6edc777e66de5c047a5098ca9fe6dbd3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &3953404193164843792 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3195037985294715835, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
@@ -255,7 +244,7 @@ MonoBehaviour:
   dotText: {fileID: 822987030087739415}
   shines:
   - {fileID: 983759961088137845}
-  - {fileID: 3488396790425948462}
+  - {fileID: 0}
   lockedWords: Reach Lv. {0} to unlock Snacky Pass!
   hintPrefab: {fileID: 1596701120233858033, guid: 6a2833b0cd3214d48ac8323287a81e9f, type: 3}
   hintY: -339

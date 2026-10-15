@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2886380737419388476, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -13
+      objectReference: {fileID: 0}
     - target: {fileID: 4641821733258659378, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
       propertyPath: m_Sprite
       value: 
@@ -145,7 +149,7 @@ MonoBehaviour:
   dotText: {fileID: 6797165092029762314}
   shines:
   - {fileID: 6384049887718521192}
-  - {fileID: 7302289457373196851}
+  - {fileID: 0}
   lockedWords: Unlock Jungle Heist from level {0}!
   hintPrefab: {fileID: 1596701120233858033, guid: 6a2833b0cd3214d48ac8323287a81e9f, type: 3}
   hintY: -339
@@ -195,17 +199,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &7302289457373196851 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3090340511895896453, guid: 369287f6975b9e9408df854db0aa0bd0, type: 3}
-  m_PrefabInstance: {fileID: 5743753914906506166}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6edc777e66de5c047a5098ca9fe6dbd3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &8042658616899178868 stripped
