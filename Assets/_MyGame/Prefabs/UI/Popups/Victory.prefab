@@ -3910,7 +3910,7 @@ MonoBehaviour:
   featureIcon: {fileID: 2942544158519284952}
   doubleButton: {fileID: 7058397261442777632}
   smallPile: {fileID: 21300000, guid: fa6e40e4e8338d84e91c382d4da5e1c1, type: 2}
-  bigPile: {fileID: 21300000, guid: e3b7e05694bfd964386a0842cba69c44, type: 2}
+  bigPile: {fileID: 21300000, guid: ccaca13254f6afe4e882899779656684, type: 2}
   unlocked: {fileID: 7673102407976134787}
   unlockedIcon: {fileID: 5322374708901926186}
   unlockedName: {fileID: 8951990921189161883}
