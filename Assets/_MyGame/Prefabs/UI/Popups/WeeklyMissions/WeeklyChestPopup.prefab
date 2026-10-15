@@ -351,7 +351,7 @@ MonoBehaviour:
   m_text: TAP TO CLAIM
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 525ef61c40bd78146aa7300ba0ef9fdc, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 4fbf2872c5cda5f45ab3caede785ba8f, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 8c2bf969b7f7a1a4baa7c2cbf597fcc0, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
