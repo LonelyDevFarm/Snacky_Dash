@@ -44,8 +44,9 @@ namespace SnackDash.Presentation
         [Tooltip("ExtraCrate_Trail_FX: bay từ giữa màn tới khay trước khi mở.")]
         [SerializeField] private GameObject extraTrailPrefab;
         [SerializeField] private float extraTrailDuration = 1f;
-        [Tooltip("Trái đáp to cỡ này rồi thu về chỗ (video).")]
-        [SerializeField] private float landingScale = 1.6f;
+        [Tooltip("Trái chạm khay nảy cỡ thêm bấy nhiêu rồi về (gốc FruitsPunchScaleOnLand 0.4, 0.4, -0.5; hạ xuống vì trái mình lấp kín ô, 0.4 thì tràn ra ngoài khay [user]); bay thì không to lên.")]
+        [SerializeField] private Vector3 landingPunch = new Vector3(0.15f, 0.15f, -0.2f);
+        [Tooltip("Giây nảy khi chạm khay (gốc FruitsPunchDurationOnLand).")]
         [SerializeField] private float landingDuration = 0.2f;
         [Tooltip("Giây khay đầy đứng yên trước khi bay đi (video).")]
         [SerializeField] private float fullCrateHold = 0.33f;
@@ -130,13 +131,14 @@ namespace SnackDash.Presentation
             }
         }
 
+        /// <summary>
+        /// Trái từ miệng rắn vào khay đang nhận. Nhắm theo chỗ trong chồng (hỏi lại mỗi frame) và tính là đang bay: khay đầy
+        /// chưa kịp đi mà trái kế đã ra thì vẫn bay vào khay mới, khay mới dựng lại không hiện sẵn trái đó [user, video Bug].
+        /// </summary>
         private void OnDelivered(int segmentIndex, PillKind kind, int columnIndex)
         {
-            if (!_columns.TryGetValue(columnIndex, out var crates) || crates.Count == 0) return;
-            var points = crates[0].transform.Find("AllDestinationPoints/DestinationPoints");
-            int slot = _session.Columns[columnIndex].Filled - 1;
-            if (points == null || slot < 0 || slot >= points.childCount) return;
-            { var target = points.GetChild(slot); StartCoroutine(Fly(kind, () => target, snake != null ? snake.HeadWorldPosition : points.position, 0f)); }
+            var start = snake != null ? snake.HeadWorldPosition : ColumnWorldPosition(columnIndex);
+            FlyToCrate(start, kind, columnIndex, _session.Columns[columnIndex].CurrentIndex, 0f, false);
         }
 
         /// <summary>Trái của đuôi bị cắt bay lần lượt vào khay cùng loại, kể cả khay dưới chồng (video Man_Lose).</summary>
@@ -249,9 +251,9 @@ namespace SnackDash.Presentation
                 {
                     position = Vector3.Lerp(start, slot.position, Tween.OutQuad(t));
                     position.z -= 4f * t * (1f - t) * flightArcHeight;
-                    // To dần khi bay để lúc đáp không giật từ 1 lên landingScale.
-                    fruit.transform.localScale = Vector3.one * Mathf.Lerp(1f, landingScale * slot.lossyScale.x / transform.lossyScale.x, t);
                 }
+                // Cỡ trên sân dần về cỡ chỗ trong khay, không to lên [user].
+                fruit.transform.localScale = Vector3.one * Mathf.Lerp(1f, slot.lossyScale.x / transform.lossyScale.x, t);
                 fruit.transform.position = position;
             });
             if (wind != null) Destroy(wind);
@@ -260,12 +262,12 @@ namespace SnackDash.Presentation
             if (slot == null || vanish) { Destroy(fruit); yield break; }
             fruit.transform.SetParent(slot, false);
             fruit.transform.localPosition = Vector3.zero;
-            fruit.transform.localScale = Vector3.one * landingScale; // trái boomerang to lên ở đây
+            fruit.transform.localScale = Vector3.one;
 
-            var settle = Tween.OutBack(easeBack);
-            yield return Tween.Run(landingDuration, settle, t =>
+            // Chạm khay nảy nhẹ một cái rồi về (gốc DOPunchScale FruitsPunchScaleOnLand trong 0.2 s).
+            yield return Tween.Punch(landingDuration * 0.5f, t =>
             {
-                if (fruit != null) fruit.transform.localScale = Vector3.one * Mathf.LerpUnclamped(landingScale, 1f, t);
+                if (fruit != null) fruit.transform.localScale = Vector3.one + landingPunch * t;
             });
         }
 
@@ -348,8 +350,8 @@ namespace SnackDash.Presentation
                 var from = basePosition + new Vector3(0f, 0f, StackDepth * (k + 1 + missingBefore));
                 bool entering = missing == 0 && k == VisibleCratesPerColumn - 1;
                 if (from == target && !entering) continue;
-                var ease = Tween.OutBack(easeBack);
-                StartCoroutine(Tween.Run(appearDuration, ease, t =>
+                // Không vượt quá rồi lùi (OutBack): khay dâng vượt / phồng lên thì đè trái đang bay vào [user].
+                StartCoroutine(Tween.Run(appearDuration, Tween.OutCubic, t =>
                 {
                     if (crate == null) return;
                     crate.transform.localPosition = Vector3.LerpUnclamped(from, target, t);
