@@ -16,7 +16,7 @@ namespace SnackDash.Presentation
         [SerializeField] private GameObject segmentPrefab;
         [Tooltip("Vortex2 FX: gió xoáy quanh trái boomerang.")]
         [SerializeField] private GameObject vortexPrefab;
-        [Tooltip("View_Secret_Collectible: FX bung khi ăn trái bí ẩn.")]
+        [Tooltip("View_Secret_Collectible: sao lấp lánh (FX_Snake_Appear) bung trên đốt mới mỗi lần ăn trái.")]
         [SerializeField] private GameObject secretPrefab;
 
         [Header("PlayerView (Game.unity)")]
@@ -116,7 +116,6 @@ namespace SnackDash.Presentation
             session.MoveBlocked += OnMoveBlocked;
             session.BoomerangThrown += OnBoomerangThrown;
             session.SegmentRemoved += OnSegmentThrown;
-            session.SecretRevealed += OnSecretRevealed;
             session.Rewound += OnRewound;
 
             var eyes = _head.Find("Snake_Head/Pivot/Snake_Head_Top");
@@ -260,7 +259,11 @@ namespace SnackDash.Presentation
             if (_headAnimator != null && _headAnimator.isActiveAndEnabled) _headAnimator.Play(state, 0, 0f);
         }
 
-        private void OnPillEaten(Vector2Int cell, PillKind kind, int index) => CreateSegment(kind, index, pop: true);
+        private void OnPillEaten(Vector2Int cell, PillKind kind, int index)
+        {
+            CreateSegment(kind, index, pop: true);
+            PlayAppear(index);
+        }
 
         /// <summary>Undo: dựng lại thân theo session (không nảy), rồi rắn chạy lùi theo đường cũ.</summary>
         private void OnRewound()
@@ -419,8 +422,11 @@ namespace SnackDash.Presentation
             }
         }
 
-        /// <summary>Trái bí ẩn lộ loại khi bị ăn: đốt mới mang trái thật, FX_Snake_Appear bung trên đó [user].</summary>
-        private void OnSecretRevealed(Vector2Int cell, int index)
+        /// <summary>
+        /// Đốt mới ở đuôi (mỗi trái ăn, kể cả trái bí ẩn lộ loại): sao lấp lánh FX_Snake_Appear bung trên đó như bản mới [user].
+        /// Undo dựng lại thân không bung.
+        /// </summary>
+        private void PlayAppear(int index)
         {
             if (secretPrefab == null || index < 0 || index >= _segments.Count) return;
             var pill = _segments[index].root.transform.Find("GameObject/PillMaster_VO");
