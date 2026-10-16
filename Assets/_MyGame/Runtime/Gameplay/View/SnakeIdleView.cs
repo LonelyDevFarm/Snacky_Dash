@@ -33,6 +33,8 @@ namespace SnackDash.Presentation
         [Tooltip("Chỗ bong bóng so với đầu rắn (Y lên màn, Z âm về phía camera).")]
         [SerializeField] private Vector3 bubbleOffset = new Vector3(0.6f, 1.4f, -2.5f);
         [SerializeField] private float popDuration = 0.25f;
+        [Tooltip("Kéo bong bóng về phía camera bấy nhiêu (dọc tia nhìn, chỗ trên màn hình và cỡ giữ nguyên) để khay, đá... không che [user].")]
+        [SerializeField] private float bubblePull = 6f;
 
         [Header("Tức giận")]
         [Tooltip("Hình dấu tức giận trong bong bóng (Source/Art/InGame/Textures/S_Mood_Angry).")]
@@ -55,6 +57,7 @@ namespace SnackDash.Presentation
         private readonly List<Vector3> _pupilRest = new List<Vector3>();
         private Transform _bubble;
         private Vector3 _bubbleScale; // tỉ lệ của prefab (Canvas 0.01), bật nảy nhân lên đó
+        private float _pop; // 0..1 lúc bật nảy
         private UnityEngine.UI.Image _icon;
         private Coroutine _glance, _talk, _angry;
         private int _hits; // lần vuốt bị chặn liên tiếp
@@ -100,9 +103,26 @@ namespace SnackDash.Presentation
         private void LateUpdate()
         {
             if (_bubble == null || !_bubble.gameObject.activeSelf) return;
-            _bubble.position = _snake.HeadWorldPosition + bubbleOffset;
+            var at = _snake.HeadWorldPosition + bubbleOffset;
             var cam = Camera.main;
-            if (cam != null) _bubble.rotation = cam.transform.rotation;
+            float size = 1f;
+            if (cam != null)
+            {
+                // Kéo về phía camera mà chỗ và cỡ trên màn hình không đổi: camera vuông góc (game này) thì lùi dọc hướng nhìn;
+                // camera phối cảnh thì trượt trên tia nhìn và thu nhỏ theo khoảng cách.
+                if (cam.orthographic) at -= cam.transform.forward * bubblePull;
+                else
+                {
+                    var eye = cam.transform.position;
+                    float far = Vector3.Distance(eye, at);
+                    float near = Mathf.Max(1f, far - bubblePull);
+                    at = eye + (at - eye) * (near / far);
+                    size = near / far;
+                }
+                _bubble.rotation = cam.transform.rotation;
+            }
+            _bubble.position = at;
+            _bubble.localScale = _bubbleScale * (size * _pop);
         }
 
         /// <summary>Rắn chạy, popup, hướng dẫn...: tắt hết, mắt về giữa.</summary>
@@ -164,7 +184,7 @@ namespace SnackDash.Presentation
             while (time < angryDuration)
             {
                 float pop = Mathf.Clamp01(time / popDuration);
-                _bubble.localScale = _bubbleScale * Tween.OutBack(2.5f)(pop);
+                _pop = Tween.OutBack(2.5f)(pop);
                 float shake = time < angryShakeTime ? (1f - time / angryShakeTime) * angryShakeAngle : 0f; // lắc nhỏ dần rồi đứng yên
                 icon.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(time * angryShakeSpeed * Mathf.PI * 2f) * shake);
                 time += Time.deltaTime;
@@ -187,7 +207,7 @@ namespace SnackDash.Presentation
             _icon.sprite = entry == null ? null : entry.fieldSprite != null ? entry.fieldSprite : entry.sprite;
             _bubble.gameObject.SetActive(true);
             LateUpdate();
-            yield return Tween.Run(popDuration, Tween.OutBack(2.5f), t => _bubble.localScale = _bubbleScale * t);
+            yield return Tween.Run(popDuration, Tween.OutBack(2.5f), t => _pop = t);
         }
 
         /// <summary>Trái mà khay đang mở của một cột còn thiếu (ngẫu nhiên giữa các cột); không có thì một trái bất kỳ trên sân.</summary>
