@@ -985,6 +985,10 @@ MonoBehaviour:
   extraTrailDuration: 1
   landingPunch: {x: 0.15, y: 0.15, z: -0.2}
   landingDuration: 0.2
+  receiveShakeDuration: 0.1
+  receiveShakeRange: 0.06
+  receiveShakeSpeed: 10
+  receiveShakeDirection: {x: 1, y: 1, z: 0}
   fullCrateHold: 0.33
   appearDuration: 0.35
   exitDuration: 0.3

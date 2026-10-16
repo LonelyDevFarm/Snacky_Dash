@@ -48,6 +48,15 @@ namespace SnackDash.Presentation
         [SerializeField] private Vector3 landingPunch = new Vector3(0.15f, 0.15f, -0.2f);
         [Tooltip("Giây nảy khi chạm khay (gốc FruitsPunchDurationOnLand).")]
         [SerializeField] private float landingDuration = 0.2f;
+        [Header("Khay rung khi nhận trái (gốc Box_Crate_9_VO: MMF_PositionShake trên BoxVisual_VO)")]
+        [Tooltip("Giây rung (gốc Duration 0.1).")]
+        [SerializeField] private float receiveShakeDuration = 0.1f;
+        [Tooltip("Xa nhất bấy nhiêu (gốc ShakeRange 0.06). Tăng: rung mạnh hơn.")]
+        [SerializeField] private float receiveShakeRange = 0.06f;
+        [Tooltip("Nhanh bấy nhiêu (gốc ShakeSpeed 10).")]
+        [SerializeField] private float receiveShakeSpeed = 10f;
+        [Tooltip("Hướng rung (gốc ShakeMainDirection 1, 1, 0), mỗi lần lệch ngẫu nhiên thêm tới 0.25 (gốc DirectionalNoise).")]
+        [SerializeField] private Vector3 receiveShakeDirection = new Vector3(1f, 1f, 0f);
         [Tooltip("Giây khay đầy đứng yên trước khi bay đi (video).")]
         [SerializeField] private float fullCrateHold = 0.33f;
         [SerializeField] private float appearDuration = 0.35f;
@@ -75,6 +84,7 @@ namespace SnackDash.Presentation
         public float LastCompletionLag => _lastEffectLag;
         private readonly Dictionary<(int column, int crate), int> _inFlight = new Dictionary<(int, int), int>();
         private bool _boomerang; // trái SegmentSnipped hiện tại là do boomerang ném
+        private readonly Dictionary<Transform, Coroutine> _shakes = new Dictionary<Transform, Coroutine>();
 
         /// <summary>Tâm khay trên cùng của cột.</summary>
         public static Vector3 CratePosition(Vector2Int endPoint) =>
@@ -263,12 +273,37 @@ namespace SnackDash.Presentation
             fruit.transform.SetParent(slot, false);
             fruit.transform.localPosition = Vector3.zero;
             fruit.transform.localScale = Vector3.one;
+            Shake(slot.parent != null && slot.parent.parent != null ? slot.parent.parent.parent : null);
 
             // Chạm khay nảy nhẹ một cái rồi về (gốc DOPunchScale FruitsPunchScaleOnLand trong 0.2 s).
             yield return Tween.Punch(landingDuration * 0.5f, t =>
             {
                 if (fruit != null) fruit.transform.localScale = Vector3.one + landingPunch * t;
             });
+        }
+
+        /// <summary>Thân khay (BoxVisual_VO) rung nhẹ một cái khi trái đáp; trái trong khay đứng yên như gốc. Đang rung thì rung lại từ đầu.</summary>
+        private void Shake(Transform crate)
+        {
+            var visual = crate != null ? crate.Find("BoxVisual_VO") : null;
+            if (visual == null || receiveShakeDuration <= 0f) return;
+            if (_shakes.TryGetValue(visual, out var running) && running != null) StopCoroutine(running);
+            _shakes[visual] = StartCoroutine(ShakeRoutine(visual));
+        }
+
+        private IEnumerator ShakeRoutine(Transform visual)
+        {
+            var noise = new Vector3(Random.Range(-0.25f, 0.25f), Random.Range(-0.25f, 0.25f), Random.Range(-0.25f, 0.25f));
+            var direction = receiveShakeDirection + noise;
+            // Lên rồi tắt dần (gốc AttenuationCurve 0 → 1 → 0), về đúng chỗ cũ (ResetTargetValuesAfterShake).
+            yield return Tween.Run(receiveShakeDuration, Tween.Linear, t =>
+            {
+                if (visual == null) return;
+                float fade = 1f - Mathf.Abs(t * 2f - 1f);
+                visual.localPosition = direction * (Mathf.Sin(t * receiveShakeDuration * receiveShakeSpeed * Mathf.PI * 2f) * receiveShakeRange * fade);
+            });
+            if (visual != null) visual.localPosition = Vector3.zero;
+            _shakes.Remove(visual);
         }
 
         private void OnCrateCompleted(int columnIndex, int crateIndex)
