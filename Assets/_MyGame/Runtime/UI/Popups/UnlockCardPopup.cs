@@ -40,6 +40,24 @@ namespace SnackDash.UI
         [Tooltip("TAP TO CONTINUE! khi thẻ đã vào và yên (khoảng 1.6 s).")]
         [SerializeField] private float tapDelay = 2f;
 
+        [Header("Thẻ vào (đo VFX_NewItem 30 fps)")]
+        [Tooltip("Thẻ hiện nghiêng bấy nhiêu độ rồi thẳng lại trong cardGrow giây.")]
+        [SerializeField] private float cardTilt = 20f;
+        [Tooltip("Thẻ to vượt cỡ thật bấy nhiêu lần, giữ cardHold giây rồi thu về trong cardSettle giây.")]
+        [SerializeField] private float cardOvershoot = 1.15f;
+        [SerializeField] private float cardGrow = 0.1f, cardHold = 0.1f, cardSettle = 0.12f;
+        [Tooltip("Sau đó thẻ lắc qua lại: lệch xa nhất (độ), giây mỗi nhịp, giây tới khi đứng yên [user].")]
+        [SerializeField] private float wobbleAngle = 4f, wobblePeriod = 0.35f, wobbleTime = 1f;
+        [Header("Hình trong thẻ nhún (bẹt, vươn cao, về thường)")]
+        [SerializeField] private Vector2 iconSquash = new Vector2(1.12f, 0.85f);
+        [SerializeField] private Vector2 iconStretch = new Vector2(0.9f, 1.15f);
+        [SerializeField] private float iconBounceTime = 0.6f;
+        [Header("Quầng trắng loé trong thẻ")]
+        [SerializeField] private Graphic shine;
+        [Range(0f, 1f)]
+        [SerializeField] private float shineAlpha = 0.85f;
+        [SerializeField] private float shineTime = 0.7f;
+
         private bool _canClose;
 
         protected override void OnInit() => tapArea.onClick.AddListener(() => { if (_canClose) Close(); });
@@ -89,17 +107,60 @@ namespace SnackDash.UI
                 flash.color = new Color(flash.color.r, flash.color.g, flash.color.b, 1f - t);
             }));
             yield return new WaitForSeconds(0.1f);
-            yield return Tween.Run(0.35f, Tween.OutBack(2.5f), t =>
+            // Thẻ hiện nghiêng, to vượt rồi thu về, rồi lắc qua lại nhỏ dần; hình trong thẻ nhún và quầng trắng loé cùng lúc [video VFX_NewItem, user].
+            StartCoroutine(IconBounce());
+            StartCoroutine(Shine());
+            yield return Tween.Run(cardGrow, Tween.OutQuad, t =>
             {
-                card.localScale = ribbon.localScale = Vector3.one * t;
-                card.localRotation = Quaternion.Euler(0f, 0f, -15f * (1f - t));
+                card.localScale = ribbon.localScale = Vector3.one * (cardOvershoot * t);
+                card.localRotation = Quaternion.Euler(0f, 0f, cardTilt * (1f - t));
             });
+            yield return new WaitForSeconds(cardHold);
+            yield return Tween.Run(cardSettle, Tween.OutQuad, t => card.localScale = ribbon.localScale = Vector3.one * Mathf.Lerp(cardOvershoot, 1f, t));
+            StartCoroutine(Wobble());
             sparkles.gameObject.SetActive(true);
             StartCoroutine(Twinkle());
             StartCoroutine(Tween.Run(0.4f, Tween.Linear, t => rays.alpha = t));
             yield return new WaitForSeconds(0.3f);
             yield return Tween.Run(0.25f, Tween.OutBack(3f), t => nameRect.localScale = Vector3.one * t);
             yield return Tween.Run(0.25f, Tween.OutBack(2f), t => bubble.localScale = Vector3.one * t);
+        }
+
+        /// <summary>Thẻ đung đưa qua lại, mỗi nhịp nhỏ dần tới đứng yên.</summary>
+        private IEnumerator Wobble()
+        {
+            yield return Tween.Run(wobbleTime, Tween.Linear, t =>
+            {
+                float time = t * wobbleTime;
+                card.localRotation = Quaternion.Euler(0f, 0f, wobbleAngle * (1f - t) * Mathf.Sin(time / wobblePeriod * Mathf.PI * 2f));
+            });
+            card.localRotation = Quaternion.identity;
+        }
+
+        /// <summary>Hình trong thẻ: bẹt ra, vươn cao lên, rồi về cỡ thường.</summary>
+        private IEnumerator IconBounce()
+        {
+            var rect = icon.rectTransform;
+            var squash = new Vector3(iconSquash.x, iconSquash.y, 1f);
+            var stretch = new Vector3(iconStretch.x, iconStretch.y, 1f);
+            rect.localScale = squash;
+            yield return new WaitForSeconds(iconBounceTime * 0.3f);
+            yield return Tween.Run(iconBounceTime * 0.35f, Tween.InOutSine, t => rect.localScale = Vector3.Lerp(squash, stretch, t));
+            yield return Tween.Run(iconBounceTime * 0.35f, Tween.InOutSine, t => rect.localScale = Vector3.Lerp(stretch, Vector3.one, t));
+        }
+
+        /// <summary>Quầng trắng sau hình sáng lên rồi tắt dần.</summary>
+        private IEnumerator Shine()
+        {
+            if (shine == null) yield break;
+            var color = shine.color;
+            yield return Tween.Run(shineTime, Tween.Linear, t =>
+            {
+                color.a = shineAlpha * Mathf.Sin(t * Mathf.PI);
+                shine.color = color;
+            });
+            color.a = 0f;
+            shine.color = color;
         }
 
         private IEnumerator Spin()

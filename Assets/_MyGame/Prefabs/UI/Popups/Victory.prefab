@@ -390,6 +390,7 @@ RectTransform:
   - {fileID: 7549638923698360754}
   - {fileID: 3039631222516733146}
   - {fileID: 5368864814285341868}
+  - {fileID: 7331876634923044768}
   - {fileID: 6673260526294603691}
   - {fileID: 8109084097436721196}
   m_Father: {fileID: 5859586339024508873}
@@ -398,6 +399,41 @@ RectTransform:
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &411258498373629817
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7331876634923044768}
+  m_Layer: 0
+  m_Name: FX_Particles
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &7331876634923044768
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 411258498373629817}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 3.35, y: 3.35, z: 3.35}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7673102407976134787}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 20}
+  m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &548071822273047798
 GameObject:
@@ -3052,8 +3088,10 @@ MonoBehaviour:
   sparkle: {fileID: 21300000, guid: 7c4335588d660c44fbe4422e28b0e8e9, type: 2}
   dotRate: 3
   sparkleRate: 6
-  radius: 50
+  radius: 75
   glow: {fileID: 4918869976307711993}
+  particleParent: {fileID: 7331876634923044768}
+  tint: {r: 1, g: 0.9, b: 0.25, a: 1}
 --- !u!1 &6215309490863296658
 GameObject:
   m_ObjectHideFlags: 0
@@ -3912,6 +3950,11 @@ MonoBehaviour:
   smallPile: {fileID: 21300000, guid: fa6e40e4e8338d84e91c382d4da5e1c1, type: 2}
   bigPile: {fileID: 21300000, guid: ccaca13254f6afe4e882899779656684, type: 2}
   unlocked: {fileID: 7673102407976134787}
+  unlockedRibbon: {fileID: 6673260526294603691}
+  unlockedHint: {fileID: 8109084097436721196}
+  ribbonDelay: 0.1
+  hintDelay: 0.4
+  partPopDuration: 0.2
   unlockedIcon: {fileID: 5322374708901926186}
   unlockedName: {fileID: 8951990921189161883}
   mechanicIcons:

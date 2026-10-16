@@ -310,6 +310,20 @@ MonoBehaviour:
   - {fileID: 21300000, guid: a27c7087ba82a04418619bc3144cfb15, type: 2}
   - {fileID: 21300000, guid: 9943eb10c01eea742b46e5b74fda7e51, type: 2}
   tapDelay: 2
+  cardTilt: 20
+  cardOvershoot: 1.15
+  cardGrow: 0.1
+  cardHold: 0.1
+  cardSettle: 0.12
+  wobbleAngle: 4
+  wobblePeriod: 0.35
+  wobbleTime: 1
+  iconSquash: {x: 1.12, y: 0.85}
+  iconStretch: {x: 0.9, y: 1.15}
+  iconBounceTime: 0.6
+  shine: {fileID: 9067256803786295595}
+  shineAlpha: 0.85
+  shineTime: 0.7
 --- !u!1 &1455812671579479495
 GameObject:
   m_ObjectHideFlags: 0
@@ -451,6 +465,78 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_Texture: {fileID: 2800000, guid: e22c0ad86b489ce4799cb1c1a535765f, type: 3}
+  m_UVRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+--- !u!1 &1524081991105712183
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7243166554840885717}
+  - component: {fileID: 3333399519768271972}
+  - component: {fileID: 9067256803786295595}
+  m_Layer: 0
+  m_Name: Card Shine
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &7243166554840885717
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1524081991105712183}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 584481198082707991}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 10}
+  m_SizeDelta: {x: 460, y: 380}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &3333399519768271972
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1524081991105712183}
+  m_CullTransparentMesh: 1
+--- !u!114 &9067256803786295595
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1524081991105712183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Texture: {fileID: 2800000, guid: 60ed7876129234845a55caa72cf09cae, type: 3}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -621,6 +707,7 @@ RectTransform:
   m_Children:
   - {fileID: 8980368888714384773}
   - {fileID: 7374225288211092975}
+  - {fileID: 7243166554840885717}
   - {fileID: 235776409138276890}
   - {fileID: 6617040035105762637}
   m_Father: {fileID: 5944052974505284926}

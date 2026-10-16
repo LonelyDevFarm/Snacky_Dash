@@ -24,6 +24,10 @@ namespace SnackDash.UI
         [SerializeField] private float radius = 50f;
         [Tooltip("Vật liệu cộng sáng cho hạt (lấy theo quầng FX_Image_Glow).")]
         [SerializeField] private Image glow;
+        [Tooltip("Hạt nằm ở đây (đặt sau hình cơ chế để hạt ở trên hình như video VFX_Unlock); trống thì nằm trong chính FX này.")]
+        [SerializeField] private RectTransform particleParent;
+        [Tooltip("Màu hạt: vàng như video VFX_Unlock [user].")]
+        [SerializeField] private Color tint = new Color(1f, 0.9f, 0.25f, 1f);
 
         private readonly List<Emitter> _emitters = new List<Emitter>();
 
@@ -71,9 +75,9 @@ namespace SnackDash.UI
         {
             float angle = Random.value * Mathf.PI * 2f;
             var at = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius; // trên mép vòng tròn
-            var rect = Rect(transform, "Particle", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), at, Vector2.zero);
+            var rect = Rect(particleParent != null ? particleParent : transform, "Particle", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), at, Vector2.zero);
             rect.localRotation = Quaternion.Euler(0f, 0f, Random.Range(-90f, 0f));
-            var image = Image(rect, emitter.sprite, Color.white);
+            var image = Image(rect, emitter.sprite, tint);
             image.material = glow != null ? glow.material : null;
             emitter.live.Add((rect, image, 0f, Random.Range(1f, 1.3f), Random.Range(15f, 25f)));
         }

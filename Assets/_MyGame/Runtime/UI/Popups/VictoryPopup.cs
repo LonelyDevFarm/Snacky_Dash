@@ -37,6 +37,9 @@ namespace SnackDash.UI
         [SerializeField] private Sprite smallPile, bigPile;
         [Header("UNLOCKED!")]
         [SerializeField] private RectTransform unlocked;
+        [Tooltip("Dải tên và dòng PLAY NEXT LEVEL bật lên sau hình bấy nhiêu giây (video VFX_Unlock 15 fps) [user].")]
+        [SerializeField] private RectTransform unlockedRibbon, unlockedHint;
+        [SerializeField] private float ribbonDelay = 0.1f, hintDelay = 0.4f, partPopDuration = 0.2f;
         [SerializeField] private Image unlockedIcon;
         [SerializeField] private TMP_Text unlockedName;
         [Tooltip("Hình cơ chế (theo UnlockPopups.Mechanics) và booster (xẻng, boomerang, undo, nam châm).")]
@@ -277,10 +280,19 @@ namespace SnackDash.UI
             main.gameObject.SetActive(false);
             doubleButton.gameObject.SetActive(false);
             button.anchoredPosition = new Vector2(0f, button.anchoredPosition.y);
+            // Hình bật trước, dải tên theo sau, dòng PLAY NEXT LEVEL cuối cùng [video VFX_Unlock].
+            if (unlockedRibbon != null) { unlockedRibbon.localScale = Vector3.zero; StartCoroutine(PopLater(unlockedRibbon, ribbonDelay)); }
+            if (unlockedHint != null) { unlockedHint.localScale = Vector3.zero; StartCoroutine(PopLater(unlockedHint, hintDelay)); }
             yield return Tween.Run(titlePopDuration, Tween.OutBack(3f), t => unlocked.localScale = Vector3.one * t);
             yield return new WaitForSeconds(Mathf.Max(0f, continueDelay - titlePopDuration));
             yield return Tween.Run(titlePopDuration, Tween.OutBack(3f), t => button.localScale = Vector3.one * t);
             continueButton.Interactable = true;
+        }
+
+        private IEnumerator PopLater(RectTransform part, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            yield return Tween.Run(partPopDuration, Tween.OutBack(3f), t => part.localScale = Vector3.one * t);
         }
     }
 }
