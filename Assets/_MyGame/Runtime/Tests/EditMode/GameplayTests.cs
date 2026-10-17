@@ -643,6 +643,7 @@ namespace SnackDash.Tests
                 }
                 bool switchBefore = session.SwitchOn;
                 var upBefore = session.Board.SwitchBridges.Keys.Where(session.Board.IsBridgeUp).ToList();
+                var turnoutsBefore = session.Board.Turnouts.Where(session.Board.IsTurnoutB).ToList();
                 if (!session.RequestMove((Direction)random.Next(4))) continue;
                 // Long crate combos (1 s pause per filled crate) can take several seconds.
                 for (int i = 0; i < 3600 && (session.IsMoving || session.IsDelivering); i++)
@@ -666,6 +667,9 @@ namespace SnackDash.Tests
                 foreach (var bridge in session.Board.SwitchBridges.Keys)
                     if (!SnakeNear(bridge))
                         Assert.AreEqual(session.SwitchOn, session.Board.IsBridgeUp(bridge), "a free switch bridge follows the switch");
+                foreach (var turnout in session.Board.Turnouts)
+                    if (!SnakeNear(turnout))
+                        Assert.AreEqual(!session.SwitchOn, session.Board.IsTurnoutB(turnout), "a free switch tube follows the switch");
                 if (!undoChecked && session.SwitchOn != switchBefore && session.CanUndo && !session.IsStuck)
                 {
                     // Undo puts the switch and every switch bridge back [gốc: memento].
@@ -674,6 +678,7 @@ namespace SnackDash.Tests
                     Assert.AreEqual(switchBefore, session.SwitchOn, "undo puts the switch back");
                     CollectionAssert.AreEquivalent(upBefore, session.Board.SwitchBridges.Keys.Where(session.Board.IsBridgeUp).ToList(),
                         "undo puts the switch bridges back");
+                    CollectionAssert.AreEquivalent(turnoutsBefore, session.Board.Turnouts.Where(session.Board.IsTurnoutB).ToList(), "undo puts the switch tubes back");
                     for (int i = 0; i < 3600 && session.IsRewinding; i++) session.Tick(1f / 60f); // the rewind locks swipes until it plays out
                 }
                 Assert.IsFalse(session.Board.TunnelMouths.ContainsKey(session.CurrentCell), "the snake never stops at a tunnel mouth");
@@ -682,7 +687,7 @@ namespace SnackDash.Tests
             if (boomerangLevel) Assert.AreEqual(1, boomerangs, "one free boomerang wins the tutorial level");
             // Running past (or stopping beside) a closed gate or arrow shakes it, every time [user].
             if (session.Board.OneWayGates.Count > 0) Assert.Greater(shakes, 0, "closed gates shake as the snake goes by");
-            if (session.Board.SwitchBridges.Count > 0) Assert.Greater(toggles, 0, "the crosswalk flips the bridges");
+            if (session.Board.SwitchBridges.Count > 0 || session.Board.Turnouts.Any()) Assert.Greater(toggles, 0, "the crosswalk flips the bridges and tubes");
             if (session.HasShutters) Assert.Greater(shutterChanges, 0, "deliveries toggle the crates");
             TestContext.WriteLine($"{name}: won, {snips} tail bites");
         }

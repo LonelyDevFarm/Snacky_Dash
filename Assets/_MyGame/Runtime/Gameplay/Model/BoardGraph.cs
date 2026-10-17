@@ -5,7 +5,7 @@ using UnityEngine;
 namespace SnackDash.Gameplay
 {
     /// <summary>
-    /// Mạng đường của màn, đọc từ map Tiled (lớp map, ldf, ldf_above, spawn): ô đi được, điểm dừng, cầu, cổng, đá, rèm, khối nâng.
+    /// Mạng đường của màn, đọc từ map Tiled (lớp map, ldf, ldf_above, spawn): ô đi được, điểm dừng, cầu, cầu bật, ống rẽ, cổng, đá, rèm, khối nâng.
     /// Lớp C# thuần, không gắn prefab; GameBootstrap tạo, GameSession và các View đọc.
     /// </summary>
     public sealed class BoardGraph
@@ -159,6 +159,49 @@ namespace SnackDash.Gameplay
 
         public bool IsBridgeUp(Vector2Int cell) => _switchBridges.ContainsKey(cell) && _bridges.ContainsKey(cell);
 
+        // Ống rẽ (Aiguillage lớp ldf, từ Level 81; gốc TurnoutController): hai hướng A / B, mỗi hướng nối đúng hai nhánh.
+        private readonly Dictionary<Vector2Int, Direction[][]> _turnouts = new Dictionary<Vector2Int, Direction[][]>();
+        private readonly HashSet<Vector2Int> _turnoutB = new HashSet<Vector2Int>();
+
+        /// <summary>Ô ống rẽ. Vạch công tắc đổi mọi ống giữa hướng A và B (gốc SwitchController._switchTurnout).</summary>
+        public IEnumerable<Vector2Int> Turnouts => _turnouts.Keys;
+
+        public bool IsTurnoutB(Vector2Int cell) => _turnoutB.Contains(cell);
+
+        public void SetTurnoutB(Vector2Int cell, bool b)
+        {
+            if (!_turnouts.ContainsKey(cell)) return;
+            if (b) _turnoutB.Add(cell);
+            else _turnoutB.Remove(cell);
+        }
+
+        /// <summary>Ống rẽ cho đi qua nhánh <paramref name="side"/> ở hướng đang bật; ô không phải ống thì luôn cho.</summary>
+        private bool TurnoutOpens(Vector2Int cell, Direction side) =>
+            !_turnouts.TryGetValue(cell, out var routes) || System.Array.IndexOf(routes[_turnoutB.Contains(cell) ? 1 : 0], side) >= 0;
+
+        /// <summary>
+        /// Hai hướng của ống theo loại ô (prefab gốc TileCov_Path_Turnout_*: _tileTypeA / _tileTypeB, lúc đầu luôn A).
+        /// Kiểu "_Open" là ống thẳng dọc (con Straight / View_Switch_Tunnel_Vertical).
+        /// </summary>
+        private static Direction[][] TurnoutRoutes(TileType type)
+        {
+            var leftDown = new[] { Direction.Left, Direction.Down };
+            var rightDown = new[] { Direction.Right, Direction.Down };
+            var leftUp = new[] { Direction.Left, Direction.Up };
+            var rightUp = new[] { Direction.Right, Direction.Up };
+            var straight = new[] { Direction.Up, Direction.Down };
+            switch (type)
+            {
+                case TileType.AiguillageLeftDown: return new[] { leftDown, straight };   // Up_L: Turnout_Left
+                case TileType.AiguillageRightDown: return new[] { rightDown, straight }; // Up_R: Turnout_Right
+                case TileType.AiguillageRightUD: return new[] { rightDown, rightUp };
+                case TileType.AiguillageLeftUD: return new[] { leftUp, leftDown };
+                case TileType.AiguillageUpRL: return new[] { rightUp, leftUp };
+                case TileType.AiguillageDownRL: return new[] { rightDown, leftDown };
+                default: return null;
+            }
+        }
+
         public void SetBridgeUp(Vector2Int cell, bool up)
         {
             if (!_switchBridges.TryGetValue(cell, out bool leftRight)) return;
@@ -231,6 +274,7 @@ namespace SnackDash.Gameplay
                         _bridges[position] = leftRight; // gốc SwitchController._initialState 0 = On: cầu dựng lúc đầu
                     }
                     if (gateDef.category == TileCategory.Switch) _switches.Add(position);
+                    if (TurnoutRoutes(gateDef.tileType) is Direction[][] routes) _turnouts[position] = routes;
                     if (FixedArrowDirection(gateDef.tileType) is Direction way) _oneWay[position] = way;
                     if (FlippingArrowDirection(gateDef.tileType) is Direction flipWay)
                     {
@@ -471,7 +515,8 @@ namespace SnackDash.Gameplay
                    && MouthOpens(from, direction) && MouthOpens(to, direction.Opposite())
                    && !WallBlocks(from, direction) && !WallBlocks(to, direction)
                    && !_covered.Contains(from) && !_covered.Contains(to)
-                   && !_risen.Contains(to);
+                   && !_risen.Contains(to)
+                   && TurnoutOpens(from, direction) && TurnoutOpens(to, direction.Opposite());
         }
 
         /// <summary>Như <see cref="CanMove"/> nhưng bỏ qua cổng, đá, rèm, khối nâng: chỉ hỏi có đường không.</summary>

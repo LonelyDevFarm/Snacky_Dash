@@ -181,6 +181,9 @@ namespace SnackDash.Gameplay
 
         public event Action<bool> SwitchToggled;                // công tắc đổi (cần gạt, vạch)
         public event Action<Vector2Int, bool> SwitchBridgeChanged; // ô cầu, đang dựng
+        public event Action<Vector2Int, bool> TurnoutChanged;      // ô ống rẽ, đang ở hướng B
+
+        private readonly HashSet<Vector2Int> _turnoutWaiting = new HashSet<Vector2Int>(); // ống phải đổi nhưng rắn còn trong ống
 
         /// <summary>Đầu rắn vào vạch công tắc: đổi công tắc, mọi cầu bật đổi theo khi rắn không nằm trên nó.</summary>
         private void PassSwitch(Vector2Int cell)
@@ -189,12 +192,24 @@ namespace SnackDash.Gameplay
             _switchOn = !_switchOn;
             SwitchToggled?.Invoke(_switchOn);
             foreach (var bridge in _board.SwitchBridges.Keys) _bridgeWaiting.Add(bridge);
+            foreach (var turnout in _board.Turnouts) _turnoutWaiting.Add(turnout); // ống rẽ đổi theo cùng vạch [video lv83, ldf_swtube_desc]
             ApplyWaitingBridges();
         }
 
         /// <summary>Cầu chờ rắn đi khỏi rồi mới dựng / hạ (gốc BridgeController.CanOpenNow / CanCloseNow: ô phải trống).</summary>
         private void ApplyWaitingBridges()
         {
+            // Ống rẽ: công tắc On = hướng A (lúc đầu), Off = hướng B; rắn còn trong ống thì chờ (gốc TurnoutController.TryToggleIfClear).
+            if (_turnoutWaiting.Count > 0)
+                foreach (var cell in new List<Vector2Int>(_turnoutWaiting))
+                {
+                    bool b = !_switchOn;
+                    if (_board.IsTurnoutB(cell) == b) { _turnoutWaiting.Remove(cell); continue; }
+                    if (SnakeOn(cell)) continue;
+                    _turnoutWaiting.Remove(cell);
+                    _board.SetTurnoutB(cell, b);
+                    TurnoutChanged?.Invoke(cell, b);
+                }
             if (_bridgeWaiting.Count == 0) return;
             foreach (var cell in new List<Vector2Int>(_bridgeWaiting))
             {
@@ -224,7 +239,7 @@ namespace SnackDash.Gameplay
             public bool[] pending;
             public Dictionary<Vector2Int, int> passed, deliveries;
             public bool switchOn;
-            public HashSet<Vector2Int> bridgesUp, bridgeWaiting;
+            public HashSet<Vector2Int> bridgesUp, bridgeWaiting, turnoutsB, turnoutWaiting;
         }
 
         private MechanicsState SaveMechanics()
@@ -238,8 +253,11 @@ namespace SnackDash.Gameplay
                 switchOn = _switchOn,
                 bridgesUp = new HashSet<Vector2Int>(),
                 bridgeWaiting = new HashSet<Vector2Int>(_bridgeWaiting),
+                turnoutsB = new HashSet<Vector2Int>(),
+                turnoutWaiting = new HashSet<Vector2Int>(_turnoutWaiting),
             };
             foreach (var cell in _board.SwitchBridges.Keys) if (_board.IsBridgeUp(cell)) state.bridgesUp.Add(cell);
+            foreach (var cell in _board.Turnouts) if (_board.IsTurnoutB(cell)) state.turnoutsB.Add(cell);
             for (int i = 0; i < _curtains.Count; i++)
             {
                 state.remaining[i] = _curtains[i].Remaining;
@@ -288,6 +306,15 @@ namespace SnackDash.Gameplay
             }
             _bridgeWaiting.Clear();
             _bridgeWaiting.UnionWith(state.bridgeWaiting);
+            foreach (var cell in _board.Turnouts)
+            {
+                bool b = state.turnoutsB.Contains(cell);
+                if (_board.IsTurnoutB(cell) == b) continue;
+                _board.SetTurnoutB(cell, b);
+                TurnoutChanged?.Invoke(cell, b);
+            }
+            _turnoutWaiting.Clear();
+            _turnoutWaiting.UnionWith(state.turnoutWaiting);
         }
     }
 }
