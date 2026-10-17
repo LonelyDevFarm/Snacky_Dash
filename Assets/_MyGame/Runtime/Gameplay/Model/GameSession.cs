@@ -249,6 +249,7 @@ namespace SnackDash.Gameplay
                 _wallHealth.Add(Mathf.Max(1, health));
             }
             SetUpMechanics(level);
+            SetUpShutters(level);
 
             CurrentCell = board.PlayerStart;
             HeadPosition = CurrentCell;
@@ -369,7 +370,7 @@ namespace SnackDash.Gameplay
         /// <summary>Rắn có mang trái mà crate hiện tại của cột nhận.</summary>
         public bool CanDeliverTo(int column)
         {
-            if (column < 0 || column >= Columns.Count || Columns[column].IsComplete) return false;
+            if (column < 0 || column >= Columns.Count || Columns[column].IsComplete || IsCrateClosed(column)) return false;
             return _segments.Contains(Columns[column].Current.kind);
         }
 
@@ -409,6 +410,7 @@ namespace SnackDash.Gameplay
                 PillSpawned?.Invoke(cell.Value, kind);
             }
 
+            EnsureShutterProgress();
             StartSettlingFullCrates(removed * DeliveryInterval);
             return true;
         }
@@ -421,7 +423,7 @@ namespace SnackDash.Gameplay
         {
             var plan = new List<(int segment, int crate)>();
             if (IsWon || IsStuck || IsMoving || IsDelivering) return plan;
-            if (columnIndex < 0 || columnIndex >= Columns.Count) return plan;
+            if (columnIndex < 0 || columnIndex >= Columns.Count || IsCrateClosed(columnIndex)) return plan; // khay đóng không nhận
             var column = Columns[columnIndex];
             var taken = new HashSet<int>();
             for (int crate = column.CurrentIndex; crate < column.Crates.Count; crate++)
@@ -461,19 +463,24 @@ namespace SnackDash.Gameplay
             return true;
         }
 
-        /// <summary>Crate còn chỗ đầu tiên cùng loại: duyệt cột theo thứ tự, mỗi cột từ crate hiện tại xuống.</summary>
-        private bool TryReserveCrate(PillKind kind, out int column, out int crate)
+        /// <summary>
+        /// Crate còn chỗ đầu tiên cùng loại: duyệt cột theo thứ tự, mỗi cột từ crate hiện tại xuống. Khay đang mở trước; khay đóng
+        /// chỉ khi <paramref name="allowClosed"/> (cắt đuôi không được mất trái) và không khay mở nào nhận.
+        /// </summary>
+        private bool TryReserveCrate(PillKind kind, out int column, out int crate, bool allowClosed = true)
         {
-            for (column = 0; column < Columns.Count; column++)
-            {
-                var stack = Columns[column];
-                for (crate = stack.CurrentIndex; crate < stack.Crates.Count; crate++)
+            for (int pass = 0; pass < (allowClosed ? 2 : 1); pass++)
+                for (column = 0; column < Columns.Count; column++)
                 {
-                    if (stack.Crates[crate].kind != kind || stack.IsFull(crate)) continue;
-                    stack.Add(crate);
-                    return true;
+                    if (IsCrateClosed(column) != (pass == 1)) continue;
+                    var stack = Columns[column];
+                    for (crate = stack.CurrentIndex; crate < stack.Crates.Count; crate++)
+                    {
+                        if (stack.Crates[crate].kind != kind || stack.IsFull(crate)) continue;
+                        stack.Add(crate);
+                        return true;
+                    }
                 }
-            }
             column = crate = -1;
             return false;
         }
@@ -484,7 +491,7 @@ namespace SnackDash.Gameplay
             for (int column = 0; column < Columns.Count; column++)
             {
                 var stack = Columns[column];
-                if (stack.IsComplete || !stack.IsFull(stack.CurrentIndex)) continue;
+                if (stack.IsComplete || !stack.IsFull(stack.CurrentIndex) || IsCrateClosed(column)) continue; // khay đóng chờ mở mới xong
                 _deliveryColumn = column;
                 _deliverFromTail = false;
                 _deliveryTimer = -delay; // chờ trái đã cắt bay vào xong
@@ -715,6 +722,7 @@ namespace SnackDash.Gameplay
             OpenPendingCurtains();
             OnStoppedForBoosters();
 
+            EnsureShutterProgress();
             int column = _board.CrateColumnAt(CurrentCell);
             if (CanDeliverTo(column))
             {
@@ -725,6 +733,9 @@ namespace SnackDash.Gameplay
                 DeliveryStarted?.Invoke(column);
                 return;
             }
+            // Khay đang đóng: không giao, khay rung từ chối (gốc ClosedCrateRejectPunch) khi rắn có trái của nó.
+            if (IsCrateClosed(column) && !Columns[column].IsComplete && _segments.Contains(Columns[column].Current.kind))
+                ClosedCrateRejected?.Invoke(column);
 
             if (_bufferedSwipe.HasValue)
             {
@@ -886,6 +897,7 @@ namespace SnackDash.Gameplay
                     int column = _deliveryColumn;
                     bool fromTail = _deliverFromTail && !_boomerang;
                     _deliveryColumn = -1;
+                    if (_deliverFromTail) ToggleAfterDelivery(column); // rắn hay boomerang vừa giao: khay đóng / mở
                     _boomerang = false;
                     if (fromTail) DeliveryEnded?.Invoke(column);
                     if (!IsWon) StartSettlingFullCrates();
@@ -912,6 +924,7 @@ namespace SnackDash.Gameplay
                 _boomerangLeft--;
                 column.Add(column.CurrentIndex);
                 SegmentSnipped?.Invoke(thrown, kind, columnIndex, column.CurrentIndex);
+                _deliveredThisRun++;
                 _segments.RemoveAt(thrown);
                 SegmentRemoved?.Invoke(thrown);
                 if (column.IsFull(column.CurrentIndex))
@@ -932,6 +945,7 @@ namespace SnackDash.Gameplay
             column.Add(column.CurrentIndex);
             _deliveredSinceSwipe.Add(kind);
             SegmentDelivered?.Invoke(index, kind, columnIndex);
+            _deliveredThisRun++;
 
             if (column.IsFull(column.CurrentIndex)) return CompleteCurrent(columnIndex);
             return true;

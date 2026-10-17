@@ -24,7 +24,7 @@ namespace SnackDash.Editor.Restore
         private const string MapSource = ExportRoot + "Resources/levelmaps/";
         private const string CohortSource = ExportRoot + "Resources/cohorts/ab-vo-co.asset";
         /// <summary>How many levels of the cohort are imported (more as mechanics get built).</summary>
-        public const int LevelCount = 70;
+        public const int LevelCount = 80;
         private const string GraphicSetSource = "G:/Game_2D/APK/ExportedProject/Assets/Resources/graphicssets/GraphicSet_VO.asset";
         private const string JsonFolder = "Assets/_MyGame/Data/Levels/Maps/";
         private const string OutputFolder = "Assets/_MyGame/Data/Levels/Definitions/";
@@ -147,6 +147,8 @@ namespace SnackDash.Editor.Restore
                 else if (current != null && line.StartsWith("SpriteNoOutline:")) current.spriteNoOutline = LoadRef<Sprite>(line);
                 else if (current != null && line.StartsWith("MaterialCrate:")) current.crateMaterial = LoadRef<Material>(line);
                 else if (current != null && line.StartsWith("OutlineColor:")) current.outlineColor = ParseColor(line);
+                else if (current != null && line.StartsWith("MaterialShutterCrate:")) current.shutterMaterial = LoadRef<Material>(line);
+                else if (current != null && line.StartsWith("MaterialShutterPlane:")) current.shutterPlaneMaterial = LoadRef<Material>(line);
             }
 
             var set = AssetDatabase.LoadAssetAtPath<FruitGraphicSet>(GraphicSetOutput);

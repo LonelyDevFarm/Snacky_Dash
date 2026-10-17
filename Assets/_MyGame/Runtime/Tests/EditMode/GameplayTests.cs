@@ -611,6 +611,10 @@ namespace SnackDash.Tests
             int toggles = 0;
             bool undoChecked = false;
             session.SwitchToggled += on => toggles++;
+            // Toggle crates [video lv70]: a closed crate takes nothing from the snake; each delivery swaps a crate open / shut.
+            int shutterChanges = 0;
+            session.CrateShutterChanged += (column, closed) => shutterChanges++;
+            session.SegmentDelivered += (index, kind, column) => Assert.IsFalse(session.IsCrateClosed(column), "no delivery into a closed crate");
             bool SnakeNear(Vector2Int cell) =>
                 (session.HeadPosition - (Vector2)cell).sqrMagnitude < 1f
                 || Enumerable.Range(0, session.Segments.Count).Any(k => (session.SegmentPosition(k) - (Vector2)cell).sqrMagnitude < 1f);
@@ -630,6 +634,13 @@ namespace SnackDash.Tests
                             boomerangs++;
                             for (int i = 0; i < 3600 && session.IsDelivering; i++) session.Tick(1f / 60f);
                         }
+                // Ran into a dead end (a spur closed by a rock) with the body behind: undo, as a player would.
+                if (session.IsIdle && !DirectionExtensions.All.Any(session.CanGo) && session.CanUndo)
+                {
+                    session.Undo();
+                    for (int i = 0; i < 3600 && session.IsRewinding; i++) session.Tick(1f / 60f);
+                    continue;
+                }
                 bool switchBefore = session.SwitchOn;
                 var upBefore = session.Board.SwitchBridges.Keys.Where(session.Board.IsBridgeUp).ToList();
                 if (!session.RequestMove((Direction)random.Next(4))) continue;
@@ -664,6 +675,7 @@ namespace SnackDash.Tests
             // Running past (or stopping beside) a closed gate or arrow shakes it, every time [user].
             if (session.Board.OneWayGates.Count > 0) Assert.Greater(shakes, 0, "closed gates shake as the snake goes by");
             if (session.Board.SwitchBridges.Count > 0) Assert.Greater(toggles, 0, "the crosswalk flips the bridges");
+            if (session.HasShutters) Assert.Greater(shutterChanges, 0, "deliveries toggle the crates");
             TestContext.WriteLine($"{name}: won, {snips} tail bites");
         }
 

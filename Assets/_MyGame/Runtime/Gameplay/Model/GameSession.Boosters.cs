@@ -215,7 +215,7 @@ namespace SnackDash.Gameplay
             if (!best.HasValue) return false;
             var cell = best.Value;
             var kind = _pills[cell];
-            if (!TryReserveCrate(kind, out int column, out int crate)) return false;
+            if (!TryReserveCrate(kind, out int column, out int crate, allowClosed: false)) return false; // nam châm không hút vào khay đóng
             _pills.Remove(cell);
             _secret.Remove(cell);
             PillMagnetized?.Invoke(cell, kind, column, crate);
