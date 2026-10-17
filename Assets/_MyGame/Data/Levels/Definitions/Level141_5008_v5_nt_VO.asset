@@ -1,0 +1,474 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81670f59cfe347c41bad25d85bca6a16, type: 3}
+  m_Name: Level141_5008_v5_nt_VO
+  m_EditorClassIdentifier: 
+  map: {fileID: 4900000, guid: a13284bdb29680a40ac67d982a6b82a8, type: 3}
+  columns:
+  - crates:
+    - kind: 1
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 18
+    - kind: 0
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    closedAtStart: 0
+    isExtra: 0
+  - crates:
+    - kind: 4
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 18
+    - kind: 1
+      requiredCount: 18
+    - kind: 5
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    closedAtStart: 0
+    isExtra: 0
+  batches:
+  - pills:
+    - kind: 1
+      count: 9
+    - kind: 4
+      count: 9
+    - kind: 0
+      count: 41
+    - kind: 5
+      count: 16
+  - pills:
+    - kind: 1
+      count: 36
+    - kind: 4
+      count: 36
+    - kind: 0
+      count: 4
+    - kind: 5
+      count: 2
+  timeLimitSeconds: 265
+  speedOverride: 0
+  wallHealth: 3
+  difficulty: 0
+  wallGroupHealths: []
+  curtainCells:
+  - cell: {x: 3, y: 2}
+    groupId: 1
+  - cell: {x: 4, y: 2}
+    groupId: 1
+  - cell: {x: 5, y: 2}
+    groupId: 1
+  - cell: {x: 3, y: 3}
+    groupId: 1
+  - cell: {x: 4, y: 3}
+    groupId: 1
+  - cell: {x: 5, y: 3}
+    groupId: 1
+  - cell: {x: 3, y: 4}
+    groupId: 1
+  - cell: {x: 4, y: 4}
+    groupId: 1
+  - cell: {x: 5, y: 4}
+    groupId: 1
+  - cell: {x: 3, y: 5}
+    groupId: 1
+  - cell: {x: 4, y: 5}
+    groupId: 1
+  - cell: {x: 5, y: 5}
+    groupId: 1
+  - cell: {x: 2, y: 6}
+    groupId: 1
+  - cell: {x: 3, y: 6}
+    groupId: 1
+  - cell: {x: 4, y: 6}
+    groupId: 1
+  - cell: {x: 5, y: 6}
+    groupId: 1
+  - cell: {x: 6, y: 6}
+    groupId: 1
+  - cell: {x: 7, y: 6}
+    groupId: 1
+  - cell: {x: 8, y: 6}
+    groupId: 1
+  - cell: {x: 2, y: 7}
+    groupId: 1
+  - cell: {x: 3, y: 7}
+    groupId: 1
+  - cell: {x: 4, y: 7}
+    groupId: 1
+  - cell: {x: 5, y: 7}
+    groupId: 1
+  - cell: {x: 6, y: 7}
+    groupId: 1
+  - cell: {x: 7, y: 7}
+    groupId: 1
+  - cell: {x: 8, y: 7}
+    groupId: 1
+  - cell: {x: 2, y: 8}
+    groupId: 1
+  - cell: {x: 3, y: 8}
+    groupId: 1
+  - cell: {x: 4, y: 8}
+    groupId: 1
+  - cell: {x: 5, y: 8}
+    groupId: 1
+  - cell: {x: 6, y: 8}
+    groupId: 1
+  - cell: {x: 7, y: 8}
+    groupId: 1
+  - cell: {x: 8, y: 8}
+    groupId: 1
+  - cell: {x: 9, y: 8}
+    groupId: 1
+  - cell: {x: 10, y: 8}
+    groupId: 1
+  - cell: {x: 3, y: 9}
+    groupId: 1
+  - cell: {x: 4, y: 9}
+    groupId: 1
+  - cell: {x: 5, y: 9}
+    groupId: 1
+  - cell: {x: 6, y: 9}
+    groupId: 1
+  - cell: {x: 7, y: 9}
+    groupId: 1
+  - cell: {x: 8, y: 9}
+    groupId: 1
+  - cell: {x: 9, y: 9}
+    groupId: 1
+  - cell: {x: 10, y: 9}
+    groupId: 1
+  - cell: {x: 3, y: 10}
+    groupId: 1
+  - cell: {x: 4, y: 10}
+    groupId: 1
+  - cell: {x: 5, y: 10}
+    groupId: 1
+  - cell: {x: 6, y: 10}
+    groupId: 1
+  - cell: {x: 7, y: 10}
+    groupId: 1
+  - cell: {x: 8, y: 10}
+    groupId: 1
+  - cell: {x: 9, y: 10}
+    groupId: 1
+  - cell: {x: 10, y: 10}
+    groupId: 1
+  - cell: {x: 11, y: 10}
+    groupId: 1
+  - cell: {x: 12, y: 10}
+    groupId: 1
+  - cell: {x: 3, y: 11}
+    groupId: 1
+  - cell: {x: 4, y: 11}
+    groupId: 1
+  - cell: {x: 5, y: 11}
+    groupId: 1
+  - cell: {x: 6, y: 11}
+    groupId: 1
+  - cell: {x: 7, y: 11}
+    groupId: 1
+  - cell: {x: 8, y: 11}
+    groupId: 1
+  - cell: {x: 9, y: 11}
+    groupId: 1
+  - cell: {x: 10, y: 11}
+    groupId: 1
+  - cell: {x: 11, y: 11}
+    groupId: 1
+  - cell: {x: 12, y: 11}
+    groupId: 1
+  - cell: {x: 2, y: 12}
+    groupId: 1
+  - cell: {x: 3, y: 12}
+    groupId: 1
+  - cell: {x: 4, y: 12}
+    groupId: 1
+  - cell: {x: 5, y: 12}
+    groupId: 1
+  - cell: {x: 6, y: 12}
+    groupId: 1
+  - cell: {x: 7, y: 12}
+    groupId: 1
+  - cell: {x: 8, y: 12}
+    groupId: 1
+  - cell: {x: 9, y: 12}
+    groupId: 1
+  - cell: {x: 10, y: 12}
+    groupId: 1
+  - cell: {x: 11, y: 12}
+    groupId: 1
+  - cell: {x: 12, y: 12}
+    groupId: 1
+  - cell: {x: 13, y: 12}
+    groupId: 1
+  - cell: {x: 14, y: 12}
+    groupId: 1
+  - cell: {x: 2, y: 13}
+    groupId: 1
+  - cell: {x: 3, y: 13}
+    groupId: 1
+  - cell: {x: 4, y: 13}
+    groupId: 1
+  - cell: {x: 5, y: 13}
+    groupId: 1
+  - cell: {x: 6, y: 13}
+    groupId: 1
+  - cell: {x: 7, y: 13}
+    groupId: 1
+  - cell: {x: 8, y: 13}
+    groupId: 1
+  - cell: {x: 9, y: 13}
+    groupId: 1
+  - cell: {x: 10, y: 13}
+    groupId: 1
+  - cell: {x: 11, y: 13}
+    groupId: 1
+  - cell: {x: 12, y: 13}
+    groupId: 1
+  - cell: {x: 13, y: 13}
+    groupId: 1
+  - cell: {x: 14, y: 13}
+    groupId: 1
+  - cell: {x: 15, y: 13}
+    groupId: 1
+  - cell: {x: 16, y: 13}
+    groupId: 1
+  - cell: {x: 2, y: 14}
+    groupId: 1
+  - cell: {x: 3, y: 14}
+    groupId: 1
+  - cell: {x: 4, y: 14}
+    groupId: 1
+  - cell: {x: 5, y: 14}
+    groupId: 1
+  - cell: {x: 6, y: 14}
+    groupId: 1
+  - cell: {x: 7, y: 14}
+    groupId: 1
+  - cell: {x: 8, y: 14}
+    groupId: 1
+  - cell: {x: 9, y: 14}
+    groupId: 1
+  - cell: {x: 10, y: 14}
+    groupId: 1
+  - cell: {x: 11, y: 14}
+    groupId: 1
+  - cell: {x: 12, y: 14}
+    groupId: 1
+  - cell: {x: 13, y: 14}
+    groupId: 1
+  - cell: {x: 14, y: 14}
+    groupId: 1
+  - cell: {x: 15, y: 14}
+    groupId: 1
+  - cell: {x: 16, y: 14}
+    groupId: 1
+  - cell: {x: 2, y: 15}
+    groupId: 1
+  - cell: {x: 3, y: 15}
+    groupId: 1
+  - cell: {x: 4, y: 15}
+    groupId: 1
+  - cell: {x: 5, y: 15}
+    groupId: 1
+  - cell: {x: 6, y: 15}
+    groupId: 1
+  - cell: {x: 7, y: 15}
+    groupId: 1
+  - cell: {x: 8, y: 15}
+    groupId: 1
+  - cell: {x: 9, y: 15}
+    groupId: 1
+  - cell: {x: 10, y: 15}
+    groupId: 1
+  - cell: {x: 11, y: 15}
+    groupId: 1
+  - cell: {x: 12, y: 15}
+    groupId: 1
+  - cell: {x: 13, y: 15}
+    groupId: 1
+  - cell: {x: 14, y: 15}
+    groupId: 1
+  - cell: {x: 15, y: 15}
+    groupId: 1
+  - cell: {x: 16, y: 15}
+    groupId: 1
+  - cell: {x: 3, y: 16}
+    groupId: 1
+  - cell: {x: 4, y: 16}
+    groupId: 1
+  - cell: {x: 5, y: 16}
+    groupId: 1
+  - cell: {x: 6, y: 16}
+    groupId: 1
+  - cell: {x: 7, y: 16}
+    groupId: 1
+  - cell: {x: 8, y: 16}
+    groupId: 1
+  - cell: {x: 9, y: 16}
+    groupId: 1
+  - cell: {x: 10, y: 16}
+    groupId: 1
+  - cell: {x: 11, y: 16}
+    groupId: 1
+  - cell: {x: 12, y: 16}
+    groupId: 1
+  - cell: {x: 13, y: 16}
+    groupId: 1
+  - cell: {x: 14, y: 16}
+    groupId: 1
+  - cell: {x: 3, y: 17}
+    groupId: 1
+  - cell: {x: 4, y: 17}
+    groupId: 1
+  - cell: {x: 5, y: 17}
+    groupId: 1
+  - cell: {x: 6, y: 17}
+    groupId: 1
+  - cell: {x: 7, y: 17}
+    groupId: 1
+  - cell: {x: 8, y: 17}
+    groupId: 1
+  - cell: {x: 9, y: 17}
+    groupId: 1
+  - cell: {x: 10, y: 17}
+    groupId: 1
+  - cell: {x: 11, y: 17}
+    groupId: 1
+  - cell: {x: 12, y: 17}
+    groupId: 1
+  - cell: {x: 3, y: 18}
+    groupId: 1
+  - cell: {x: 4, y: 18}
+    groupId: 1
+  - cell: {x: 5, y: 18}
+    groupId: 1
+  - cell: {x: 6, y: 18}
+    groupId: 1
+  - cell: {x: 7, y: 18}
+    groupId: 1
+  - cell: {x: 8, y: 18}
+    groupId: 1
+  - cell: {x: 9, y: 18}
+    groupId: 1
+  - cell: {x: 10, y: 18}
+    groupId: 1
+  - cell: {x: 11, y: 18}
+    groupId: 1
+  - cell: {x: 12, y: 18}
+    groupId: 1
+  - cell: {x: 3, y: 19}
+    groupId: 1
+  - cell: {x: 4, y: 19}
+    groupId: 1
+  - cell: {x: 5, y: 19}
+    groupId: 1
+  - cell: {x: 6, y: 19}
+    groupId: 1
+  - cell: {x: 7, y: 19}
+    groupId: 1
+  - cell: {x: 8, y: 19}
+    groupId: 1
+  - cell: {x: 9, y: 19}
+    groupId: 1
+  - cell: {x: 10, y: 19}
+    groupId: 1
+  - cell: {x: 2, y: 20}
+    groupId: 1
+  - cell: {x: 3, y: 20}
+    groupId: 1
+  - cell: {x: 4, y: 20}
+    groupId: 1
+  - cell: {x: 5, y: 20}
+    groupId: 1
+  - cell: {x: 6, y: 20}
+    groupId: 1
+  - cell: {x: 7, y: 20}
+    groupId: 1
+  - cell: {x: 8, y: 20}
+    groupId: 1
+  - cell: {x: 9, y: 20}
+    groupId: 1
+  - cell: {x: 10, y: 20}
+    groupId: 1
+  - cell: {x: 2, y: 21}
+    groupId: 1
+  - cell: {x: 3, y: 21}
+    groupId: 1
+  - cell: {x: 4, y: 21}
+    groupId: 1
+  - cell: {x: 5, y: 21}
+    groupId: 1
+  - cell: {x: 6, y: 21}
+    groupId: 1
+  - cell: {x: 7, y: 21}
+    groupId: 1
+  - cell: {x: 8, y: 21}
+    groupId: 1
+  - cell: {x: 2, y: 22}
+    groupId: 1
+  - cell: {x: 3, y: 22}
+    groupId: 1
+  - cell: {x: 4, y: 22}
+    groupId: 1
+  - cell: {x: 5, y: 22}
+    groupId: 1
+  - cell: {x: 6, y: 22}
+    groupId: 1
+  - cell: {x: 7, y: 22}
+    groupId: 1
+  - cell: {x: 8, y: 22}
+    groupId: 1
+  - cell: {x: 3, y: 23}
+    groupId: 1
+  - cell: {x: 4, y: 23}
+    groupId: 1
+  - cell: {x: 5, y: 23}
+    groupId: 1
+  - cell: {x: 3, y: 24}
+    groupId: 1
+  - cell: {x: 4, y: 24}
+    groupId: 1
+  - cell: {x: 5, y: 24}
+    groupId: 1
+  - cell: {x: 3, y: 25}
+    groupId: 1
+  - cell: {x: 4, y: 25}
+    groupId: 1
+  - cell: {x: 5, y: 25}
+    groupId: 1
+  - cell: {x: 3, y: 26}
+    groupId: 1
+  - cell: {x: 4, y: 26}
+    groupId: 1
+  - cell: {x: 5, y: 26}
+    groupId: 1
+  curtainGroups:
+  - groupId: 1
+    counterMin: {x: 3, y: 8}
+    counterMax: {x: 10, y: 20}
+    kind: 0
+    count: 25
+  risingBlockDeliveriesToLower: 3

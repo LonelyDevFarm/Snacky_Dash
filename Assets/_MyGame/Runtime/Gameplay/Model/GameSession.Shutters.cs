@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using SnackDash.LevelSystem;
+using UnityEngine;
 
 namespace SnackDash.Gameplay
 {
     /// <summary>
     /// Khay đóng / mở (TOGGLE CRATE, từ Level 71; gốc ShutterCrateController; video lv70): cột có cờ closedAtStart bắt đầu đóng.
-    /// Khay đóng không nhận trái (rắn tới thì khay rung từ chối). Khay đi theo cặp (cột i với cột i + nửa số cột): giao xong vào một
-    /// khay thì khay đó đóng lại và khay cặp của nó mở ra [user]; khay cặp hết việc thì khay vừa giao giữ mở (gốc
+    /// Khay đóng không nhận trái (rắn tới thì khay rung từ chối). Giao xong vào một khay thì khay đó đóng lại và khay đóng xa nhất
+    /// theo đường mở ra cùng lúc (khay đi theo cặp [user]); không còn khay đóng nào còn việc thì khay vừa giao giữ mở (gốc
     /// TryLockSoleRemainingWorkColumn). Trái đã giao không hoàn tác nên cửa cũng không.
     /// </summary>
     public sealed partial class GameSession
@@ -28,9 +29,6 @@ namespace SnackDash.Gameplay
             _closed = new bool[Columns.Count];
             for (int i = 0; i < Columns.Count && i < level.columns.Count; i++)
                 if (level.columns[i].closedAtStart && !Columns[i].IsExtra) _closed[i] = HasShutters = true;
-            // Khay cặp không có việc (cột trống) thì khay đóng của cặp đó mở luôn, không thì đóng mãi.
-            for (int i = 0; i < Columns.Count && HasShutters; i++)
-                if (_closed[i] && Partner(i) >= 0 && !HasWork(Partner(i))) _closed[i] = false;
             if (HasShutters && !HasOpenWork()) OpenBestClosed(-1);
         }
 
@@ -45,30 +43,65 @@ namespace SnackDash.Gameplay
             return false;
         }
 
+        private int[,] _stopDistance; // số ô đi đường giữa điểm giao hai cột (-1: không tới được)
+
         /// <summary>
-        /// Khay đi theo cặp [user, video lv70: trên trái ↔ dưới trái, trên phải ↔ dưới phải ở màn 71]: cột i với cột i + nửa số cột.
-        /// Số cột lẻ thì không có cặp: -1.
+        /// Khay đi theo cặp [user, video lv70]: giao xong vào một khay thì khay đóng còn việc ở <b>xa nhất theo đường</b> mở ra
+        /// (bằng nhau thì cột đứng trước). Ở màn 71 ra đúng cặp trong video (trên trái ↔ dưới trái 20 ô, không phải trên phải 6 ô);
+        /// cột i ↔ i + nửa số cột sai ở màn 150 (hai khay cùng cặp đều đóng từ đầu). -1 khi không còn khay đóng nào còn việc.
         /// </summary>
         private int Partner(int column)
         {
-            int count = Columns.Count;
-            if (count < 2 || count % 2 != 0) return -1;
-            return (column + count / 2) % count;
+            if (_stopDistance == null) BuildStopDistances();
+            int best = -1, bestDistance = int.MinValue;
+            for (int i = 0; i < Columns.Count; i++)
+            {
+                if (i == column || !_closed[i] || !HasWork(i)) continue;
+                int distance = _stopDistance[column, i];
+                if (distance > bestDistance) { best = i; bestDistance = distance; }
+            }
+            return best;
         }
 
-        /// <summary>Một lượt giao (rắn hay boomerang) vào <paramref name="column"/> vừa xong: khay đó đóng, khay cặp của nó mở.</summary>
+        private void BuildStopDistances()
+        {
+            int count = Columns.Count;
+            _stopDistance = new int[count, count];
+            for (int a = 0; a < count; a++)
+            {
+                for (int b = 0; b < count; b++) _stopDistance[a, b] = -1;
+                if (!_board.CrateStops.TryGetValue(a, out var start)) continue;
+                var distance = new Dictionary<Vector2Int, int> { [start] = 0 };
+                var queue = new Queue<Vector2Int>();
+                queue.Enqueue(start);
+                while (queue.Count > 0)
+                {
+                    var cell = queue.Dequeue();
+                    foreach (var direction in DirectionExtensions.All)
+                    {
+                        var next = cell + direction.ToCell();
+                        if (distance.ContainsKey(next) || !_board.HasRoad(cell, direction)) continue;
+                        distance[next] = distance[cell] + 1;
+                        queue.Enqueue(next);
+                    }
+                }
+                for (int b = 0; b < count; b++)
+                    if (_board.CrateStops.TryGetValue(b, out var stop) && distance.TryGetValue(stop, out int d)) _stopDistance[a, b] = d;
+            }
+        }
+
+        /// <summary>Một lượt giao (rắn hay boomerang) vào <paramref name="column"/> vừa xong: khay đó đóng, khay cặp của nó mở cùng lúc.</summary>
         private void ToggleAfterDelivery(int column)
         {
             int delivered = _deliveredThisRun;
             _deliveredThisRun = 0;
-            if (!HasShutters || delivered == 0 || column < 0) return;
+            // Khay phụ (mua bằng coin) không phải khay đóng / mở: giao vào nó không đổi cửa nào, và nó không bao giờ bị đóng
+            // (nếu không, khay thường còn việc có thể đóng hết trong khi chỉ khay phụ mở, màn 104 / 119 / 124).
+            if (!HasShutters || delivered == 0 || column < 0 || Columns[column].IsExtra) return;
             int partner = Partner(column);
-            if (partner >= 0)
-            {
-                if (!HasWork(partner)) return; // khay cặp hết việc: khay này giữ mở
-                if (_closed[partner]) { _closed[partner] = false; CrateShutterChanged?.Invoke(partner, false); }
-            }
-            else if (!OpenBestClosed(column)) return; // không có cặp: mở khay đóng có nhiều trái nhất; không còn khay nào thì giữ mở
+            if (partner < 0) return; // không còn khay đóng nào còn việc: khay này giữ mở (gốc TryLockSoleRemainingWorkColumn)
+            _closed[partner] = false;
+            CrateShutterChanged?.Invoke(partner, false);
             if (Columns[column].IsComplete || _closed[column]) return;
             _closed[column] = true;
             CrateShutterChanged?.Invoke(column, true);
@@ -97,6 +130,11 @@ namespace SnackDash.Gameplay
         private void EnsureShutterProgress()
         {
             if (!HasShutters) return;
+            // Không còn khay thường nào mở mà còn việc (Snip làm đầy khay mở cuối, màn 104): mở một khay đóng, như lúc vào màn.
+            bool openRegular = false;
+            for (int i = 0; i < Columns.Count && !openRegular; i++)
+                openRegular = !_closed[i] && !Columns[i].IsExtra && HasWork(i);
+            if (!openRegular && OpenBestClosed(-1)) return;
             bool closedCanUse = false;
             for (int i = 0; i < Columns.Count; i++)
             {

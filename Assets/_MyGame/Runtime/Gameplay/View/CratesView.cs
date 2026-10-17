@@ -120,8 +120,9 @@ namespace SnackDash.Presentation
             session.CrateCompleted += OnCrateCompleted;
             session.PillMagnetized += OnMagnetized;
             session.CurtainOpened += index => StartCoroutine(ShowUncovered(curtains != null ? curtains.RevealTime : 0.6f));
-            // Cửa đóng sau khi trái cuối bay vào xong, mở thì ngay [video lv70]; khay đóng bị rắn tới thì nảy từ chối.
-            session.CrateShutterChanged += (column, closed) => StartCoroutine(SetShutter(column, closed, closed ? flightDuration + landingDuration : 0f));
+            // Cửa đóng và cửa mở chạy cùng lúc, sau khi trái cuối bay vào xong [video lv70; user: không lần lượt].
+            session.CrateShutterChanged += (column, closed) => StartCoroutine(SetShutter(column, closed, flightDuration + landingDuration));
+            // Khay đóng bị rắn tới thì nảy từ chối.
             session.ClosedCrateRejected += column =>
             {
                 if (!_columns.TryGetValue(column, out var crates) || crates.Count == 0 || crates[0] == null) return;

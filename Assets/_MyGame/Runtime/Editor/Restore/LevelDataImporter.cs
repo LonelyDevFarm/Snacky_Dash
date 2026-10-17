@@ -24,7 +24,7 @@ namespace SnackDash.Editor.Restore
         private const string MapSource = ExportRoot + "Resources/levelmaps/";
         private const string CohortSource = ExportRoot + "Resources/cohorts/ab-vo-co.asset";
         /// <summary>How many levels of the cohort are imported (more as mechanics get built).</summary>
-        public const int LevelCount = 120;
+        public const int LevelCount = 200;
         private const string GraphicSetSource = "G:/Game_2D/APK/ExportedProject/Assets/Resources/graphicssets/GraphicSet_VO.asset";
         private const string JsonFolder = "Assets/_MyGame/Data/Levels/Maps/";
         private const string OutputFolder = "Assets/_MyGame/Data/Levels/Definitions/";
