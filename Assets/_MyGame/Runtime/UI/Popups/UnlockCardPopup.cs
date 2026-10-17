@@ -40,6 +40,17 @@ namespace SnackDash.UI
         [Tooltip("TAP TO CONTINUE! khi thẻ đã vào và yên (khoảng 1.6 s).")]
         [SerializeField] private float tapDelay = 2f;
 
+        [Header("Ngôi sao + vòng tím loé trước khi thẻ hiện (gốc Chest Pop FX: circle 0.24 s, flash 0.3 s; đo VFX_NewItem 30 fps)")]
+        [SerializeField] private RectTransform popStar, popRing;
+        [Tooltip("Cỡ lớn nhất của ngôi sao và vòng (px).")]
+        [SerializeField] private float popStarSize = 720f, popRingSize = 560f;
+        [SerializeField] private float popStarTime = 0.35f, popRingTime = 0.24f;
+        [Tooltip("Màu ngôi sao đổi dần: vàng, cam, hồng, tím.")]
+        [SerializeField] private Gradient popStarColors = StarColors();
+        [SerializeField] private Color popRingColor = new Color(0.45f, 0.25f, 1f, 1f);
+        [Tooltip("Thẻ hiện (tí hon ở chỗ ngôi sao) sau bấy nhiêu giây.")]
+        [SerializeField] private float popCardDelay = 0.33f;
+
         [Header("Thẻ vào (đo VFX_NewItem 30 fps)")]
         [Tooltip("Thẻ hiện nghiêng bấy nhiêu độ rồi thẳng lại trong cardGrow giây.")]
         [SerializeField] private float cardTilt = 20f;
@@ -101,12 +112,15 @@ namespace SnackDash.UI
                 title.localScale = Vector3.one * t;
                 title.localRotation = Quaternion.Euler(0f, 0f, 12f * (1f - t));
             });
+            // Ngôi sao + vòng tím loé, thẻ hiện tí hon ngay chỗ đó rồi to ra [video VFX_NewItem, user].
+            StartCoroutine(Pop());
+            yield return new WaitForSeconds(popStar != null ? popCardDelay : 0f);
             StartCoroutine(Tween.Run(0.4f, Tween.OutQuad, t =>
             {
                 flashRect.localScale = Vector3.one * (0.2f + 2f * t);
                 flash.color = new Color(flash.color.r, flash.color.g, flash.color.b, 1f - t);
             }));
-            yield return new WaitForSeconds(0.1f);
+            if (popStar == null) yield return new WaitForSeconds(0.1f); // có ngôi sao thì thẻ ra ngay cùng quầng loé (video)
             // Thẻ hiện nghiêng, to vượt rồi thu về, rồi lắc qua lại nhỏ dần; hình trong thẻ nhún và quầng trắng loé cùng lúc [video VFX_NewItem, user].
             StartCoroutine(IconBounce());
             StartCoroutine(Shine());
@@ -124,6 +138,46 @@ namespace SnackDash.UI
             yield return new WaitForSeconds(0.3f);
             yield return Tween.Run(0.25f, Tween.OutBack(3f), t => nameRect.localScale = Vector3.one * t);
             yield return Tween.Run(0.25f, Tween.OutBack(2f), t => bubble.localScale = Vector3.one * t);
+        }
+
+        private static Gradient StarColors()
+        {
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(new Color(1f, 0.85f, 0.1f), 0f), new GradientColorKey(new Color(1f, 0.55f, 0.1f), 0.4f),
+                        new GradientColorKey(new Color(0.9f, 0.3f, 0.6f), 0.7f), new GradientColorKey(new Color(0.55f, 0.25f, 1f), 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.75f), new GradientAlphaKey(0f, 1f) });
+            return gradient;
+        }
+
+        /// <summary>Ngôi sao to nhanh rồi thu nhỏ, đổi màu vàng → tím và tắt; vòng tím nở ra rồi mờ đi.</summary>
+        private IEnumerator Pop()
+        {
+            if (popStar == null) yield break;
+            var star = popStar.GetComponent<Graphic>();
+            var ring = popRing != null ? popRing.GetComponent<Graphic>() : null;
+            popStar.gameObject.SetActive(true);
+            if (popRing != null) popRing.gameObject.SetActive(true);
+            float time = 0f, end = Mathf.Max(popStarTime, popRingTime);
+            while (time < end)
+            {
+                float s = Mathf.Clamp01(time / popStarTime);
+                float size = s < 0.35f ? Tween.OutQuad(s / 0.35f) : 1f - 0.85f * Tween.InQuad((s - 0.35f) / 0.65f);
+                popStar.sizeDelta = Vector2.one * popStarSize * size;
+                star.color = popStarColors.Evaluate(s);
+                if (ring != null)
+                {
+                    float r = Mathf.Clamp01(time / popRingTime);
+                    popRing.sizeDelta = Vector2.one * popRingSize * (0.15f + 0.85f * Tween.OutQuad(r));
+                    var color = popRingColor;
+                    color.a *= 1f - r * r;
+                    ring.color = color;
+                }
+                time += Time.deltaTime;
+                yield return null;
+            }
+            popStar.gameObject.SetActive(false);
+            if (popRing != null) popRing.gameObject.SetActive(false);
         }
 
         /// <summary>Thẻ đung đưa qua lại, mỗi nhịp nhỏ dần tới đứng yên.</summary>
