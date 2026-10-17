@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81670f59cfe347c41bad25d85bca6a16, type: 3}
+  m_Name: Gen001_Level64_11071_v6_ftue_nt_VO
+  m_EditorClassIdentifier: 
+  map: {fileID: 4900000, guid: b94f69ce29324f849ac8f1f5c5bdb289, type: 3}
+  columns:
+  - crates:
+    - kind: 3
+      requiredCount: 18
+    - kind: 1
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 18
+    - kind: 0
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 18
+    - kind: 3
+      requiredCount: 18
+    - kind: 3
+      requiredCount: 18
+    - kind: 5
+      requiredCount: 18
+    - kind: 5
+      requiredCount: 9
+    closedAtStart: 0
+    isExtra: 0
+  - crates: []
+    closedAtStart: 0
+    isExtra: 1
+  batches:
+  - pills:
+    - kind: 3
+      count: 15
+    - kind: 1
+      count: 17
+    - kind: 2
+      count: 1
+  - pills:
+    - kind: 3
+      count: 3
+    - kind: 2
+      count: 17
+    - kind: 1
+      count: 1
+    - kind: 0
+      count: 8
+    - kind: 5
+      count: 4
+  - pills:
+    - kind: 5
+      count: 12
+    - kind: 3
+      count: 21
+    - kind: 0
+      count: 1
+  - pills:
+    - kind: 3
+      count: 15
+    - kind: 5
+      count: 29
+  timeLimitSeconds: 330
+  speedOverride: 0
+  wallHealth: 3
+  difficulty: 2
+  wallGroupHealths:
+  - seedCell: {x: 15, y: 7}
+    health: 5
+  curtainCells: []
+  curtainGroups: []
+  risingBlockDeliveriesToLower: 3
+  origin: "T\u1EEB m\xE0n 64 (Level64_11071_v6_ftue_nt_VO); \u0111\u1ED5i m\xE0u
+    tr\xE1i, chia l\u1EA1i khay, chia l\u1EA1i \u0111\u1EE3t (tr\u1ED9n 12); h\u1EA1t
+    608692637; ng\u01B0\u1EDDi ch\u01A1i th\u1EED th\u1EAFng v\xE1n 1: 130 l\u01B0\u1EE3t
+    vu\u1ED1t, 1 l\u1EA7n c\u1EAFn \u0111u\xF4i"

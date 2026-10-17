@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using SnackDash.Editor.LevelTools;
 using SnackDash.Gameplay;
 using SnackDash.LevelSystem;
 using UnityEditor;
@@ -550,8 +551,11 @@ namespace SnackDash.Tests
         }
 
         /// <summary>Every imported level (cohort ab-vo-co of v1.15, LevelDataImporter.LevelCount levels).</summary>
-        private static IEnumerable<string> ImportedLevels() =>
-            System.IO.Directory.GetFiles(LevelFolder, "*.asset").Select(System.IO.Path.GetFileNameWithoutExtension);
+        private static IEnumerable<string> ImportedLevels() => LevelFiles().Select(System.IO.Path.GetFileNameWithoutExtension);
+
+        /// <summary>Màn gốc (Definitions) và màn Level Generator đã sinh (Generated), cùng qua mọi kiểm tra.</summary>
+        private static IEnumerable<string> LevelFiles() => System.IO.Directory.GetFiles(LevelFolder, "*.asset")
+            .Concat(System.IO.Directory.Exists(LevelGenerator.Folder) ? System.IO.Directory.GetFiles(LevelGenerator.Folder, "*.asset") : new string[0]);
 
         private const int LevelAttempts = 3;
 
@@ -567,7 +571,6 @@ namespace SnackDash.Tests
         {
             // 11019 (Level 7) is the Boomerang tutorial: the crate loop is unreachable without it [user].
             bool boomerangLevel = name.EndsWith("11019_v4_nt_VO");
-            int boomerangs = 0;
             var level = Load(name);
             var list = AssetDatabase.LoadAssetAtPath<LevelList>("Assets/_MyGame/Data/Levels/LevelList.asset");
             if (list != null && list.skipped.Contains(level)) Assert.Ignore("skipped in play for now (mechanic not built)");
@@ -637,51 +640,26 @@ namespace SnackDash.Tests
             session.PillEaten += (c, k, i) => Took(k);
             session.PillMagnetized += (c, k, column, crate) => Took(k);
             session.Rewound += () => { foreach (var k in kinds) remaining[k] = session.RemainingFruit(k); };
-            var random = new System.Random(attempt);
-            int snips = 0;
-            int stall = 0; // lượt vuốt chưa ăn hay giao được gì
-            session.PillEaten += (c, k, i) => stall = 0;
-            session.SegmentDelivered += (i, k, c) => stall = 0;
-            session.SegmentSnipped += (i, k, c, crate) => stall = 0;
-            for (int move = 0; move < 3000 && !session.IsWon; move++)
+            // The shared test player (LevelAutoPlayer, also used by the Level Generator); the checks below hook into its moves.
+            var player = new LevelAutoPlayer();
+            bool switchBefore = false;
+            List<Vector2Int> upBefore = null, turnoutsBefore = null;
+            player.BeforeMove += () =>
             {
-                // Biting the tail: snip and play on; the snipped fruit must stay winnable.
-                if (session.IsStuck && session.Snip()) snips++;
-                // Crates a snip filled complete before the snake may move again.
-                for (int i = 0; i < 3600 && session.IsDelivering; i++) session.Tick(1f / 60f);
-                // The booster tutorial level: the crate is out of reach, the boomerang feeds it.
-                if (boomerangLevel && session.Pills.Count == 0)
-                    for (int c = 0; c < session.Columns.Count; c++)
-                        if (session.UseBoomerang(c))
-                        {
-                            boomerangs++;
-                            for (int i = 0; i < 3600 && session.IsDelivering; i++) session.Tick(1f / 60f);
-                        }
-                // Ran into a dead end (a spur closed by a rock) with the body behind: undo, as a player would.
-                if (session.IsIdle && !DirectionExtensions.All.Any(session.CanGo) && session.CanUndo)
-                {
-                    session.Undo();
-                    for (int i = 0; i < 3600 && session.IsRewinding; i++) session.Tick(1f / 60f);
-                    continue;
-                }
-                bool switchBefore = session.SwitchOn;
-                var upBefore = session.Board.SwitchBridges.Keys.Where(session.Board.IsBridgeUp).ToList();
-                var turnoutsBefore = session.Board.Turnouts.Where(session.Board.IsTurnoutB).ToList();
-                // Half the swipes aim at a goal (deliverable crate, nearest fruit, the crosswalk when stuck) so a level that needs
-                // planning (a switch tube to turn first, Level 129) is still beaten; the other half stay random.
-                var aimed = random.NextDouble() < 0.5 ? Aim(session, stall) : null;
-                if (!session.RequestMove(aimed ?? (Direction)random.Next(4))) continue;
-                stall++;
-                // Long crate combos (1 s pause per filled crate) can take several seconds.
-                for (int i = 0; i < 3600 && (session.IsMoving || session.IsDelivering); i++)
-                {
-                    session.Tick(1f / 60f);
-                    // Every shown segment lies on a road: never across the grass between tunnel mouths.
-                    for (int k = 0; k < session.Segments.Count; k++)
-                        if (!session.SegmentInTunnel(k))
-                            Assert.IsTrue(session.Board.IsWalkable(Vector2Int.RoundToInt(session.SegmentPosition(k))),
-                                $"segment {k} off the road at {session.SegmentPosition(k)}");
-                }
+                switchBefore = session.SwitchOn;
+                upBefore = session.Board.SwitchBridges.Keys.Where(session.Board.IsBridgeUp).ToList();
+                turnoutsBefore = session.Board.Turnouts.Where(session.Board.IsTurnoutB).ToList();
+            };
+            // Every shown segment lies on a road: never across the grass between tunnel mouths.
+            player.Ticked += () =>
+            {
+                for (int k = 0; k < session.Segments.Count; k++)
+                    if (!session.SegmentInTunnel(k))
+                        Assert.IsTrue(session.Board.IsWalkable(Vector2Int.RoundToInt(session.SegmentPosition(k))),
+                            $"segment {k} off the road at {session.SegmentPosition(k)}");
+            };
+            player.Moved += () =>
+            {
                 Assert.IsFalse(session.Board.IsBridge(session.CurrentCell), "the snake never stops on a bridge");
                 // Toggle crates swap (one shuts, one opens): while a crate still has work, at least one such crate is open.
                 if (session.HasShutters && Enumerable.Range(0, session.Columns.Count).Any(c => !session.Columns[c].IsComplete && !session.Columns[c].IsExtra))
@@ -706,7 +684,10 @@ namespace SnackDash.Tests
                     for (int i = 0; i < 3600 && session.IsRewinding; i++) session.Tick(1f / 60f); // the rewind locks swipes until it plays out
                 }
                 Assert.IsFalse(session.Board.TunnelMouths.ContainsKey(session.CurrentCell), "the snake never stops at a tunnel mouth");
-            }
+            };
+            // The booster tutorial level (11019): the crate is out of reach, the boomerang feeds it.
+            player.Play(session, attempt, boomerangLevel);
+            int snips = player.Snips;
             // A wrong move can lose a level for good (Level 273: the snake ran into a ring and the rising block shut it in): play again.
             if (!session.IsWon && attempt < LevelAttempts) return false;
             Assert.IsTrue(session.IsWon, $"not won in {LevelAttempts} games, last after {snips} snips: at {session.CurrentCell} (can go {string.Join("/", DirectionExtensions.All.Where(session.CanGo))}"
@@ -714,10 +695,10 @@ namespace SnackDash.Tests
                 + string.Join(" ", session.Pills.Select(p => $"{p.Value}@{p.Key}")) + $"), body {string.Join(" ", session.Segments)}, crates "
                 + string.Join(", ", Enumerable.Range(0, session.Columns.Count).Select(c => session.Columns[c].IsComplete ? $"{c} done"
                     : $"{c} {session.Columns[c].Current.kind}{(session.IsCrateClosed(c) ? " shut" : "")}{(session.CanDeliverTo(c) ? "" : " no-deliver")}"
-                    + (session.Board.CrateStops.TryGetValue(c, out var stop) && FirstStep(session, cell => cell == stop) == null ? " unreachable" : "")))
+                    + (session.Board.CrateStops.TryGetValue(c, out var stop) && LevelAutoPlayer.FirstStep(session, cell => cell == stop) == null ? " unreachable" : "")))
                 + $", risen {string.Join(" ", session.Board.RisingBlocks.Where(session.Board.IsRisen))}"
                 + $", {Enumerable.Range(0, map.Width * map.Height).Count(i => session.Board.IsCovered(new Vector2Int(i % map.Width, i / map.Width)))} cells under curtains");
-            if (boomerangLevel) Assert.AreEqual(1, boomerangs, "one free boomerang wins the tutorial level");
+            if (boomerangLevel) Assert.AreEqual(1, player.Boomerangs, "one free boomerang wins the tutorial level");
             foreach (var k in kinds) Assert.AreEqual(0, session.RemainingFruit(k), $"no {k} left once won");
             // Running past (or stopping beside) a closed gate or arrow shakes it, every time [user]. The aimed player may win without
             // passing a closed gate (Level 22) or flipping the crosswalk (Level 133): note it instead of failing.
@@ -732,52 +713,6 @@ namespace SnackDash.Tests
         /// Random layout rules [user, Level 12 footage]: the whole wave is placed; segments are filled
         /// whole (at most one part way), each from one end without gaps; each kind is one block per segment.
         /// </summary>
-        /// <summary>
-        /// Test player's goal: a crate stop the snake can deliver to, else the nearest fruit, else (after many idle swipes) a
-        /// crosswalk to flip bridges and tubes. Returns the first swipe of the shortest road path, or null.
-        /// </summary>
-        private static Direction? Aim(GameSession session, int stall)
-        {
-            var board = session.Board;
-            bool Deliverable(Vector2Int cell) => board.CrateColumnAt(cell) is int column && column >= 0 && session.CanDeliverTo(column);
-            if (stall > 40 && (board.Turnouts.Any() || board.SwitchBridges.Count > 0) && FirstStep(session, board.IsSwitch) is Direction toSwitch)
-                return toSwitch;
-            // Still nothing after many swipes: bite the own tail on purpose, as a player would, so Snip sends the cut fruit to any
-            // matching crate (Level 273: risen blocks wall off the crate the tail needs; Level 310: the needed fruit sits by the head).
-            if (stall > 80 && FirstStep(session, cell => Enumerable.Range(0, session.Segments.Count)
-                    .Any(k => Vector2Int.RoundToInt(session.SegmentPosition(k)) == cell)) is Direction toBody)
-                return toBody;
-            return FirstStep(session, Deliverable) ?? FirstStep(session, cell => session.Pills.ContainsKey(cell));
-        }
-
-        private static Direction? FirstStep(GameSession session, System.Func<Vector2Int, bool> isTarget)
-        {
-            var board = session.Board;
-            var first = new Dictionary<Vector2Int, Direction>();
-            var queue = new Queue<Vector2Int>();
-            foreach (var direction in DirectionExtensions.All)
-            {
-                if (!session.CanGo(direction)) continue;
-                var next = session.CurrentCell + direction.ToCell();
-                if (first.ContainsKey(next)) continue;
-                first[next] = direction;
-                queue.Enqueue(next);
-            }
-            while (queue.Count > 0)
-            {
-                var cell = queue.Dequeue();
-                if (isTarget(cell)) return first[cell];
-                foreach (var direction in DirectionExtensions.All)
-                {
-                    var next = cell + direction.ToCell();
-                    if (next == session.CurrentCell || first.ContainsKey(next) || !board.CanMove(cell, direction)) continue;
-                    first[next] = first[cell];
-                    queue.Enqueue(next);
-                }
-            }
-            return null;
-        }
-
         private static void AssertRandomLayout(GameSession session, SpawnBatchDefinition wave)
         {
             int expected = 0;
@@ -817,8 +752,10 @@ namespace SnackDash.Tests
         }
 
         // Assets are named LevelNN_<map>; a bare map name also finds its file.
+        /// <summary>Màn theo tên đầy đủ, hoặc màn gốc theo đuôi tên (tên map gốc, vd. "11002_v4_ftue_nt_VO").</summary>
         private static LevelDefinition Load(string name) => AssetDatabase.LoadAssetAtPath<LevelDefinition>(
-            System.IO.Directory.GetFiles(LevelFolder, "*" + name + ".asset")[0].Replace('\\', '/'));
+            (LevelFiles().FirstOrDefault(f => System.IO.Path.GetFileNameWithoutExtension(f) == name)
+             ?? System.IO.Directory.GetFiles(LevelFolder, "*" + name + ".asset")[0]).Replace('\\', '/'));
 
         /// <summary>One wave and one crate column.</summary>
         private static LevelDefinition Level((PillKind kind, int count) wave, params (PillKind kind, int count)[] crates)

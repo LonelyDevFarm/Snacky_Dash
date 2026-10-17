@@ -3,6 +3,7 @@
     "rootNamespace": "SnackDash.Tests",
     "references": [
         "SnackDash.Runtime",
+        "SnackDash.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

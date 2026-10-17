@@ -71,6 +71,8 @@ namespace SnackDash.LevelSystem
         public List<CurtainGroupDefinition> curtainGroups = new List<CurtainGroupDefinition>();
         [Tooltip("Số khay phải xong để khối nâng hạ lại (gốc: risingBlockDeliveriesToLower).")]
         public int risingBlockDeliveriesToLower = 3;
+        [Tooltip("Màn do Level Generator sinh: màn gốc, cách tạo, hạt ngẫu nhiên, số lượt người chơi thử cần (trống với màn gốc).")]
+        [TextArea] public string origin;
     }
 
     [Serializable]

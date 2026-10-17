@@ -124,7 +124,10 @@ namespace SnackDash.Editor.Restore
                 list = ScriptableObject.CreateInstance<LevelList>();
                 AssetDatabase.CreateAsset(list, LevelListPath);
             }
+            // Màn do Level Generator sinh (Data/Levels/Generated) đã thêm vào danh sách thì giữ, nối sau màn gốc.
+            var generated = list.levels.Where(LevelTools.LevelGenerator.IsGenerated).ToList();
             list.levels = Levels.Select(name => AssetDatabase.LoadAssetAtPath<LevelDefinition>(AssetPath(name))).ToList();
+            list.levels.AddRange(generated);
             list.skipped = SkippedForNow.Select(name => AssetDatabase.LoadAssetAtPath<LevelDefinition>(AssetPath(name))).ToList();
             EditorUtility.SetDirty(list);
             AssetDatabase.SaveAssets();
