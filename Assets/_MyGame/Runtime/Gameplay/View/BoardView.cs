@@ -195,6 +195,19 @@ namespace SnackDash.Presentation
             };
             session.SwitchToggled += on => { foreach (var lever in levers) lever.Show(on); };
 
+            // Ống rẽ: hình hướng A / B theo session [video lv83]; undo đổi tức thì.
+            var turnouts = new Dictionary<Vector2Int, TurnoutView>();
+            foreach (var cell in session.Board.Turnouts)
+                if (_ldfCovers.TryGetValue(cell, out var cover) && cover.TryGetComponent<TurnoutView>(out var view))
+                {
+                    view.Show(session.Board.IsTurnoutB(cell), false);
+                    turnouts[cell] = view;
+                }
+            session.TurnoutChanged += (cell, b) =>
+            {
+                if (turnouts.TryGetValue(cell, out var view)) view.Show(b, !session.IsRewinding);
+            };
+
             // Mũi tên đổi chiều (TileCov_Arrow): quay nửa vòng khi cặp của nó đổi.
             _flips.Clear();
             foreach (var arrow in session.Board.FlippingArrows.Keys)
