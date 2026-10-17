@@ -172,6 +172,29 @@ namespace SnackDash.Presentation
                 if (_risingBlocks.TryGetValue(cell, out var view)) view.Animate(risen);
             };
 
+            // Cầu bật dựng / hạ và cần gạt ON / OFF theo công tắc [video lv61]; undo đổi tức thì.
+            var switchBridges = new Dictionary<Vector2Int, SwitchBridgeView>();
+            foreach (var cell in session.Board.SwitchBridges.Keys)
+                if (_ldfCovers.TryGetValue(cell, out var cover) && cover.TryGetComponent<SwitchBridgeView>(out var view))
+                {
+                    view.Snap(session.Board.IsBridgeUp(cell));
+                    switchBridges[cell] = view;
+                }
+            var levers = new List<SwitchLeverView>();
+            foreach (var cell in session.Board.SwitchLevers)
+                if (_ldfCovers.TryGetValue(cell, out var cover) && cover.TryGetComponent<SwitchLeverView>(out var lever))
+                {
+                    lever.Show(session.SwitchOn);
+                    levers.Add(lever);
+                }
+            session.SwitchBridgeChanged += (cell, up) =>
+            {
+                if (!switchBridges.TryGetValue(cell, out var view)) return;
+                if (session.IsRewinding) view.Snap(up);
+                else view.Animate(up);
+            };
+            session.SwitchToggled += on => { foreach (var lever in levers) lever.Show(on); };
+
             // Mũi tên đổi chiều (TileCov_Arrow): quay nửa vòng khi cặp của nó đổi.
             _flips.Clear();
             foreach (var arrow in session.Board.FlippingArrows.Keys)

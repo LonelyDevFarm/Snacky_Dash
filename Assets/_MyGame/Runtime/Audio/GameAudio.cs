@@ -44,6 +44,9 @@ namespace SnackDash.Audio
             session.Won += () => { Play("Confetti"); Haptics.Heavy(); };
             session.TailBitten += count => { Play("HitTail"); Haptics.Medium(); };
             session.RisingBlockChanged += (cell, risen) => Play(risen ? "RisingBlockUp" : "RisingBlockDown"); // khối nâng [SoundManager]
+            // Cầu bật: tiếng gạt khi qua vạch, tiếng cầu một lần dù nhiều cầu cùng đổi (tên âm thanh gốc Switch, SwitchBridge).
+            session.SwitchToggled += on => { if (!session.IsRewinding) Play("Switch"); };
+            session.SwitchBridgeChanged += (cell, up) => { if (!session.IsRewinding) PlayOncePerFrame("SwitchBridge"); };
         }
 
         private int _lastSpawnSoundFrame = -1;
