@@ -1,0 +1,210 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81670f59cfe347c41bad25d85bca6a16, type: 3}
+  m_Name: Level300_11118_v5_nt_VO
+  m_EditorClassIdentifier: 
+  map: {fileID: 4900000, guid: fed6b97eb51bd8b41b0a11b8bbb541c5, type: 3}
+  columns:
+  - crates:
+    - kind: 0
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 3
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    closedAtStart: 1
+    isExtra: 0
+  - crates:
+    - kind: 0
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 9
+    - kind: 3
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 9
+    closedAtStart: 0
+    isExtra: 0
+  batches:
+  - pills:
+    - kind: 0
+      count: 18
+    - kind: 1
+      count: 6
+    - kind: 2
+      count: 9
+    - kind: 3
+      count: 4
+    - kind: 5
+      count: 4
+    - kind: 4
+      count: 3
+  - pills:
+    - kind: 1
+      count: 3
+    - kind: 0
+      count: 9
+    - kind: 2
+      count: 7
+    - kind: 3
+      count: 8
+    - kind: 5
+      count: 8
+    - kind: 4
+      count: 3
+  - pills:
+    - kind: 1
+      count: 18
+    - kind: 2
+      count: 20
+    - kind: 3
+      count: 6
+    - kind: 4
+      count: 3
+    - kind: 5
+      count: 6
+    - kind: 0
+      count: 9
+  timeLimitSeconds: 225
+  speedOverride: 0
+  wallHealth: 6
+  difficulty: 0
+  wallGroupHealths:
+  - seedCell: {x: 9, y: 17}
+    health: 8
+  curtainCells:
+  - cell: {x: 2, y: 18}
+    groupId: 1
+  - cell: {x: 3, y: 18}
+    groupId: 1
+  - cell: {x: 4, y: 18}
+    groupId: 1
+  - cell: {x: 5, y: 18}
+    groupId: 1
+  - cell: {x: 2, y: 19}
+    groupId: 1
+  - cell: {x: 3, y: 19}
+    groupId: 1
+  - cell: {x: 4, y: 19}
+    groupId: 1
+  - cell: {x: 5, y: 19}
+    groupId: 1
+  - cell: {x: 2, y: 20}
+    groupId: 1
+  - cell: {x: 3, y: 20}
+    groupId: 1
+  - cell: {x: 4, y: 20}
+    groupId: 1
+  - cell: {x: 5, y: 20}
+    groupId: 1
+  - cell: {x: 3, y: 21}
+    groupId: 1
+  - cell: {x: 4, y: 21}
+    groupId: 1
+  - cell: {x: 5, y: 21}
+    groupId: 1
+  - cell: {x: 3, y: 22}
+    groupId: 1
+  - cell: {x: 4, y: 22}
+    groupId: 1
+  - cell: {x: 5, y: 22}
+    groupId: 1
+  - cell: {x: 3, y: 23}
+    groupId: 1
+  - cell: {x: 4, y: 23}
+    groupId: 1
+  - cell: {x: 5, y: 23}
+    groupId: 1
+  - cell: {x: 9, y: 18}
+    groupId: 2
+  - cell: {x: 10, y: 18}
+    groupId: 2
+  - cell: {x: 11, y: 18}
+    groupId: 2
+  - cell: {x: 12, y: 18}
+    groupId: 2
+  - cell: {x: 13, y: 18}
+    groupId: 2
+  - cell: {x: 9, y: 19}
+    groupId: 2
+  - cell: {x: 10, y: 19}
+    groupId: 2
+  - cell: {x: 11, y: 19}
+    groupId: 2
+  - cell: {x: 12, y: 19}
+    groupId: 2
+  - cell: {x: 13, y: 19}
+    groupId: 2
+  - cell: {x: 9, y: 20}
+    groupId: 2
+  - cell: {x: 10, y: 20}
+    groupId: 2
+  - cell: {x: 11, y: 20}
+    groupId: 2
+  - cell: {x: 12, y: 20}
+    groupId: 2
+  - cell: {x: 13, y: 20}
+    groupId: 2
+  - cell: {x: 9, y: 21}
+    groupId: 2
+  - cell: {x: 10, y: 21}
+    groupId: 2
+  - cell: {x: 11, y: 21}
+    groupId: 2
+  - cell: {x: 12, y: 21}
+    groupId: 2
+  - cell: {x: 9, y: 22}
+    groupId: 2
+  - cell: {x: 10, y: 22}
+    groupId: 2
+  - cell: {x: 11, y: 22}
+    groupId: 2
+  - cell: {x: 12, y: 22}
+    groupId: 2
+  - cell: {x: 9, y: 23}
+    groupId: 2
+  - cell: {x: 10, y: 23}
+    groupId: 2
+  - cell: {x: 11, y: 23}
+    groupId: 2
+  - cell: {x: 12, y: 23}
+    groupId: 2
+  curtainGroups:
+  - groupId: 1
+    counterMin: {x: 3, y: 18}
+    counterMax: {x: 5, y: 23}
+    kind: 2
+    count: 20
+  - groupId: 2
+    counterMin: {x: 9, y: 18}
+    counterMax: {x: 12, y: 23}
+    kind: 2
+    count: 20
+  risingBlockDeliveriesToLower: 3

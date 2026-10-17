@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81670f59cfe347c41bad25d85bca6a16, type: 3}
+  m_Name: Level289_11058_v3_nt_VO
+  m_EditorClassIdentifier: 
+  map: {fileID: 4900000, guid: a84ce9f2a315c574195eacb8b1db009d, type: 3}
+  columns:
+  - crates:
+    - kind: 0
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 18
+    - kind: 0
+      requiredCount: 18
+    - kind: 1
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 18
+    - kind: 0
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    closedAtStart: 1
+    isExtra: 0
+  - crates:
+    - kind: 0
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 18
+    - kind: 0
+      requiredCount: 18
+    - kind: 2
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 9
+    closedAtStart: 0
+    isExtra: 0
+  - crates: []
+    closedAtStart: 0
+    isExtra: 1
+  batches:
+  - pills:
+    - kind: 0
+      count: 18
+    - kind: 1
+      count: 8
+    - kind: 2
+      count: 6
+  - pills:
+    - kind: 1
+      count: 10
+    - kind: 0
+      count: 9
+    - kind: 2
+      count: 15
+  - pills:
+    - kind: 1
+      count: 8
+    - kind: 0
+      count: 9
+    - kind: 2
+      count: 19
+  - pills:
+    - kind: 1
+      count: 25
+    - kind: 0
+      count: 9
+    - kind: 2
+      count: 5
+  - pills:
+    - kind: 1
+      count: 3
+    - kind: 0
+      count: 45
+  timeLimitSeconds: 275
+  speedOverride: 0
+  wallHealth: 6
+  difficulty: 4
+  wallGroupHealths:
+  - seedCell: {x: 5, y: 2}
+    health: 3
+  - seedCell: {x: 11, y: 2}
+    health: 6
+  curtainCells: []
+  curtainGroups: []
+  risingBlockDeliveriesToLower: 3

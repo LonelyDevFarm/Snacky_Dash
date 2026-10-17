@@ -1,0 +1,268 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81670f59cfe347c41bad25d85bca6a16, type: 3}
+  m_Name: Level209_5097_v4_nt_VO
+  m_EditorClassIdentifier: 
+  map: {fileID: 4900000, guid: 2b7112a2035e948489a496a0a49e21b2, type: 3}
+  columns:
+  - crates:
+    - kind: 3
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 18
+    - kind: 3
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 3
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 18
+    - kind: 1
+      requiredCount: 9
+    closedAtStart: 1
+    isExtra: 0
+  - crates:
+    - kind: 0
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 18
+    - kind: 3
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 3
+      requiredCount: 9
+    closedAtStart: 0
+    isExtra: 0
+  - crates: []
+    closedAtStart: 0
+    isExtra: 1
+  batches:
+  - pills:
+    - kind: 3
+      count: 9
+    - kind: 0
+      count: 9
+    - kind: 5
+      count: 10
+    - kind: 4
+      count: 11
+    - kind: 1
+      count: 6
+  - pills:
+    - kind: 4
+      count: 7
+    - kind: 0
+      count: 9
+    - kind: 3
+      count: 9
+    - kind: 5
+      count: 12
+    - kind: 1
+      count: 8
+  - pills:
+    - kind: 4
+      count: 9
+    - kind: 0
+      count: 9
+    - kind: 3
+      count: 9
+    - kind: 5
+      count: 11
+    - kind: 1
+      count: 7
+  - pills:
+    - kind: 4
+      count: 9
+    - kind: 5
+      count: 12
+    - kind: 3
+      count: 11
+    - kind: 1
+      count: 9
+    - kind: 0
+      count: 5
+  - pills:
+    - kind: 4
+      count: 27
+    - kind: 0
+      count: 4
+    - kind: 1
+      count: 6
+    - kind: 5
+      count: 9
+    - kind: 3
+      count: 7
+  timeLimitSeconds: 375
+  speedOverride: 0
+  wallHealth: 6
+  difficulty: 4
+  wallGroupHealths:
+  - seedCell: {x: 1, y: 16}
+    health: 6
+  curtainCells:
+  - cell: {x: 9, y: 18}
+    groupId: 1
+  - cell: {x: 10, y: 18}
+    groupId: 1
+  - cell: {x: 11, y: 18}
+    groupId: 1
+  - cell: {x: 12, y: 18}
+    groupId: 1
+  - cell: {x: 13, y: 18}
+    groupId: 1
+  - cell: {x: 14, y: 18}
+    groupId: 1
+  - cell: {x: 15, y: 18}
+    groupId: 1
+  - cell: {x: 9, y: 19}
+    groupId: 1
+  - cell: {x: 10, y: 19}
+    groupId: 1
+  - cell: {x: 11, y: 19}
+    groupId: 1
+  - cell: {x: 12, y: 19}
+    groupId: 1
+  - cell: {x: 13, y: 19}
+    groupId: 1
+  - cell: {x: 14, y: 19}
+    groupId: 1
+  - cell: {x: 15, y: 19}
+    groupId: 1
+  - cell: {x: 9, y: 20}
+    groupId: 1
+  - cell: {x: 10, y: 20}
+    groupId: 1
+  - cell: {x: 11, y: 20}
+    groupId: 1
+  - cell: {x: 12, y: 20}
+    groupId: 1
+  - cell: {x: 13, y: 20}
+    groupId: 1
+  - cell: {x: 14, y: 20}
+    groupId: 1
+  - cell: {x: 15, y: 20}
+    groupId: 1
+  - cell: {x: 9, y: 21}
+    groupId: 1
+  - cell: {x: 10, y: 21}
+    groupId: 1
+  - cell: {x: 11, y: 21}
+    groupId: 1
+  - cell: {x: 12, y: 21}
+    groupId: 1
+  - cell: {x: 13, y: 21}
+    groupId: 1
+  - cell: {x: 14, y: 21}
+    groupId: 1
+  - cell: {x: 15, y: 21}
+    groupId: 1
+  - cell: {x: 9, y: 22}
+    groupId: 1
+  - cell: {x: 10, y: 22}
+    groupId: 1
+  - cell: {x: 11, y: 22}
+    groupId: 1
+  - cell: {x: 12, y: 22}
+    groupId: 1
+  - cell: {x: 13, y: 22}
+    groupId: 1
+  - cell: {x: 14, y: 22}
+    groupId: 1
+  - cell: {x: 15, y: 22}
+    groupId: 1
+  - cell: {x: 9, y: 23}
+    groupId: 1
+  - cell: {x: 10, y: 23}
+    groupId: 1
+  - cell: {x: 11, y: 23}
+    groupId: 1
+  - cell: {x: 12, y: 23}
+    groupId: 1
+  - cell: {x: 13, y: 23}
+    groupId: 1
+  - cell: {x: 14, y: 23}
+    groupId: 1
+  - cell: {x: 15, y: 23}
+    groupId: 1
+  - cell: {x: 9, y: 24}
+    groupId: 1
+  - cell: {x: 10, y: 24}
+    groupId: 1
+  - cell: {x: 11, y: 24}
+    groupId: 1
+  - cell: {x: 12, y: 24}
+    groupId: 1
+  - cell: {x: 13, y: 24}
+    groupId: 1
+  - cell: {x: 14, y: 24}
+    groupId: 1
+  - cell: {x: 15, y: 24}
+    groupId: 1
+  - cell: {x: 9, y: 25}
+    groupId: 1
+  - cell: {x: 10, y: 25}
+    groupId: 1
+  - cell: {x: 11, y: 25}
+    groupId: 1
+  - cell: {x: 12, y: 25}
+    groupId: 1
+  - cell: {x: 13, y: 25}
+    groupId: 1
+  - cell: {x: 14, y: 25}
+    groupId: 1
+  - cell: {x: 15, y: 25}
+    groupId: 1
+  - cell: {x: 9, y: 26}
+    groupId: 1
+  - cell: {x: 10, y: 26}
+    groupId: 1
+  - cell: {x: 11, y: 26}
+    groupId: 1
+  - cell: {x: 12, y: 26}
+    groupId: 1
+  - cell: {x: 13, y: 26}
+    groupId: 1
+  - cell: {x: 14, y: 26}
+    groupId: 1
+  - cell: {x: 15, y: 26}
+    groupId: 1
+  curtainGroups:
+  - groupId: 1
+    counterMin: {x: 9, y: 18}
+    counterMax: {x: 15, y: 26}
+    kind: 4
+    count: 25
+  risingBlockDeliveriesToLower: 3

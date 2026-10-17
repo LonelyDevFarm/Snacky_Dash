@@ -1,0 +1,104 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81670f59cfe347c41bad25d85bca6a16, type: 3}
+  m_Name: Level271_6045_v3_nt_VO
+  m_EditorClassIdentifier: 
+  map: {fileID: 4900000, guid: a80a898881a847c49a33754a6a9aecde, type: 3}
+  columns:
+  - crates:
+    - kind: 5
+      requiredCount: 18
+    - kind: 3
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    - kind: 3
+      requiredCount: 18
+    - kind: 5
+      requiredCount: 18
+    - kind: 3
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    - kind: 3
+      requiredCount: 18
+    closedAtStart: 0
+    isExtra: 0
+  batches:
+  - pills:
+    - kind: 5
+      count: 18
+    - kind: 3
+      count: 34
+  - pills:
+    - kind: 5
+      count: 36
+    - kind: 3
+      count: 20
+  timeLimitSeconds: 220
+  speedOverride: 0
+  wallHealth: 3
+  difficulty: 0
+  wallGroupHealths: []
+  curtainCells:
+  - cell: {x: 5, y: 2}
+    groupId: 1
+  - cell: {x: 6, y: 2}
+    groupId: 1
+  - cell: {x: 7, y: 2}
+    groupId: 1
+  - cell: {x: 8, y: 2}
+    groupId: 1
+  - cell: {x: 9, y: 2}
+    groupId: 1
+  - cell: {x: 5, y: 3}
+    groupId: 1
+  - cell: {x: 6, y: 3}
+    groupId: 1
+  - cell: {x: 7, y: 3}
+    groupId: 1
+  - cell: {x: 8, y: 3}
+    groupId: 1
+  - cell: {x: 9, y: 3}
+    groupId: 1
+  - cell: {x: 5, y: 21}
+    groupId: 2
+  - cell: {x: 6, y: 21}
+    groupId: 2
+  - cell: {x: 7, y: 21}
+    groupId: 2
+  - cell: {x: 8, y: 21}
+    groupId: 2
+  - cell: {x: 9, y: 21}
+    groupId: 2
+  - cell: {x: 5, y: 22}
+    groupId: 2
+  - cell: {x: 6, y: 22}
+    groupId: 2
+  - cell: {x: 7, y: 22}
+    groupId: 2
+  - cell: {x: 8, y: 22}
+    groupId: 2
+  - cell: {x: 9, y: 22}
+    groupId: 2
+  curtainGroups:
+  - groupId: 1
+    counterMin: {x: 5, y: 2}
+    counterMax: {x: 9, y: 3}
+    kind: 5
+    count: 15
+  - groupId: 2
+    counterMin: {x: 5, y: 21}
+    counterMax: {x: 9, y: 22}
+    kind: 3
+    count: 15
+  risingBlockDeliveriesToLower: 3

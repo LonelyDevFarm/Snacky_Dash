@@ -553,8 +553,17 @@ namespace SnackDash.Tests
         private static IEnumerable<string> ImportedLevels() =>
             System.IO.Directory.GetFiles(LevelFolder, "*.asset").Select(System.IO.Path.GetFileNameWithoutExtension);
 
+        private const int LevelAttempts = 3;
+
         [TestCaseSource(nameof(ImportedLevels))]
         public void Level_IsWinnable(string name)
+        {
+            for (int attempt = 1; attempt <= LevelAttempts; attempt++)
+                if (PlayLevel(name, attempt)) return;
+        }
+
+        /// <summary>One game of the test player (seed = attempt); false when it lost and another game is left.</summary>
+        private bool PlayLevel(string name, int attempt)
         {
             // 11019 (Level 7) is the Boomerang tutorial: the crate loop is unreachable without it [user].
             bool boomerangLevel = name.EndsWith("11019_v4_nt_VO");
@@ -564,7 +573,7 @@ namespace SnackDash.Tests
             if (list != null && list.skipped.Contains(level)) Assert.Ignore("skipped in play for now (mechanic not built)");
             var map = TiledMap.Parse(level.map.text);
             var session = new GameSession(new BoardGraph(map, _database), map, level);
-            session.SetSeed(1);
+            session.SetSeed(attempt);
             session.Begin();
             if (!map.HasLayer("spawn1")) AssertRandomLayout(session, level.batches[0]);
             if (session.ExtraColumn >= 0)
@@ -593,7 +602,7 @@ namespace SnackDash.Tests
             // A rock under a bridge (ldf_below) shuts the road below, not the deck.
             foreach (var bridge in session.Board.Bridges)
             {
-                if (!session.Board.IsClosedWall(bridge.Key)) continue;
+                if (!session.Board.IsClosedWall(bridge.Key) || session.Board.IsCovered(bridge.Key)) continue; // a curtain shuts both (Level 238, 251)
                 var deck = bridge.Value ? Direction.Right : Direction.Up;
                 var below = bridge.Value ? Direction.Up : Direction.Right;
                 Assert.IsTrue(session.Board.CanMove(bridge.Key, deck) || session.Board.CanMove(bridge.Key, deck.Opposite()), "the deck stays open over a rock");
@@ -614,15 +623,17 @@ namespace SnackDash.Tests
             // Toggle crates [video lv70]: a closed crate takes nothing from the snake; each delivery swaps a crate open / shut.
             int shutterChanges = 0;
             bool shutAtStart = Enumerable.Range(0, session.Columns.Count).Any(session.IsCrateClosed); // a lone open crate under a curtain opens the shut one at once (Level 182)
-            session.CrateShutterChanged += (column, closed) => shutterChanges++;            session.SegmentDelivered += (index, kind, column) => Assert.IsFalse(session.IsCrateClosed(column), "no delivery into a closed crate");
+            session.CrateShutterChanged += (column, closed) => shutterChanges++;
+            session.SegmentDelivered += (index, kind, column) => Assert.IsFalse(session.IsCrateClosed(column), "no delivery into a closed crate");
             bool SnakeNear(Vector2Int cell) =>
                 (session.HeadPosition - (Vector2)cell).sqrMagnitude < 1f
                 || Enumerable.Range(0, session.Segments.Count).Any(k => (session.SegmentPosition(k) - (Vector2)cell).sqrMagnitude < 1f);
-            var random = new System.Random(1);
+            var random = new System.Random(attempt);
             int snips = 0;
             int stall = 0; // lượt vuốt chưa ăn hay giao được gì
             session.PillEaten += (c, k, i) => stall = 0;
             session.SegmentDelivered += (i, k, c) => stall = 0;
+            session.SegmentSnipped += (i, k, c, crate) => stall = 0;
             for (int move = 0; move < 3000 && !session.IsWon; move++)
             {
                 // Biting the tail: snip and play on; the snipped fruit must stay winnable.
@@ -687,14 +698,24 @@ namespace SnackDash.Tests
                 }
                 Assert.IsFalse(session.Board.TunnelMouths.ContainsKey(session.CurrentCell), "the snake never stops at a tunnel mouth");
             }
-            Assert.IsTrue(session.IsWon, $"not won after {snips} snips");
+            // A wrong move can lose a level for good (Level 273: the snake ran into a ring and the rising block shut it in): play again.
+            if (!session.IsWon && attempt < LevelAttempts) return false;
+            Assert.IsTrue(session.IsWon, $"not won in {LevelAttempts} games, last after {snips} snips: at {session.CurrentCell} (can go {string.Join("/", DirectionExtensions.All.Where(session.CanGo))}"
+                + $"{(session.CanUndo ? ", can undo" : "")}{(session.IsStuck ? ", stuck" : "")}; stops {string.Join(" ", session.Board.CrateStops.Select(s => $"{s.Key}@{s.Value}"))}), {session.Pills.Count} fruit on the board ("
+                + string.Join(" ", session.Pills.Select(p => $"{p.Value}@{p.Key}")) + $"), body {string.Join(" ", session.Segments)}, crates "
+                + string.Join(", ", Enumerable.Range(0, session.Columns.Count).Select(c => session.Columns[c].IsComplete ? $"{c} done"
+                    : $"{c} {session.Columns[c].Current.kind}{(session.IsCrateClosed(c) ? " shut" : "")}{(session.CanDeliverTo(c) ? "" : " no-deliver")}"
+                    + (session.Board.CrateStops.TryGetValue(c, out var stop) && FirstStep(session, cell => cell == stop) == null ? " unreachable" : "")))
+                + $", risen {string.Join(" ", session.Board.RisingBlocks.Where(session.Board.IsRisen))}"
+                + $", {Enumerable.Range(0, map.Width * map.Height).Count(i => session.Board.IsCovered(new Vector2Int(i % map.Width, i / map.Width)))} cells under curtains");
             if (boomerangLevel) Assert.AreEqual(1, boomerangs, "one free boomerang wins the tutorial level");
             // Running past (or stopping beside) a closed gate or arrow shakes it, every time [user]. The aimed player may win without
             // passing a closed gate (Level 22) or flipping the crosswalk (Level 133): note it instead of failing.
             if (session.Board.OneWayGates.Count > 0 && shakes == 0) TestContext.WriteLine($"{name}: no closed gate was passed");
             if ((session.Board.SwitchBridges.Count > 0 || session.Board.Turnouts.Any()) && toggles == 0) TestContext.WriteLine($"{name}: won without the crosswalk");
             if (shutAtStart) Assert.Greater(shutterChanges, 0, "deliveries toggle the crates");
-            TestContext.WriteLine($"{name}: won, {snips} tail bites");
+            TestContext.WriteLine($"{name}: won in game {attempt}, {snips} tail bites");
+            return true;
         }
 
         /// <summary>
@@ -711,6 +732,11 @@ namespace SnackDash.Tests
             bool Deliverable(Vector2Int cell) => board.CrateColumnAt(cell) is int column && column >= 0 && session.CanDeliverTo(column);
             if (stall > 40 && (board.Turnouts.Any() || board.SwitchBridges.Count > 0) && FirstStep(session, board.IsSwitch) is Direction toSwitch)
                 return toSwitch;
+            // Still nothing after many swipes: bite the own tail on purpose, as a player would, so Snip sends the cut fruit to any
+            // matching crate (Level 273: risen blocks wall off the crate the tail needs; Level 310: the needed fruit sits by the head).
+            if (stall > 80 && FirstStep(session, cell => Enumerable.Range(0, session.Segments.Count)
+                    .Any(k => Vector2Int.RoundToInt(session.SegmentPosition(k)) == cell)) is Direction toBody)
+                return toBody;
             return FirstStep(session, Deliverable) ?? FirstStep(session, cell => session.Pills.ContainsKey(cell));
         }
 

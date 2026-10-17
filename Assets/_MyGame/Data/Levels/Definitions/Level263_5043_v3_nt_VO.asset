@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81670f59cfe347c41bad25d85bca6a16, type: 3}
+  m_Name: Level263_5043_v3_nt_VO
+  m_EditorClassIdentifier: 
+  map: {fileID: 4900000, guid: 471fae23d6c68d24fb20c0f16a308655, type: 3}
+  columns:
+  - crates:
+    - kind: 1
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    - kind: 3
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 18
+    - kind: 1
+      requiredCount: 18
+    - kind: 1
+      requiredCount: 18
+    - kind: 3
+      requiredCount: 18
+    - kind: 2
+      requiredCount: 27
+    - kind: 1
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    closedAtStart: 0
+    isExtra: 0
+  batches:
+  - pills:
+    - kind: 1
+      count: 9
+    - kind: 5
+      count: 7
+    - kind: 3
+      count: 10
+    - kind: 2
+      count: 18
+  - pills:
+    - kind: 5
+      count: 2
+    - kind: 1
+      count: 22
+    - kind: 3
+      count: 8
+    - kind: 2
+      count: 13
+  - pills:
+    - kind: 1
+      count: 23
+    - kind: 3
+      count: 9
+    - kind: 2
+      count: 14
+    - kind: 5
+      count: 9
+  timeLimitSeconds: 150
+  speedOverride: 0
+  wallHealth: 3
+  difficulty: 0
+  wallGroupHealths: []
+  curtainCells: []
+  curtainGroups: []
+  risingBlockDeliveriesToLower: 3
