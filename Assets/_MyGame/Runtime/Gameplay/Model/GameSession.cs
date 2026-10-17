@@ -335,6 +335,7 @@ namespace SnackDash.Gameplay
             if (IsMoving) Advance(_speed * deltaTime);
             else if (_deliveryColumn >= 0) TickDelivery(deltaTime);
             RaiseLeftBlocks();
+            ApplyWaitingBridges();
         }
 
         /// <summary>Vị trí đốt <paramref name="index"/> (0 = ngay sau đầu); các đốt cách nhau 1 ô trên đường đầu đã đi.</summary>
@@ -589,6 +590,7 @@ namespace SnackDash.Gameplay
                 PruneTrail();
                 if (_trail.Count > 1) LeftCell(Vector2Int.RoundToInt(_trail[1]));
                 PassRisingBlock(CurrentCell);
+                PassSwitch(CurrentCell);
                 if (CheckBite())
                 {
                     IsMoving = false;

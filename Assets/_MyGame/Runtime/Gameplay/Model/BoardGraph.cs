@@ -140,6 +140,32 @@ namespace SnackDash.Gameplay
                 _oneWay[partner] = other.Opposite();
         }
 
+        // Cầu bật (BridgeSwitchableLR/UD lớp ldf) và vạch công tắc (category Switch lớp ldf), từ Level 61 [video lv61].
+        private readonly Dictionary<Vector2Int, bool> _switchBridges = new Dictionary<Vector2Int, bool>();
+        private readonly HashSet<Vector2Int> _switches = new HashSet<Vector2Int>();
+        private readonly List<Vector2Int> _switchLevers = new List<Vector2Int>();
+
+        /// <summary>
+        /// Ô cầu bật (true = mặt cầu ngang). Cầu dựng là cầu thường (nằm trong <see cref="Bridges"/>); cầu hạ thành ngã tư, rẽ được
+        /// (gốc BridgeController, SwitchToggleState On/Off).
+        /// </summary>
+        public IReadOnlyDictionary<Vector2Int, bool> SwitchBridges => _switchBridges;
+
+        /// <summary>Vạch qua đường (gốc View_VO_CrossRoad + SwitchController): đầu rắn đi vào là đổi mọi cầu bật.</summary>
+        public bool IsSwitch(Vector2Int cell) => _switches.Contains(cell);
+
+        /// <summary>Cần gạt cạnh vạch (switch_universal): chỉ là hình, đổi theo công tắc.</summary>
+        public IReadOnlyList<Vector2Int> SwitchLevers => _switchLevers;
+
+        public bool IsBridgeUp(Vector2Int cell) => _switchBridges.ContainsKey(cell) && _bridges.ContainsKey(cell);
+
+        public void SetBridgeUp(Vector2Int cell, bool up)
+        {
+            if (!_switchBridges.TryGetValue(cell, out bool leftRight)) return;
+            if (up) _bridges[cell] = leftRight;
+            else _bridges.Remove(cell);
+        }
+
         /// <summary>Booster hoàn tác cần trả lại: đá, chiều mũi tên, khối nâng.</summary>
         internal (HashSet<Vector2Int> closedWalls, Dictionary<Vector2Int, Direction> ways, HashSet<Vector2Int> risen) SaveState() =>
             (new HashSet<Vector2Int>(_closedWalls), new Dictionary<Vector2Int, Direction>(_oneWay), new HashSet<Vector2Int>(_risen));
@@ -177,6 +203,11 @@ namespace SnackDash.Gameplay
                     _covered.Add(position);
                 }
 
+                // Cần gạt nằm trên cỏ cạnh vạch, nên tìm trước khi bỏ qua ô không phải đường.
+                if (map.GetLocalTileId("ldf", position) is int lever && lever >= 0 && database.TryGet(lever, out var leverDef)
+                    && leverDef.category == TileCategory.SwitchVisual)
+                    _switchLevers.Add(position);
+
                 int id = map.GetLocalTileId("map", position);
                 if (id < 0 || !database.TryGet(id, out var definition)) continue;
                 if (definition.category == TileCategory.CrateEndPoint) endPoints.Add(position);
@@ -193,6 +224,13 @@ namespace SnackDash.Gameplay
                 if (map.GetLocalTileId("ldf", position) is int gate && gate >= 0 && database.TryGet(gate, out var gateDef))
                 {
                     if (gateDef.tileType == TileType.Plot) _risingBlocks.Add(position);
+                    if (gateDef.tileType == TileType.BridgeSwitchableLR || gateDef.tileType == TileType.BridgeSwitchableUD)
+                    {
+                        bool leftRight = gateDef.tileType == TileType.BridgeSwitchableLR;
+                        _switchBridges[position] = leftRight;
+                        _bridges[position] = leftRight; // gốc SwitchController._initialState 0 = On: cầu dựng lúc đầu
+                    }
+                    if (gateDef.category == TileCategory.Switch) _switches.Add(position);
                     if (FixedArrowDirection(gateDef.tileType) is Direction way) _oneWay[position] = way;
                     if (FlippingArrowDirection(gateDef.tileType) is Direction flipWay)
                     {

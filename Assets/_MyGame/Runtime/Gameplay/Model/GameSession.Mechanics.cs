@@ -6,9 +6,10 @@ using UnityEngine;
 namespace SnackDash.Gameplay
 {
     /// <summary>
-    /// Phần GameSession lo rèm và khối nâng (từ Level 41; gốc: CurtainManager, RisingBlockController; video Lv43).
-    /// Rèm mở ở lần dừng kế tiếp khi ăn đủ trái cùng loại; khối nâng dựng lên sau khi cả rắn qua, hạ sau vài khay xong.
-    /// CurtainsView và BoardView nghe các event ở đây.
+    /// Phần GameSession lo rèm và khối nâng (từ Level 41; gốc: CurtainManager, RisingBlockController; video Lv43) và cầu bật
+    /// (từ Level 61; gốc: SwitchController, BridgeController; video lv61).
+    /// Rèm mở ở lần dừng kế tiếp khi ăn đủ trái cùng loại; khối nâng dựng lên sau khi cả rắn qua, hạ sau vài khay xong;
+    /// đầu rắn qua vạch công tắc thì mọi cầu bật đổi dựng / hạ. CurtainsView và BoardView nghe các event ở đây.
     /// </summary>
     public sealed partial class GameSession
     {
@@ -170,6 +171,41 @@ namespace SnackDash.Gameplay
         /// <summary>Không trái trên khối đang nâng hay sắp nâng; khối đã hạ nhận trái như đường thường [user; gốc: PillSpawnEligibility].</summary>
         private bool NoFruitOnBlock(Vector2Int cell) => _board.IsRisen(cell) || _blockPassed.ContainsKey(cell);
 
+        // ------------------------------------------------------------------ cầu bật
+
+        private bool _switchOn = true; // gốc SwitchController._initialState 0 = On: cầu dựng
+        private readonly HashSet<Vector2Int> _bridgeWaiting = new HashSet<Vector2Int>(); // cầu phải đổi nhưng rắn còn nằm trên
+
+        /// <summary>Công tắc đang On: cầu bật dựng (cầu thường); Off: cầu hạ (ngã tư).</summary>
+        public bool SwitchOn => _switchOn;
+
+        public event Action<bool> SwitchToggled;                // công tắc đổi (cần gạt, vạch)
+        public event Action<Vector2Int, bool> SwitchBridgeChanged; // ô cầu, đang dựng
+
+        /// <summary>Đầu rắn vào vạch công tắc: đổi công tắc, mọi cầu bật đổi theo khi rắn không nằm trên nó.</summary>
+        private void PassSwitch(Vector2Int cell)
+        {
+            if (!_board.IsSwitch(cell)) return;
+            _switchOn = !_switchOn;
+            SwitchToggled?.Invoke(_switchOn);
+            foreach (var bridge in _board.SwitchBridges.Keys) _bridgeWaiting.Add(bridge);
+            ApplyWaitingBridges();
+        }
+
+        /// <summary>Cầu chờ rắn đi khỏi rồi mới dựng / hạ (gốc BridgeController.CanOpenNow / CanCloseNow: ô phải trống).</summary>
+        private void ApplyWaitingBridges()
+        {
+            if (_bridgeWaiting.Count == 0) return;
+            foreach (var cell in new List<Vector2Int>(_bridgeWaiting))
+            {
+                if (_board.IsBridgeUp(cell) == _switchOn) { _bridgeWaiting.Remove(cell); continue; }
+                if (SnakeOn(cell)) continue;
+                _bridgeWaiting.Remove(cell);
+                _board.SetBridgeUp(cell, _switchOn);
+                SwitchBridgeChanged?.Invoke(cell, _switchOn);
+            }
+        }
+
         /// <summary>Đầu (kể cả ô đang chạy tới) hoặc đốt thân nào chạm <paramref name="cell"/>.</summary>
         private bool SnakeOn(Vector2Int cell)
         {
@@ -187,6 +223,8 @@ namespace SnackDash.Gameplay
             public int[] remaining;
             public bool[] pending;
             public Dictionary<Vector2Int, int> passed, deliveries;
+            public bool switchOn;
+            public HashSet<Vector2Int> bridgesUp, bridgeWaiting;
         }
 
         private MechanicsState SaveMechanics()
@@ -197,7 +235,11 @@ namespace SnackDash.Gameplay
                 pending = new bool[_curtains.Count],
                 passed = new Dictionary<Vector2Int, int>(_blockPassed),
                 deliveries = new Dictionary<Vector2Int, int>(_blockDeliveries),
+                switchOn = _switchOn,
+                bridgesUp = new HashSet<Vector2Int>(),
+                bridgeWaiting = new HashSet<Vector2Int>(_bridgeWaiting),
             };
+            foreach (var cell in _board.SwitchBridges.Keys) if (_board.IsBridgeUp(cell)) state.bridgesUp.Add(cell);
             for (int i = 0; i < _curtains.Count; i++)
             {
                 state.remaining[i] = _curtains[i].Remaining;
@@ -231,6 +273,21 @@ namespace SnackDash.Gameplay
                 _board.SetRisen(cell, risen);
                 RisingBlockChanged?.Invoke(cell, risen);
             }
+            // Cầu bật và công tắc về như trước lần vuốt (gốc: memento của SwitchController / BridgeController).
+            if (_switchOn != state.switchOn)
+            {
+                _switchOn = state.switchOn;
+                SwitchToggled?.Invoke(_switchOn);
+            }
+            foreach (var cell in _board.SwitchBridges.Keys)
+            {
+                bool up = state.bridgesUp.Contains(cell);
+                if (_board.IsBridgeUp(cell) == up) continue;
+                _board.SetBridgeUp(cell, up);
+                SwitchBridgeChanged?.Invoke(cell, up);
+            }
+            _bridgeWaiting.Clear();
+            _bridgeWaiting.UnionWith(state.bridgeWaiting);
         }
     }
 }

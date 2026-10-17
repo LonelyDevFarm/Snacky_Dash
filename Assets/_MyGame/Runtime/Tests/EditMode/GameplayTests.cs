@@ -607,6 +607,13 @@ namespace SnackDash.Tests
                     "no fruit on or next to an object on the road (bridge, gate...)");
             int shakes = 0;
             session.ArrowNotAllowed += cell => shakes++;
+            // Switch bridges [video lv61]: the crosswalk flips every switch bridge, a bridge with the snake on it waits.
+            int toggles = 0;
+            bool undoChecked = false;
+            session.SwitchToggled += on => toggles++;
+            bool SnakeNear(Vector2Int cell) =>
+                (session.HeadPosition - (Vector2)cell).sqrMagnitude < 1f
+                || Enumerable.Range(0, session.Segments.Count).Any(k => (session.SegmentPosition(k) - (Vector2)cell).sqrMagnitude < 1f);
             var random = new System.Random(1);
             int snips = 0;
             for (int move = 0; move < 3000 && !session.IsWon; move++)
@@ -623,6 +630,8 @@ namespace SnackDash.Tests
                             boomerangs++;
                             for (int i = 0; i < 3600 && session.IsDelivering; i++) session.Tick(1f / 60f);
                         }
+                bool switchBefore = session.SwitchOn;
+                var upBefore = session.Board.SwitchBridges.Keys.Where(session.Board.IsBridgeUp).ToList();
                 if (!session.RequestMove((Direction)random.Next(4))) continue;
                 // Long crate combos (1 s pause per filled crate) can take several seconds.
                 for (int i = 0; i < 3600 && (session.IsMoving || session.IsDelivering); i++)
@@ -635,12 +644,26 @@ namespace SnackDash.Tests
                                 $"segment {k} off the road at {session.SegmentPosition(k)}");
                 }
                 Assert.IsFalse(session.Board.IsBridge(session.CurrentCell), "the snake never stops on a bridge");
+                foreach (var bridge in session.Board.SwitchBridges.Keys)
+                    if (!SnakeNear(bridge))
+                        Assert.AreEqual(session.SwitchOn, session.Board.IsBridgeUp(bridge), "a free switch bridge follows the switch");
+                if (!undoChecked && session.SwitchOn != switchBefore && session.CanUndo && !session.IsStuck)
+                {
+                    // Undo puts the switch and every switch bridge back [gốc: memento].
+                    undoChecked = true;
+                    Assert.IsTrue(session.Undo());
+                    Assert.AreEqual(switchBefore, session.SwitchOn, "undo puts the switch back");
+                    CollectionAssert.AreEquivalent(upBefore, session.Board.SwitchBridges.Keys.Where(session.Board.IsBridgeUp).ToList(),
+                        "undo puts the switch bridges back");
+                    for (int i = 0; i < 3600 && session.IsRewinding; i++) session.Tick(1f / 60f); // the rewind locks swipes until it plays out
+                }
                 Assert.IsFalse(session.Board.TunnelMouths.ContainsKey(session.CurrentCell), "the snake never stops at a tunnel mouth");
             }
             Assert.IsTrue(session.IsWon, $"not won after {snips} snips");
             if (boomerangLevel) Assert.AreEqual(1, boomerangs, "one free boomerang wins the tutorial level");
             // Running past (or stopping beside) a closed gate or arrow shakes it, every time [user].
             if (session.Board.OneWayGates.Count > 0) Assert.Greater(shakes, 0, "closed gates shake as the snake goes by");
+            if (session.Board.SwitchBridges.Count > 0) Assert.Greater(toggles, 0, "the crosswalk flips the bridges");
             TestContext.WriteLine($"{name}: won, {snips} tail bites");
         }
 
