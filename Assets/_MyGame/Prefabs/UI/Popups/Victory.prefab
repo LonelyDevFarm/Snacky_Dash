@@ -3966,6 +3966,8 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 43f8678f1bbf5024ca17874dcad017d9, type: 2}
   - {fileID: 21300000, guid: a59b0a84079ef0f4f9f8d36c066e15e6, type: 2}
   - {fileID: 21300000, guid: d1ad877cf3b59f54599c142e04219f2e, type: 2}
+  - {fileID: 21300000, guid: 63078ec6791a09241b869b16880856b6, type: 2}
+  - {fileID: 21300000, guid: a2d1935d0eebd2949b62fdf5b260cbc4, type: 2}
   boosterIcons:
   - {fileID: 21300000, guid: 9d5c4b607a5be4a42a1ed3014f04b72e, type: 2}
   - {fileID: 21300000, guid: e8ca1fa550f2ee6418ec50ecbde10550, type: 2}

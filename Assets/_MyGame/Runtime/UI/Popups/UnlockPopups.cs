@@ -29,6 +29,8 @@ namespace SnackDash.UI
             new Entry { level = 41, icon = 6, name = "SHUTTER", description = $"<color={Highlight}>COLLECT FRUITS</color> TO REVEAL THE HIDDEN AREA!" },
             // Gốc cho khối nâng hiện ở 43, trước khi thanh mở khoá tới: màn 43 đã đổi chỗ với 93 (LevelDataImporter.Swaps) [user].
             new Entry { level = 51, icon = 7, name = "BOLLARD", description = $"<color={Highlight}>RISES</color> WHEN YOU PASS THROUGH, <color={Highlight}>OPENS</color> BACK UP WHEN YOU MAKE DELIVERIES!" },
+            new Entry { level = 61, icon = 8, name = "SWITCH BRIDGE", description = "USE THE CROSSWALK TO HIT THE SWITCH AND TOGGLE THE BRIDGES!" },
+            new Entry { level = 71, icon = 9, name = "TOGGLE CRATE", description = $"EACH DELIVERY <color={Highlight}>TOGGLES</color> THIS CRATE OPEN OR CLOSED!" },
         };
 
         /// <summary>
@@ -37,7 +39,7 @@ namespace SnackDash.UI
         /// </summary>
         private static readonly (int show, int unlock, int icon)[] Bar =
         {
-            (0, 4, 0), (4, 8, 1), (8, 13, 2), (13, 20, 3), (20, 25, 4), (25, 30, 5), (30, 40, 6), (40, 50, 7),
+            (0, 4, 0), (4, 8, 1), (8, 13, 2), (13, 20, 3), (20, 25, 4), (25, 30, 5), (30, 40, 6), (40, 50, 7), (50, 60, 8), (60, 70, 9),
         };
 
         /// <summary>Thanh sau khi thắng <paramref name="level"/>: phần đầy trước / sau trận và hình; false khi không có cơ chế sắp tới.</summary>
