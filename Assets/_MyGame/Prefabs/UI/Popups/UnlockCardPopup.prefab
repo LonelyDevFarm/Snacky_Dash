@@ -619,8 +619,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 10}
-  m_SizeDelta: {x: 460, y: 380}
+  m_AnchoredPosition: {x: 16.858131, y: 10}
+  m_SizeDelta: {x: 467.1581, y: 325.97443}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3333399519768271972
 CanvasRenderer:
@@ -829,7 +829,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 150}
-  m_SizeDelta: {x: 620, y: 560}
+  m_SizeDelta: {x: 637.2559, y: 535.8207}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1811233131121583841
 GameObject:
@@ -1184,8 +1184,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 17.692192, y: -16.007221}
+  m_SizeDelta: {x: 28.726896, y: 24.153044}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1511565632604724923
 CanvasRenderer:
@@ -1217,7 +1217,7 @@ MonoBehaviour:
       m_Calls: []
   m_Sprite: {fileID: 21300000, guid: 6bc75b6fe5dd7cc4f98124dac26e2f46, type: 2}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -1335,8 +1335,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 10}
-  m_SizeDelta: {x: 500, y: 400}
+  m_AnchoredPosition: {x: 16.858131, y: 10}
+  m_SizeDelta: {x: 467.1581, y: 325.97443}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &96089886949905495
 CanvasRenderer:
@@ -1904,7 +1904,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -24, y: 18}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6593924632269602494
@@ -1937,7 +1937,7 @@ MonoBehaviour:
       m_Calls: []
   m_Sprite: {fileID: 21300000, guid: 6bc75b6fe5dd7cc4f98124dac26e2f46, type: 2}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
