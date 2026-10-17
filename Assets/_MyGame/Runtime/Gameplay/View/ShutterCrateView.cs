@@ -27,8 +27,15 @@ namespace SnackDash.Presentation
         [SerializeField] private Vector3 planeClosedScale = new Vector3(1.1037184f, 2.37f, 1f);
         [SerializeField] private Vector3 planeOpenScale = new Vector3(0f, 2.37f, 1f);
         [SerializeField] private float openDuration = 0.33333334f, closeDuration = 0.25f;
+        [Tooltip("Cửa khép quá mức này (0 mở .. 1 đóng) thì ẩn trái trong khay, vì trái nằm cao hơn cửa và sẽ hiện đè lên [user].")]
+        [Range(0f, 1f)]
+        [SerializeField] private float hideFruitAt = 0.5f;
 
         private float _closed; // 0 mở .. 1 đóng
+        private GameObject _fruits;
+
+        /// <summary>Chỗ chứa trái của khay (AllDestinationPoints) để ẩn khi cửa đóng.</summary>
+        public void HideWhenClosed(Transform fruits) => _fruits = fruits != null ? fruits.gameObject : null;
         private Coroutine _move;
 
         /// <summary>Màu cửa và tấm phẳng theo loại trái của khay (gốc SetColor).</summary>
@@ -65,6 +72,7 @@ namespace SnackDash.Presentation
         private void Apply(float closed)
         {
             _closed = closed;
+            if (_fruits != null) _fruits.SetActive(closed < hideFruitAt);
             foreach (var panel in panels)
             {
                 if (panel.door != null) panel.door.localPosition = Vector3.Lerp(doorOpen, doorClosed, closed);

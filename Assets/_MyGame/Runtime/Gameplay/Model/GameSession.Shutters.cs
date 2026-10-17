@@ -6,9 +6,9 @@ namespace SnackDash.Gameplay
 {
     /// <summary>
     /// Khay đóng / mở (TOGGLE CRATE, từ Level 71; gốc ShutterCrateController; video lv70): cột có cờ closedAtStart bắt đầu đóng.
-    /// Khay đóng không nhận trái (rắn tới thì khay rung từ chối). Giao xong vào một khay thì khay đó đóng lại và một khay đang đóng
-    /// mở ra (khay có loại trái đang có nhiều nhất trên bàn và thân rắn; gốc TryPromoteClosedColumnByPriority); không còn khay đóng
-    /// nào có việc thì khay vừa giao giữ mở (gốc TryLockSoleRemainingWorkColumn). Trái đã giao không hoàn tác nên cửa cũng không.
+    /// Khay đóng không nhận trái (rắn tới thì khay rung từ chối). Khay đi theo cặp (cột i với cột i + nửa số cột): giao xong vào một
+    /// khay thì khay đó đóng lại và khay cặp của nó mở ra [user]; khay cặp hết việc thì khay vừa giao giữ mở (gốc
+    /// TryLockSoleRemainingWorkColumn). Trái đã giao không hoàn tác nên cửa cũng không.
     /// </summary>
     public sealed partial class GameSession
     {
@@ -28,6 +28,9 @@ namespace SnackDash.Gameplay
             _closed = new bool[Columns.Count];
             for (int i = 0; i < Columns.Count && i < level.columns.Count; i++)
                 if (level.columns[i].closedAtStart && !Columns[i].IsExtra) _closed[i] = HasShutters = true;
+            // Khay cặp không có việc (cột trống) thì khay đóng của cặp đó mở luôn, không thì đóng mãi.
+            for (int i = 0; i < Columns.Count && HasShutters; i++)
+                if (_closed[i] && Partner(i) >= 0 && !HasWork(Partner(i))) _closed[i] = false;
             if (HasShutters && !HasOpenWork()) OpenBestClosed(-1);
         }
 
@@ -42,13 +45,30 @@ namespace SnackDash.Gameplay
             return false;
         }
 
-        /// <summary>Một lượt giao (rắn hay boomerang) vào <paramref name="column"/> vừa xong.</summary>
+        /// <summary>
+        /// Khay đi theo cặp [user, video lv70: trên trái ↔ dưới trái, trên phải ↔ dưới phải ở màn 71]: cột i với cột i + nửa số cột.
+        /// Số cột lẻ thì không có cặp: -1.
+        /// </summary>
+        private int Partner(int column)
+        {
+            int count = Columns.Count;
+            if (count < 2 || count % 2 != 0) return -1;
+            return (column + count / 2) % count;
+        }
+
+        /// <summary>Một lượt giao (rắn hay boomerang) vào <paramref name="column"/> vừa xong: khay đó đóng, khay cặp của nó mở.</summary>
         private void ToggleAfterDelivery(int column)
         {
             int delivered = _deliveredThisRun;
             _deliveredThisRun = 0;
             if (!HasShutters || delivered == 0 || column < 0) return;
-            if (!OpenBestClosed(column)) return; // khay cuối còn việc: giữ mở
+            int partner = Partner(column);
+            if (partner >= 0)
+            {
+                if (!HasWork(partner)) return; // khay cặp hết việc: khay này giữ mở
+                if (_closed[partner]) { _closed[partner] = false; CrateShutterChanged?.Invoke(partner, false); }
+            }
+            else if (!OpenBestClosed(column)) return; // không có cặp: mở khay đóng có nhiều trái nhất; không còn khay nào thì giữ mở
             if (Columns[column].IsComplete || _closed[column]) return;
             _closed[column] = true;
             CrateShutterChanged?.Invoke(column, true);

@@ -454,6 +454,7 @@ namespace SnackDash.Presentation
             var view = Instantiate(shutterPrefab, crate.transform, false);
             var entry = fruits != null ? fruits.Get(kind) : null;
             view.SetColor(entry?.shutterMaterial, entry?.shutterPlaneMaterial);
+            view.HideWhenClosed(crate.transform.Find("AllDestinationPoints"));
             view.Snap(_session.IsCrateClosed(column));
             _shutters[column] = view;
         }

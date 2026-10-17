@@ -655,6 +655,14 @@ namespace SnackDash.Tests
                                 $"segment {k} off the road at {session.SegmentPosition(k)}");
                 }
                 Assert.IsFalse(session.Board.IsBridge(session.CurrentCell), "the snake never stops on a bridge");
+                // Toggle crates go in pairs (column i with i + half): never both shut while both still have crates.
+                if (session.HasShutters && session.Columns.Count % 2 == 0)
+                    for (int c = 0; c < session.Columns.Count / 2; c++)
+                    {
+                        int pair = c + session.Columns.Count / 2;
+                        if (!session.Columns[c].IsComplete && !session.Columns[pair].IsComplete)
+                            Assert.IsFalse(session.IsCrateClosed(c) && session.IsCrateClosed(pair), $"crates {c} and {pair} both shut");
+                    }
                 foreach (var bridge in session.Board.SwitchBridges.Keys)
                     if (!SnakeNear(bridge))
                         Assert.AreEqual(session.SwitchOn, session.Board.IsBridgeUp(bridge), "a free switch bridge follows the switch");
