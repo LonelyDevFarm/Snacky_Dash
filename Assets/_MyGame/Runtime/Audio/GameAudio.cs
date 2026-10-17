@@ -47,6 +47,9 @@ namespace SnackDash.Audio
             // Cầu bật: tiếng gạt khi qua vạch, tiếng cầu một lần dù nhiều cầu cùng đổi (tên âm thanh gốc Switch, SwitchBridge).
             session.SwitchToggled += on => { if (!session.IsRewinding) Play("Switch"); };
             session.SwitchBridgeChanged += (cell, up) => { if (!session.IsRewinding) PlayOncePerFrame("SwitchBridge"); };
+            // Khay đóng / mở: tiếng gốc Open_Crate / Close_Crate; rắn tới khay đóng: LittleBump (chọn theo tên).
+            session.CrateShutterChanged += (column, closed) => Play(closed ? "Close_Crate" : "Open_Crate");
+            session.ClosedCrateRejected += column => Play("LittleBump");
         }
 
         private int _lastSpawnSoundFrame = -1;

@@ -21,6 +21,8 @@ namespace SnackDash.LevelSystem
             public Sprite fieldSprite;
             public Material crateMaterial;
             public Color outlineColor = Color.black;
+            [Tooltip("Cửa khay đóng (TOGGLE CRATE) và tấm phẳng dưới cửa theo màu trái (gốc GraphicSet_VO 1.15 MaterialShutterCrate / Plane).")]
+            public Material shutterMaterial, shutterPlaneMaterial;
         }
 
         [SerializeField] private List<Entry> entries = new List<Entry>();

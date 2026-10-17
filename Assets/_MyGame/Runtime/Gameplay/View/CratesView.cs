@@ -29,6 +29,13 @@ namespace SnackDash.Presentation
         [SerializeField] private BoardView board;
         [Tooltip("Trái giao bay ra từ đầu rắn.")]
         [SerializeField] private SnakeView snake;
+        [Header("Khay đóng / mở (TOGGLE CRATE, từ Level 71)")]
+        [Tooltip("ShutterCrateVisual: cửa gắn lên khay trên cùng của mỗi cột khi màn có khay đóng / mở.")]
+        [SerializeField] private ShutterCrateView shutterPrefab;
+        [Tooltip("Rắn tới khay đang đóng: khay nảy cỡ thêm bấy nhiêu trong bấy nhiêu giây (gốc ClosedCrateRejectPunchDuration 0.25).")]
+        [SerializeField] private Vector3 rejectPunch = new Vector3(0.12f, 0.12f, 0f);
+        [SerializeField] private float rejectDuration = 0.25f;
+        private readonly Dictionary<int, ShutterCrateView> _shutters = new Dictionary<int, ShutterCrateView>();
 
         [Header("Feel")]
         [Tooltip("Giây bay vào khay (chốt khi chơi thử so với bản gốc).")]
@@ -113,6 +120,14 @@ namespace SnackDash.Presentation
             session.CrateCompleted += OnCrateCompleted;
             session.PillMagnetized += OnMagnetized;
             session.CurtainOpened += index => StartCoroutine(ShowUncovered(curtains != null ? curtains.RevealTime : 0.6f));
+            // Cửa đóng sau khi trái cuối bay vào xong, mở thì ngay [video lv70]; khay đóng bị rắn tới thì nảy từ chối.
+            session.CrateShutterChanged += (column, closed) => StartCoroutine(SetShutter(column, closed, closed ? flightDuration + landingDuration : 0f));
+            session.ClosedCrateRejected += column =>
+            {
+                if (!_columns.TryGetValue(column, out var crates) || crates.Count == 0 || crates[0] == null) return;
+                var visual = crates[0].transform.Find("BoxVisual_VO");
+                if (visual != null) StartCoroutine(Tween.Punch(rejectDuration * 0.5f, t => { if (visual != null) visual.localScale = Vector3.one + rejectPunch * t; }));
+            };
             // Undo: dựng lại chồng khay theo session.
             session.Rewound += () =>
             {
@@ -393,6 +408,7 @@ namespace SnackDash.Presentation
                     if (entering) crate.transform.localScale = Vector3.one * t;
                 }));
             }
+            if (crates.Count > 0) AttachShutter(columnIndex, crates[0], column.Crates[top].kind);
             // Khay dưới rèm ẩn tới khi rèm mở (gốc CrateManager.IsColumnCurtainCovered).
             bool covered = _session.IsColumnCovered(columnIndex);
             foreach (var crate in crates) crate.SetActive(!covered);
@@ -428,6 +444,25 @@ namespace SnackDash.Presentation
                 PillVisual.HideShadow(fruit);
                 fruit.transform.localPosition = Vector3.zero;
             }
+        }
+
+        /// <summary>Cửa lên khay trên cùng, màu theo loại trái, đúng trạng thái session hiện tại.</summary>
+        private void AttachShutter(int column, GameObject crate, PillKind kind)
+        {
+            _shutters.Remove(column);
+            if (shutterPrefab == null || !_session.HasShutters) return;
+            var view = Instantiate(shutterPrefab, crate.transform, false);
+            var entry = fruits != null ? fruits.Get(kind) : null;
+            view.SetColor(entry?.shutterMaterial, entry?.shutterPlaneMaterial);
+            view.Snap(_session.IsCrateClosed(column));
+            _shutters[column] = view;
+        }
+
+        private IEnumerator SetShutter(int column, bool closed, float delay)
+        {
+            if (delay > 0f) yield return new WaitForSeconds(delay);
+            // Khay có thể đã đổi (khay đầy đi, khay sau lên) trong lúc chờ: lấy cửa hiện tại; cửa mới đã đúng trạng thái thì đứng yên.
+            if (_shutters.TryGetValue(column, out var view) && view != null && _session.IsCrateClosed(column) == closed) view.Animate(closed);
         }
 
         private void Paint(GameObject crate, PillKind kind)
