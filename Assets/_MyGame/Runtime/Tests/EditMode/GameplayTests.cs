@@ -628,6 +628,15 @@ namespace SnackDash.Tests
             bool SnakeNear(Vector2Int cell) =>
                 (session.HeadPosition - (Vector2)cell).sqrMagnitude < 1f
                 || Enumerable.Range(0, session.Segments.Count).Any(k => (session.SegmentPosition(k) - (Vector2)cell).sqrMagnitude < 1f);
+            // Remaining fruit bar [user's lv129 shot]: starts at every wave's fruit, goes down by one per fruit eaten (or pulled by the
+            // magnet), back up on undo; delivering does not change it; all zero once won.
+            var kinds = (PillKind[])System.Enum.GetValues(typeof(PillKind));
+            var remaining = kinds.ToDictionary(k => k, k => level.batches.Sum(b => b.pills.Where(p => p.kind == k).Sum(p => p.count)));
+            foreach (var k in kinds) Assert.AreEqual(remaining[k], session.RemainingFruit(k), $"{k} remaining at the start");
+            void Took(PillKind k) { remaining[k]--; Assert.AreEqual(remaining[k], session.RemainingFruit(k), $"{k} remaining after eating one"); }
+            session.PillEaten += (c, k, i) => Took(k);
+            session.PillMagnetized += (c, k, column, crate) => Took(k);
+            session.Rewound += () => { foreach (var k in kinds) remaining[k] = session.RemainingFruit(k); };
             var random = new System.Random(attempt);
             int snips = 0;
             int stall = 0; // lượt vuốt chưa ăn hay giao được gì
@@ -709,6 +718,7 @@ namespace SnackDash.Tests
                 + $", risen {string.Join(" ", session.Board.RisingBlocks.Where(session.Board.IsRisen))}"
                 + $", {Enumerable.Range(0, map.Width * map.Height).Count(i => session.Board.IsCovered(new Vector2Int(i % map.Width, i / map.Width)))} cells under curtains");
             if (boomerangLevel) Assert.AreEqual(1, boomerangs, "one free boomerang wins the tutorial level");
+            foreach (var k in kinds) Assert.AreEqual(0, session.RemainingFruit(k), $"no {k} left once won");
             // Running past (or stopping beside) a closed gate or arrow shakes it, every time [user]. The aimed player may win without
             // passing a closed gate (Level 22) or flipping the crosswalk (Level 133): note it instead of failing.
             if (session.Board.OneWayGates.Count > 0 && shakes == 0) TestContext.WriteLine($"{name}: no closed gate was passed");

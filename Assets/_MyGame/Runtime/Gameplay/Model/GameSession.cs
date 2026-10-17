@@ -367,6 +367,27 @@ namespace SnackDash.Gameplay
 
         public int WaveCount => _level.batches.Count;
 
+        /// <summary>
+        /// Trái còn phải ăn theo loại (thanh đếm dưới thanh LEVEL; gốc RemainingFruitTally): trái đang trên bàn cộng trái của các
+        /// đợt chưa rải. Ăn (cả nam châm hút) thì giảm, hoàn tác thì tăng lại; giao vào khay hay Snip không đổi [ảnh lv129 của user].
+        /// </summary>
+        public int RemainingFruit(PillKind kind)
+        {
+            int count = 0;
+            foreach (var pill in _pills.Values) if (pill == kind) count++;
+            for (int b = BatchIndex + 1; b < _level.batches.Count; b++)
+                foreach (var pill in _level.batches[b].pills) if (pill.kind == kind) count += pill.count;
+            return count;
+        }
+
+        /// <summary>Loại trái có trong màn (ở bất kỳ đợt nào): thanh đếm chỉ hiện các loại này.</summary>
+        public bool LevelHasFruit(PillKind kind)
+        {
+            foreach (var batch in _level.batches)
+                foreach (var pill in batch.pills) if (pill.kind == kind && pill.count > 0) return true;
+            return false;
+        }
+
         /// <summary>Rắn có mang trái mà crate hiện tại của cột nhận.</summary>
         public bool CanDeliverTo(int column)
         {

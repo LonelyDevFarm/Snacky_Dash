@@ -28,6 +28,8 @@ namespace SnackDash.UI
         [SerializeField] private TMP_Text coinTagText;
         [Tooltip("View_StreakActive_HUD (prefab FX_StreakHud), tắt sẵn.")]
         [SerializeField] private GameObject streakFire;
+        [Tooltip("RemainingFruitsView: thanh đếm trái còn lại dưới thanh tiến độ (bản mới).")]
+        [SerializeField] private RemainingFruitBar remainingFruit;
         [Tooltip("Tốc độ đầy của thanh, số lần chiều dài mỗi giây (cho mượt; không đo).")]
         [SerializeField] private float fillSpeed = 1.5f;
         [SerializeField] private float markerCompleteDelay = 0.15f;
@@ -64,6 +66,7 @@ namespace SnackDash.UI
             levelText.text = "LEVEL " + levelNumber;
             streakFire.SetActive(PlayerEconomy.Shared.StreakOnFire && PlayerEconomy.StreakShown(levelNumber));
             settingsButton.onClick.AddListener(() => OpenSettings(levelNumber));
+            if (remainingFruit != null) remainingFruit.Bind(session);
             for (int wave = 0; wave < _session.WaveCount - 1; wave++)
             {
                 int fruit = _session.FruitInWaves(wave);
