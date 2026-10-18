@@ -154,6 +154,9 @@ namespace SnackDash.Gameplay
         /// <summary>Vạch qua đường (gốc View_VO_CrossRoad + SwitchController): đầu rắn đi vào là đổi mọi cầu bật.</summary>
         public bool IsSwitch(Vector2Int cell) => _switches.Contains(cell);
 
+        /// <summary>Mọi ô vạch công tắc (Level Generator kiểm bàn ghép còn vạch cho ống rẽ / cầu bật).</summary>
+        public IReadOnlyCollection<Vector2Int> Switches => _switches;
+
         /// <summary>Cần gạt cạnh vạch (switch_universal): chỉ là hình, đổi theo công tắc.</summary>
         public IReadOnlyList<Vector2Int> SwitchLevers => _switchLevers;
 

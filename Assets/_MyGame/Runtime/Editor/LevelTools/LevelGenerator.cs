@@ -24,9 +24,13 @@ namespace SnackDash.Editor.LevelTools
 
         public enum Mirror { Never, Always, Random }
 
+        /// <summary>Remix: cách 1-2 (một màn gốc, xáo dữ liệu / lật). Stitch: cách 3 (ghép nửa trái màn A với nửa phải màn B).</summary>
+        public enum Method { Remix, Stitch }
+
         [Serializable]
         public class Options
         {
+            public Method method = Method.Remix;
             public int fromLevel = 1, toLevel = 350;
             public int count = 5;
             public int seed = 1;
@@ -55,6 +59,14 @@ namespace SnackDash.Editor.LevelTools
             var saved = new List<LevelDefinition>();
             if (sources.Count == 0) return saved;
             var random = new System.Random(options.seed);
+            List<LevelStitcher.Seam> seams = null;
+            if (options.method == Method.Stitch)
+            {
+                progress?.Invoke("Tìm chỗ ghép giữa các bản đồ...", 0f);
+                seams = LevelStitcher.FindSeams(sources.Select(s => s.level).ToList(), database, MinWidth, MaxWidth);
+                if (seams.Count == 0) { Debug.LogWarning("[LevelGenerator] Không có chỗ ghép nào trong khoảng màn đã chọn."); return saved; }
+            }
+            int NumberOf(LevelDefinition level) => sources.First(s => s.level == level).number;
             int made = 0;
             for (int n = 0; n < options.count; n++)
             {
@@ -62,17 +74,34 @@ namespace SnackDash.Editor.LevelTools
                 {
                     if (progress != null && progress($"Màn {n + 1}/{options.count}, lần thử {attempt + 1}", (n + attempt / (float)options.triesPerLevel) / options.count))
                         return saved;
-                    var source = sources[random.Next(sources.Count)];
                     int seed = random.Next(1, int.MaxValue);
-                    var candidate = Remix(source.level, options, seed, out string json, out string how);
+                    LevelDefinition candidate;
+                    string json, how, sourceName;
+                    (int number, LevelDefinition level) source = default;
+                    if (seams != null)
+                    {
+                        var seam = seams[random.Next(seams.Count)];
+                        candidate = LevelStitcher.Stitch(seam, database, new System.Random(seed), options.mixWindow, out json, out string why);
+                        if (candidate == null || !AnchorsComplete(json, database)) { if (candidate != null) UnityEngine.Object.DestroyImmediate(candidate); continue; }
+                        if (options.difficulty >= 0) candidate.difficulty = options.difficulty;
+                        how = $"ghép cột 0-{seam.xa - 1} màn {NumberOf(seam.a)} với cột {seam.xb}+ màn {NumberOf(seam.b)}, khay và đợt trái mới (trộn {options.mixWindow})";
+                        sourceName = $"Stitch{NumberOf(seam.a)}x{NumberOf(seam.b)}";
+                        source = (NumberOf(seam.a), seam.a);
+                    }
+                    else
+                    {
+                        source = sources[random.Next(sources.Count)];
+                        candidate = Remix(source.level, options, seed, out json, out how);
+                        sourceName = source.level.name;
+                    }
                     if (candidate == null) continue;
                     if (!Validate(candidate, json, database, options.games, out int game, out int moves, out int snips))
                     {
                         UnityEngine.Object.DestroyImmediate(candidate);
                         continue;
                     }
-                    candidate.origin = $"Từ màn {source.number} ({source.level.name}); {how}; hạt {seed}; người chơi thử thắng ván {game}: {moves} lượt vuốt, {snips} lần cắn đuôi";
-                    saved.Add(Save(candidate, json, source.level.name));
+                    candidate.origin = (seams != null ? "" : $"Từ màn {source.number} ({source.level.name}); ") + $"{how}; hạt {seed}; người chơi thử thắng ván {game}: {moves} lượt vuốt, {snips} lần cắn đuôi";
+                    saved.Add(Save(candidate, json, sourceName));
                     made++;
                     break;
                 }
@@ -106,6 +135,16 @@ namespace SnackDash.Editor.LevelTools
             return level;
         }
 
+        /// <summary>Bề ngang bàn ghép (bản đồ gốc 11-22 ô; trên 20 thì bàn quá nhỏ trên màn hình dọc).</summary>
+        public const int MinWidth = 11, MaxWidth = 20;
+
+        /// <summary>Mọi điểm giao khay có ô đặt khay kề bên (không thì khay không có chỗ đứng).</summary>
+        private static bool AnchorsComplete(string json, TileDefinitionDatabase database)
+        {
+            var board = new BoardGraph(TiledMap.Parse(json), database);
+            return board.CrateStops.Count > 0 && board.CrateStops.Keys.All(board.CrateAnchors.ContainsKey);
+        }
+
         /// <summary>LevelAutoPlayer chơi tối đa <paramref name="games"/> ván (hạt 1..games, như test Level_IsWinnable); thắng một ván là đạt.</summary>
         public static bool Validate(LevelDefinition level, string json, TileDefinitionDatabase database, int games, out int game, out int moves, out int snips)
         {
@@ -120,7 +159,10 @@ namespace SnackDash.Editor.LevelTools
                     session.Begin();
                     if (session.ExtraColumn >= 0) session.UnlockExtraColumn(); // như test: khay phụ mua ngay từ đầu
                     var player = new LevelAutoPlayer();
-                    if (player.Play(session, game)) { moves = player.Moves; snips = player.Snips; return true; }
+                    // Cùng luật với test Level_IsWinnable: rắn không bao giờ dừng trên cầu hay miệng hầm.
+                    bool stoppedOnBridge = false;
+                    player.Moved += () => stoppedOnBridge |= session.Board.IsBridge(session.CurrentCell) || session.Board.TunnelMouths.ContainsKey(session.CurrentCell);
+                    if (player.Play(session, game) && !stoppedOnBridge) { moves = player.Moves; snips = player.Snips; return true; }
                 }
                 catch (Exception e)
                 {

@@ -35,12 +35,18 @@ namespace SnackDash.Editor.LevelTools
             _options.count = Mathf.Max(1, EditorGUILayout.IntField("Số màn muốn tạo", _options.count));
             _options.seed = EditorGUILayout.IntField(new GUIContent("Hạt ngẫu nhiên", "Cùng hạt + cùng lựa chọn = cùng kết quả."), _options.seed);
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Cách biến đổi", EditorStyles.boldLabel);
-            _options.mirror = (LevelGenerator.Mirror)EditorGUILayout.Popup("Lật bàn trái ↔ phải", (int)_options.mirror, new[] { "Không", "Luôn", "Ngẫu nhiên" });
-            _options.permuteKinds = EditorGUILayout.Toggle("Đổi màu trái", _options.permuteKinds);
-            _options.shuffleCrates = EditorGUILayout.Toggle("Chia lại khay giữa các cột", _options.shuffleCrates);
-            _options.regroupWaves = EditorGUILayout.Toggle(new GUIContent("Chia lại các đợt trái", "Chỉ màn rải trái ngẫu nhiên (bản đồ không có lớp spawn1)."), _options.regroupWaves);
-            using (new EditorGUI.DisabledScope(!_options.regroupWaves))
+            EditorGUILayout.LabelField("Cách tạo", EditorStyles.boldLabel);
+            _options.method = (LevelGenerator.Method)EditorGUILayout.Popup(new GUIContent("Cách", "Xáo / lật: biến đổi một màn gốc. Cắt ghép: nửa trái một màn nối nửa phải màn khác ở chỗ đường khớp nhau, khay và trái tạo mới."),
+                (int)_options.method, new[] { "Xáo dữ liệu / lật bàn (một màn gốc)", "Cắt ghép hai màn" });
+            bool remix = _options.method == LevelGenerator.Method.Remix;
+            using (new EditorGUI.DisabledScope(!remix))
+            {
+                _options.mirror = (LevelGenerator.Mirror)EditorGUILayout.Popup("Lật bàn trái ↔ phải", (int)_options.mirror, new[] { "Không", "Luôn", "Ngẫu nhiên" });
+                _options.permuteKinds = EditorGUILayout.Toggle("Đổi màu trái", _options.permuteKinds);
+                _options.shuffleCrates = EditorGUILayout.Toggle("Chia lại khay giữa các cột", _options.shuffleCrates);
+                _options.regroupWaves = EditorGUILayout.Toggle(new GUIContent("Chia lại các đợt trái", "Chỉ màn rải trái ngẫu nhiên (bản đồ không có lớp spawn1)."), _options.regroupWaves);
+            }
+            using (new EditorGUI.DisabledScope(remix && !_options.regroupWaves))
                 _options.mixWindow = EditorGUILayout.IntSlider(new GUIContent("Độ trộn đợt (khó dần)", "Nhỏ: trái ra gần đúng thứ tự khay cần. Lớn: lẫn lộn hơn."), _options.mixWindow, 1, 60);
             _options.difficulty = EditorGUILayout.IntPopup("Độ khó", _options.difficulty, new[] { "Giữ như màn gốc", "Thường", "Khó", "Siêu khó" }, new[] { -1, 0, 2, 4 });
             _options.games = EditorGUILayout.IntSlider("Số ván chơi thử", _options.games, 1, 5);
