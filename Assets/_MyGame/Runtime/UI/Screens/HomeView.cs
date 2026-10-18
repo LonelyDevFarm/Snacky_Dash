@@ -36,6 +36,7 @@ namespace SnackDash.UI
         public bool Busy => Starting || topBar.Busy;
 
         public HomeTopBar TopBar => topBar;
+        public PlayButton PlayButton => playButton;
 
         private void Start()
         {

@@ -42,6 +42,13 @@ namespace SnackDash.UI
         [Tooltip("Streak_FX_Container (prefab FX_StreakPlayButton) và StreakGlow_Outline, tắt sẵn.")]
         [SerializeField] private GameObject fireFx, fireEdge;
 
+        [Header("Lucky Ladybug")]
+        [Tooltip("Huy hiệu bọ rùa ở góc nút (tắt sẵn): màn kế có bọ.")]
+        [SerializeField] private GameObject ladybugBadge;
+
+        /// <summary>LuckyLadybugWidget báo màn kế có bọ hay không.</summary>
+        public void ShowLadybug(bool on) { if (ladybugBadge != null) ladybugBadge.SetActive(on); }
+
         private const string StreakShownKey = "home_streak_shown"; // số trận thanh đã hiện lần trước, để tô các ô mới
         private bool _superHard;
 

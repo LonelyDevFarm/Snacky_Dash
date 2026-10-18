@@ -44,6 +44,8 @@ namespace SnackDash.Core
                 PlayerPrefs.DeleteKey("booster_intro_" + booster.ToUpperInvariant());
             }
             PlayerPrefs.DeleteKey("home_streak_shown");
+            // Lucky Ladybug: lời giới thiệu, luật chơi, bàn tay chỉ vào con bọ đầu tiên.
+            foreach (var key in new[] { "lb_badge_ftue_seen", "lb_rules_seen", "lb_hand_seen" }) PlayerPrefs.DeleteKey(key);
             PlayerPrefs.Save();
             Debug.Log("[Save] Hướng dẫn và quà mở khoá sẽ hiện lại; level, xu, tim giữ nguyên.");
         }

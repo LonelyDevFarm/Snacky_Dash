@@ -32,6 +32,7 @@ namespace SnackDash.Cheat
             WeeklyMissions.Shared.StartIfUnlocked(level);
             SeasonPass.Shared.StartIfUnlocked(level);
             JungleHeist.Shared.StartIfUnlocked(level);
+            LuckyLadybug.Shared.StartIfUnlocked(level);
             _entries = new List<(string, Action)>
             {
                 ("Khối dùng chung", ShowWidgets),
@@ -51,6 +52,9 @@ namespace SnackDash.Cheat
                 ("JH Rewards", () => UI.Show<JungleHeistRewards>()),
                 ("JH Ended won", () => UI.Show<JungleHeistEnded>()?.Setup(true)),
                 ("JH Ended lost", () => UI.Show<JungleHeistEnded>()?.Setup(false)),
+                ("Lucky Ladybug", () => UI.Show<LuckyLadybugPopup>()),
+                ("Ladybug rules", () => UI.Show<LuckyLadybugRules>()),
+                ("Ladybug chest (claim)", () => { LuckyLadybug.Shared.CheatAdd(LuckyLadybug.Target); UI.Show<LuckyLadybugPopup>()?.ClaimNow(); }),
             };
         }
 

@@ -83,6 +83,7 @@ namespace SnackDash.Gameplay
         }
 
         public event Action<Vector2Int, PillKind> PillSpawned;
+        public event Action<int> WaveSpawned;                               // chỉ số đợt vừa rải (0 = đợt có sẵn lúc vào màn)
         public event Action<Vector2Int, PillKind, int> PillEaten;           // ô, loại, chỉ số đốt mới
         public event Action<int, PillKind, int> SegmentDelivered;           // chỉ số đốt bị lấy, loại, cột
         public event Action<int, int> CrateCompleted;                      // cột, chỉ số crate
@@ -814,21 +815,19 @@ namespace SnackDash.Gameplay
             if (BatchIndex + 1 >= _level.batches.Count) return;
             BatchIndex++;
             string layer = "spawn" + (BatchIndex + 1);
-            if (!_map.HasLayer(layer))
-            {
-                SpawnOnMapSlots(_level.batches[BatchIndex]);
-                return;
-            }
-            for (int y = 0; y < _map.Height; y++)
-            for (int x = 0; x < _map.Width; x++)
-            {
-                var cell = new Vector2Int(x, y);
-                if (!_spawnIds.TryGetValue(_map.GetLocalTileId(layer, cell), out var kind)) continue;
-                if (NoFruitOnBlock(cell) && FreeCellNear(cell) is Vector2Int free) cell = free; // không rải lên khối nâng đang dựng
-                _pills[cell] = kind;
-                if (_board.IsSecretSpawn(BatchIndex, cell)) _secret.Add(cell);
-                PillSpawned?.Invoke(cell, kind);
-            }
+            if (!_map.HasLayer(layer)) SpawnOnMapSlots(_level.batches[BatchIndex]);
+            else
+                for (int y = 0; y < _map.Height; y++)
+                for (int x = 0; x < _map.Width; x++)
+                {
+                    var cell = new Vector2Int(x, y);
+                    if (!_spawnIds.TryGetValue(_map.GetLocalTileId(layer, cell), out var kind)) continue;
+                    if (NoFruitOnBlock(cell) && FreeCellNear(cell) is Vector2Int free) cell = free; // không rải lên khối nâng đang dựng
+                    _pills[cell] = kind;
+                    if (_board.IsSecretSpawn(BatchIndex, cell)) _secret.Add(cell);
+                    PillSpawned?.Invoke(cell, kind);
+                }
+            WaveSpawned?.Invoke(BatchIndex);
         }
 
         /// <summary>

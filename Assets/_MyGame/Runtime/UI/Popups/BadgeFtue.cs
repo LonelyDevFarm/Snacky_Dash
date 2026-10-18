@@ -15,6 +15,7 @@ namespace SnackDash.UI
         public const string WeeklySeenKey = "wm_badge_ftue_seen";
         public const string SnackyPassSeenKey = "sp_badge_ftue_seen";
         public const string JungleHeistSeenKey = "jh_badge_ftue_seen";
+        public const string LuckyLadybugSeenKey = "lb_badge_ftue_seen";
 
         public static bool SeenFor(string key) => PlayerPrefs.GetInt(key, 0) != 0;
 

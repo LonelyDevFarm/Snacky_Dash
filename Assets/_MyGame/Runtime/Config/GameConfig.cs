@@ -16,6 +16,7 @@ namespace SnackDash.Economy
         public WeeklyMissionsConfig weeklyMissions;
         public SnackyPassConfig snackyPass;
         public JungleHeistConfig jungleHeist;
+        public LuckyLadybugConfig luckyLadybug;
 
         private static GameConfig _current;
 

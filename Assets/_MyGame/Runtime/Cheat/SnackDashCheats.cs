@@ -157,6 +157,15 @@ namespace SnackDash.Cheat
                 ("+1 win", () => JungleHeist.Shared.Record(MissionGoal.CompleteAnyLevel, 1)),
                 ("Fail", () => JungleHeist.Shared.Record(MissionGoal.CompleteLevelInStreak, 0)));
 
+            CheatManager.Label(EventsTab, () => LuckyLadybug.Shared.Started
+                ? $"Lucky Ladybug: {LuckyLadybug.Shared.Count}/{LuckyLadybug.Target}{(LuckyLadybug.Shared.LadybugThisLevel ? ", next level has one" : "")}, ends in {Format(LuckyLadybug.Shared.Left)}"
+                : $"Lucky Ladybug: not started (opens at Level {LuckyLadybug.UnlockLevel})");
+            CheatManager.Buttons(EventsTab, "Lucky Ladybug",
+                ("New round", () => { PlayerPrefs.DeleteKey("lb_round"); LuckyLadybug.Shared.StartIfUnlocked(LuckyLadybug.UnlockLevel); }),
+                ("+1 ladybug", () => LuckyLadybug.Shared.CheatAdd(1)),
+                ("Fill", () => LuckyLadybug.Shared.CheatAdd(LuckyLadybug.Target)),
+                ("End round", () => LuckyLadybug.Shared.CheatEndRound()));
+
             CheatManager.Label(EventsTab, () => "Home shows the change after Reload scene.");
             CheatManager.Button(EventsTab, "Reload scene", ReloadScene);
         }

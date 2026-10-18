@@ -30,6 +30,10 @@ namespace SnackDash.UI
         [SerializeField] private GameObject streakFire;
         [Tooltip("RemainingFruitsView: thanh đếm trái còn lại dưới thanh tiến độ (bản mới).")]
         [SerializeField] private RemainingFruitBar remainingFruit;
+        [Tooltip("Con bọ Lucky Ladybug (lớp phủ toàn màn, có lọ trên HUD); GameBootstrap gọi Bind.")]
+        [SerializeField] private LadybugView ladybug;
+
+        public LadybugView Ladybug => ladybug;
         [Tooltip("Tốc độ đầy của thanh, số lần chiều dài mỗi giây (cho mượt; không đo).")]
         [SerializeField] private float fillSpeed = 1.5f;
         [SerializeField] private float markerCompleteDelay = 0.15f;

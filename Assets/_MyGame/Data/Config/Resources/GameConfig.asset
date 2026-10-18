@@ -18,3 +18,4 @@ MonoBehaviour:
   weeklyMissions: {fileID: 11400000, guid: 9bbfb935213316d408bcf429e11ed2d4, type: 2}
   snackyPass: {fileID: 11400000, guid: d04a53dd6b1536b428508985f4795236, type: 2}
   jungleHeist: {fileID: 11400000, guid: 7542b3cd26e9cb448b683498d074f3cb, type: 2}
+  luckyLadybug: {fileID: 11400000, guid: 2e0dfa5a5882eec4d9d1a860e0c31f19, type: 2}

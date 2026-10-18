@@ -27,6 +27,10 @@ namespace SnackDash.Input
         private readonly List<(float time, Vector2 position)> _samples = new List<(float, Vector2)>();
         private bool _pressed;
         private int _flicksThisPress;
+        private static bool _ignoreTouch;
+
+        /// <summary>Lần chạm hiện tại không phải vuốt (chạm trúng con bọ Lucky Ladybug): bỏ qua tới khi nhấc tay.</summary>
+        public static void IgnoreCurrentTouch() => _ignoreTouch = true;
 
         private void Update()
         {
@@ -42,8 +46,8 @@ namespace SnackDash.Input
                 _flicksThisPress = 0;
                 _samples.Clear();
             }
-            if (UnityEngine.Input.GetMouseButtonUp(0) || !UnityEngine.Input.GetMouseButton(0)) _pressed = false;
-            if (!_pressed) return;
+            if (UnityEngine.Input.GetMouseButtonUp(0) || !UnityEngine.Input.GetMouseButton(0)) { _pressed = false; _ignoreTouch = false; }
+            if (!_pressed || _ignoreTouch) return;
 
             float now = Time.unscaledTime;
             Vector2 position = UnityEngine.Input.mousePosition;

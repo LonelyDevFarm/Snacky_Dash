@@ -443,6 +443,57 @@ namespace SnackDash.Tests
             Assert.AreEqual(wallet + SnackDash.Economy.JungleHeist.Share, eco.Coins);
             Assert.IsFalse(jh.ClaimPrize(), "once");
 
+            // Lucky Ladybug (Level 30, creative event [user 18/10]): only won levels count; a caught ladybug is kept by winning, lost
+            // by losing; the won level after a catch has none; 5 in a 48 h round open the chest; then a new round at once.
+            var lb = new SnackDash.Economy.LuckyLadybug(store, () => now, eco);
+            lb.StartIfUnlocked(29);
+            Assert.IsFalse(lb.Started);
+            lb.StartIfUnlocked(30);
+            Assert.IsTrue(lb.Active);
+            Assert.IsTrue(lb.LadybugThisLevel, "the round's first level has a ladybug");
+            Assert.IsTrue(lb.Catch());
+            eco.Lose();
+            Assert.AreEqual(0, lb.Count, "a lost try loses the ladybug");
+            Assert.IsTrue(lb.LadybugThisLevel, "and the level keeps it for the next try");
+            eco.Win(30, 0);
+            Assert.AreEqual(0, lb.Count);
+            Assert.IsTrue(lb.LadybugThisLevel, "won without catching: the next level has one too");
+            Assert.IsTrue(lb.Catch());
+            eco.Win(31, 0);
+            Assert.AreEqual(1, lb.Count);
+            Assert.IsFalse(lb.LadybugThisLevel, "caught and won: the next won level has none");
+            Assert.IsFalse(lb.Catch(), "nothing to catch there");
+            eco.Win(32, 0);
+            Assert.IsTrue(lb.LadybugThisLevel, "and the one after has one again");
+            Assert.IsTrue(lb.HasNewLadybug, "Home flies the new ladybug to the widget");
+            lb.SeenCount = lb.Count;
+            Assert.IsFalse(lb.HasNewLadybug);
+            now = now.AddHours(SnackDash.Economy.LuckyLadybug.RoundHours);
+            Assert.IsFalse(lb.Active, "out of time short of the target");
+            lb.StartIfUnlocked(33);
+            Assert.AreEqual(0, lb.Count, "everything is lost, a new round opens at once");
+            Assert.IsTrue(lb.LadybugThisLevel);
+            int ladybugWins = 0;
+            while (!lb.Complete)
+            {
+                if (lb.LadybugThisLevel) lb.Catch();
+                eco.Win(40 + ladybugWins, 0);
+                ladybugWins++;
+            }
+            Assert.AreEqual(2 * SnackDash.Economy.LuckyLadybug.Target - 1, ladybugWins, "catch, skip, catch...: at least 9 wins for 5");
+            Assert.IsFalse(lb.LadybugThisLevel, "no more ladybugs once the chest is full");
+            now = now.AddHours(SnackDash.Economy.LuckyLadybug.RoundHours + 1);
+            lb.StartIfUnlocked(50);
+            Assert.IsTrue(lb.Complete, "the chest waits past the end of the round");
+            int coinsBefore = eco.Coins, magnetsBefore = eco.Boosters("booster_magnet");
+            Assert.IsTrue(lb.Claim());
+            Assert.AreEqual(coinsBefore + SnackDash.Economy.LuckyLadybug.RewardCoins, eco.Coins);
+            Assert.AreEqual(magnetsBefore + SnackDash.Economy.LuckyLadybug.RewardEachBooster, eco.Boosters("booster_magnet"));
+            Assert.IsTrue(eco.InfiniteLives, "infinite lives from the chest");
+            Assert.IsFalse(lb.Claim(), "once");
+            Assert.AreEqual(0, lb.Count);
+            Assert.IsTrue(lb.Active, "the next round opens at once");
+
             // EventBus: the game-flow news (level won / lost) reach whoever listens, and stop once unsubscribed.
             int heard = 0;
             System.Action<SnackDash.Core.LevelWonEvent> onWon = e => heard += e.Level;

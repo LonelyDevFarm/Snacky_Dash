@@ -71,6 +71,7 @@ namespace SnackDash.Bootstrap
             if (gameAudio != null) gameAudio.Bind(Session, crates);
             if (loseFlow != null) loseFlow.Bind(Session, RestartLevel, cameraFitter);
             if (hud != null) hud.Bind(Session, LevelNumber);
+            if (hud != null && hud.Ladybug != null) hud.Ladybug.Bind(Session); // sự kiện Lucky Ladybug, tách khỏi luật chơi
             if (boosters != null) boosters.Bind(Session, LevelNumber, board, cameraFitter);
             if (tutorial != null) tutorial.Bind(Session, LevelNumber);
             if (combo != null) combo.Bind(Session, crates, hud);
