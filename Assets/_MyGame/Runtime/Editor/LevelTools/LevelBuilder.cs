@@ -158,6 +158,7 @@ namespace SnackDash.Editor.LevelTools
             var map = TiledMap.Parse(json);
             var board = new BoardGraph(map, database);
             if (DeadEnds(board, map.Width, map.Height) > 0) { why = "có ô cụt"; return false; }
+            if (CrowdedGates(json, database).Count > 0) { why = "cổng bị vật khác / khay đè"; return false; } // vật đặt sau cổng cũng phải chừa chỗ
             foreach (var plot in board.RisingBlocks) board.SetRisen(plot, true); // xấu nhất: mọi khối nâng đều đang nhô
             if (TrapRate(board, map.Width, map.Height, out _) > MaxTrapRate) { why = "có chỗ vào rồi không ra được"; return false; }
             // Mọi vật chặn rắn (cổng một chiều, tường đóng, khối nâng nhô): rắn tới sát nó phải còn vòng quay lại đủ dài [user 19/10].
@@ -601,12 +602,58 @@ namespace SnackDash.Editor.LevelTools
                         var junction = end + d.ToCell();
                         if (!board.HasRoad(end, d) || corridor.Contains(junction) || !IsJunction(board, junction) || !Free(map, ldf, end)) continue;
                         if (!board.HasRoad(end, d.Opposite())) continue; // ô cổng phải thẳng theo hướng cổng
+                        if (!GateRoom(map, ldf, board, end) || LaneTaken(map, ldf, board, corridor, end)) continue;
                         options.Add((end, d));
                     }
             if (options.Count == 0) return false;
             var (cell, dir) = options[random.Next(options.Count)];
             ldf[Index(map, cell)] = GateTiles[dir] + map.FirstGid;
             return true;
+        }
+
+        /// <summary>
+        /// Cánh cổng rộng hơn một ô: quanh ô cổng (8 ô kề) không có vật lớp phủ nào khác (cổng, đá, khối nâng, cầu, hầm), không có ô
+        /// giao khay hay ô khay đứng [user 19/10: màn 365 hai cổng đè nhau ở một ngã rẽ, màn 356 cổng che khay].
+        /// </summary>
+        private static bool GateRoom(TiledMap map, long[] ldf, BoardGraph board, Vector2Int cell)
+        {
+            var anchors = new HashSet<Vector2Int>(board.CrateAnchors.Values);
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    var c = cell + new Vector2Int(dx, dy);
+                    if (c.x < 0 || c.y < 0 || c.x >= map.Width || c.y >= map.Height) continue;
+                    if (c != cell && !Free(map, ldf, c)) return false;
+                    if (board.IsCrateStopCell(c) || anchors.Contains(c) || board.TunnelMouths.ContainsKey(c)) return false;
+                }
+            return true;
+        }
+
+        /// <summary>Cổng một chiều đang phạm <see cref="GateRoom"/> trên bản đồ <paramref name="json"/> (để gỡ ở màn đã sinh).</summary>
+        public static List<Vector2Int> CrowdedGates(string json, TileDefinitionDatabase database)
+        {
+            var file = JsonUtility.FromJson<LevelStitcher.TiledJson.Map>(json);
+            var ldf = file.layers.FirstOrDefault(l => l.name == "ldf");
+            if (ldf == null) return new List<Vector2Int>();
+            var map = TiledMap.Parse(json);
+            var board = new BoardGraph(map, database);
+            var corridors = Corridors(board, map.Width, map.Height);
+            return board.OneWayGates.Keys.Where(c => !GateRoom(map, ldf.data, board, c)
+                || (corridors.FirstOrDefault(k => k.Contains(c)) is List<Vector2Int> lane && LaneTaken(map, ldf.data, board, lane, c))).ToList();
+        }
+
+        /// <summary>Làn của cổng ở <paramref name="gate"/> đã có vật chặn khác (trong đoạn hay đi thẳng qua cầu) [user 19/10: màn 365 hai
+        /// cổng hai đầu một đoạn chỉ ngược nhau, đoạn đó không vào được từ phía nào].</summary>
+        private static bool LaneTaken(TiledMap map, long[] ldf, BoardGraph board, List<Vector2Int> corridor, Vector2Int gate) =>
+            corridor.Any(c => c != gate && !Free(map, ldf, c)) || LaneBlocked(map, ldf, board, corridor);
+
+        /// <summary>Gỡ ô lớp phủ ở <paramref name="cell"/> khỏi bản đồ.</summary>
+        public static string ClearCell(string json, Vector2Int cell)
+        {
+            var file = JsonUtility.FromJson<LevelStitcher.TiledJson.Map>(json);
+            var ldf = file.layers.First(l => l.name == "ldf");
+            ldf.data[(file.height - 1 - cell.y) * file.width + cell.x] = 0;
+            return JsonUtility.ToJson(file);
         }
 
         private static bool IsJunction(BoardGraph board, Vector2Int cell) =>

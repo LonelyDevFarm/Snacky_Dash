@@ -94,6 +94,8 @@ MonoBehaviour:
     health: 2
   - seedCell: {x: 8, y: 22}
     health: 5
+  - seedCell: {x: 1, y: 9}
+    health: 4
   curtainCells: []
   curtainGroups: []
   risingBlockDeliveriesToLower: 3
@@ -104,4 +106,6 @@ MonoBehaviour:
     234 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 258 th\u1EBF c\u1EDD; l\xE0m kh\xF3: +0
     lo\u1EA1i tr\xE1i, +1 v\u1EADt ch\u1EB7n (c\u1ED5ng m\u1ED9t chi\u1EC1u), 6 lo\u1EA1i
     tr\xE1i; th\u1EAFng kh\xF4ng booster: 217 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 222
-    th\u1EBF c\u1EDD"
+    th\u1EBF c\u1EDD; l\xE0m kh\xF3: g\u1EE1 1 c\u1ED5ng \u0111\xE8, +0 lo\u1EA1i
+    tr\xE1i, +1 v\u1EADt ch\u1EB7n (t\u01B0\u1EDDng), 6 lo\u1EA1i tr\xE1i; th\u1EAFng
+    kh\xF4ng booster: 120 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 152 th\u1EBF c\u1EDD"

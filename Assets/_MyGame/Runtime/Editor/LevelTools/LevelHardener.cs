@@ -25,7 +25,7 @@ namespace SnackDash.Editor.LevelTools
         /// <summary>Kết quả một màn: số loại trái / vật chặn thêm được, độ khó trước → sau (số thế cờ SmartPlayer phải thử).</summary>
         public struct Result
         {
-            public int addedKinds, addedBlockers, nodesBefore, nodesAfter, movesAfter;
+            public int addedKinds, addedBlockers, removedGates, nodesBefore, nodesAfter, movesAfter;
             public List<string> blockers;
         }
 
@@ -36,6 +36,12 @@ namespace SnackDash.Editor.LevelTools
             var random = new System.Random(seed);
             string json = level.map.text;
             result = new Result { blockers = new List<string>() };
+            // Màn sinh trước luật GateRoom: gỡ từng cổng đè vật khác / che khay (gỡ một cái thì cái kề nó có thể hết phạm).
+            for (var crowded = LevelBuilder.CrowdedGates(json, database); crowded.Count > 0; crowded = LevelBuilder.CrowdedGates(json, database))
+            {
+                json = LevelBuilder.ClearCell(json, crowded[0]);
+                result.removedGates++;
+            }
             if (!Wins(level, json, database, out _, out result.nodesBefore)) return false;
             result.nodesAfter = result.nodesBefore;
 
@@ -53,7 +59,9 @@ namespace SnackDash.Editor.LevelTools
 
             // 2. Vật chặn.
             var exhausted = new HashSet<string>();
-            while (result.addedBlockers < MaxExtraBlockers(level))
+            // Màn đã làm khó lần trước: chỉ bù lại số cổng vừa gỡ (không khó thêm mỗi lần bấm).
+            int maxBlockers = level.origin != null && level.origin.Contains("làm khó:") ? result.removedGates : MaxExtraBlockers(level);
+            while (result.addedBlockers < maxBlockers)
             {
                 var kinds = LevelBuilder.Blockers.Where(b => !exhausted.Contains(b)).ToList();
                 if (kinds.Count == 0) break;
@@ -82,7 +90,7 @@ namespace SnackDash.Editor.LevelTools
             File.WriteAllText(AssetDatabase.GetAssetPath(level.map), json);
             AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(level.map));
             Wins(level, json, database, out result.movesAfter, out result.nodesAfter);
-            level.origin += $"; làm khó: +{result.addedKinds} loại trái, +{result.addedBlockers} vật chặn ({string.Join(", ", result.blockers)}), {Kinds(level).Count} loại trái; thắng không booster: {result.movesAfter} lượt vuốt, tìm {result.nodesAfter} thế cờ";
+            level.origin += $"; làm khó: {(result.removedGates > 0 ? $"gỡ {result.removedGates} cổng đè, " : "")}+{result.addedKinds} loại trái, +{result.addedBlockers} vật chặn ({string.Join(", ", result.blockers)}), {Kinds(level).Count} loại trái; thắng không booster: {result.movesAfter} lượt vuốt, tìm {result.nodesAfter} thế cờ";
             EditorUtility.SetDirty(level);
             AssetDatabase.SaveAssets();
             return true;
