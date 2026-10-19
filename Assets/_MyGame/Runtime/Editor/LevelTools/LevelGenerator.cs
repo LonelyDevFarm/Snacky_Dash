@@ -24,8 +24,9 @@ namespace SnackDash.Editor.LevelTools
 
         public enum Mirror { Never, Always, Random }
 
-        /// <summary>Remix: cách 1-2 (một màn gốc, xáo dữ liệu / lật). Stitch: cách 3 (ghép nửa trái màn A với nửa phải màn B).</summary>
-        public enum Method { Remix, Stitch }
+        /// <summary>Remix: cách 1-2 (một màn gốc, xáo dữ liệu / lật). Stitch: cách 3 (ghép nửa trái màn A với nửa phải màn B).
+        /// Design: cách 4, tự dựng bản đồ khối cỏ (LevelDesigner).</summary>
+        public enum Method { Remix, Stitch, Design }
 
         [Serializable]
         public class Options
@@ -42,6 +43,8 @@ namespace SnackDash.Editor.LevelTools
             public int difficulty = -1;
             public int games = 3;
             public int triesPerLevel = 12;
+            [Tooltip("Cách 3 / 4: đặt cơ chế (cầu, cổng, tường, khối nâng...) lên bàn đường.")]
+            public bool mechanics = true;
         }
 
         /// <summary>Sinh <see cref="Options.count"/> màn; trả về các màn đã lưu. <paramref name="progress"/> trả true để dừng.</summary>
@@ -81,7 +84,26 @@ namespace SnackDash.Editor.LevelTools
                     LevelDefinition candidate;
                     string json, how, sourceName;
                     (int number, LevelDefinition level) source = default;
-                    if (seams != null)
+                    if (options.method == Method.Design)
+                    {
+                        int tier = options.difficulty >= 0 ? options.difficulty : 0;
+                        candidate = LevelDesigner.Design(tier, database, new System.Random(seed), options.mixWindow, out json, out string why);
+                        if (candidate == null || !LevelBuilder.Check(json, candidate, database, out why))
+                        {
+                            if (candidate != null) UnityEngine.Object.DestroyImmediate(candidate);
+                            continue;
+                        }
+                        var placed = new List<string>();
+                        int unspent = 0;
+                        string theme = null;
+                        if (options.mechanics) placed = LevelBuilder.AddMechanics(ref json, candidate, database, new System.Random(seed), out unspent, out theme);
+                        // Bàn không đặt được ý đồ chính hay không đủ chỗ cho ngân sách của bậc: bỏ.
+                        if (unspent > 1 || (options.mechanics && theme == null)) { UnityEngine.Object.DestroyImmediate(candidate); continue; }
+                        var size = TiledMap.Parse(json);
+                        how = $"tự thiết kế {size.Width}x{size.Height}, {candidate.columns.Count} cột khay; ý đồ: {theme ?? "không"}; cơ chế: {(placed.Count > 0 ? string.Join(", ", placed) : "không")}; khay và đợt trái mới (trộn {options.mixWindow})";
+                        sourceName = "Design";
+                    }
+                    else if (seams != null)
                     {
                         var seam = seams[random.Next(seams.Count)];
                         // Bước 1: bàn đường thông (chỉ đường, hầm, khay) — phải đạt quy luật màn gốc trước khi có cơ chế nào.
@@ -114,7 +136,7 @@ namespace SnackDash.Editor.LevelTools
                         UnityEngine.Object.DestroyImmediate(candidate);
                         continue;
                     }
-                    candidate.origin = (seams != null ? "" : $"Từ màn {source.number} ({source.level.name}); ") + $"{how}; hạt {seed}; thắng không booster: {moves} lượt vuốt, tìm {nodes} thế cờ";
+                    candidate.origin = (options.method != Method.Remix ? "" : $"Từ màn {source.number} ({source.level.name}); ") + $"{how}; hạt {seed}; thắng không booster: {moves} lượt vuốt, tìm {nodes} thế cờ";
                     saved.Add(Save(candidate, json, sourceName));
                     made++;
                     if (seams != null) seams.RemoveAll(s => s.a == source.level && sourceName == $"Stitch{NumberOf(s.a)}x{NumberOf(s.b)}"); // cặp này đã dùng

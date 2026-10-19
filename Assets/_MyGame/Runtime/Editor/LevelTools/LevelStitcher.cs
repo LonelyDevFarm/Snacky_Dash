@@ -22,8 +22,8 @@ namespace SnackDash.Editor.LevelTools
             public int Width;
         }
 
-        private const int StartTile = 287, TailTile = 403;
-        private static readonly int[] DeliverTiles = { 295, 296, 297, 394, 395, 396, 397 }; // điểm giao khay 0..6
+        internal const int StartTile = 287, TailTile = 403;
+        internal static readonly int[] DeliverTiles = { 295, 296, 297, 394, 395, 396, 397 }; // điểm giao khay 0..6
         private static readonly int[,] TunnelTiles = { { 279, 281, 278, 280 }, { 363, 360, 361, 362 }, { 382, 384, 385, 386 }, { 378, 380, 379, 381 } }; // [màu A-D, lên/xuống/trái/phải]
         private static readonly int[,] FlipArrowTiles = { { 300, 298 }, { 303, 301 }, { 306, 304 }, { 309, 307 } }; // [xuống/trái/phải/lên, nhóm 0/1]
 
@@ -208,7 +208,7 @@ namespace SnackDash.Editor.LevelTools
                 level.columns.Add(new CrateColumnDefinition { closedAtStart = old != null && old.closedAtStart, isExtra = old != null && old.isExtra });
             }
             if (level.columns.All(c => c.isExtra)) { why = "không có khay thường"; return null; }
-            FillFruit(level, seam, random, mixWindow);
+            FillFruit(level, new[] { seam.a, seam.b }, random, mixWindow);
 
             var output = new TiledJson.Map
             {
@@ -362,7 +362,7 @@ namespace SnackDash.Editor.LevelTools
 
         // ------------------------------------------------------------------ viền cỏ
 
-        private static readonly Vector2Int[] Around =
+        internal static readonly Vector2Int[] Around =
         {
             new Vector2Int(-1, 1), new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(-1, 0),
             new Vector2Int(1, 0), new Vector2Int(-1, -1), new Vector2Int(0, -1), new Vector2Int(1, -1),
@@ -385,7 +385,7 @@ namespace SnackDash.Editor.LevelTools
                 }
         }
 
-        private static Dictionary<int, int> GrassTable(TileDefinitionDatabase database)
+        internal static Dictionary<int, int> GrassTable(TileDefinitionDatabase database)
         {
             if (_grassByMask != null) return _grassByMask;
             var votes = new Dictionary<int, Dictionary<int, int>>();
@@ -410,7 +410,7 @@ namespace SnackDash.Editor.LevelTools
         }
 
         /// <summary>Ô có đường (kể cả ô đặt khay, vì quanh khay cỏ vẽ như quanh đường).</summary>
-        private static bool RoadLike(int local, TileDefinitionDatabase database) =>
+        internal static bool RoadLike(int local, TileDefinitionDatabase database) =>
             local >= 0 && database.TryGet(local, out var d)
             && (d.category == TileCategory.CrateEndPoint || (d.tileType != TileType.Empty && d.tileType != TileType.None));
 
@@ -423,9 +423,9 @@ namespace SnackDash.Editor.LevelTools
         /// Khay: mỗi cột thường số khay bằng trung bình hai màn gốc, mỗi khay 9 trái (đôi khi 18), 3-5 loại trái. Đợt: cỡ đợt
         /// trung bình hai màn gốc (sức chứa bàn của chúng), rồi chia trái theo thứ tự khay cần như LevelRemixer.RegroupWaves.
         /// </summary>
-        private static void FillFruit(LevelDefinition level, Seam seam, System.Random random, int mixWindow)
+        internal static void FillFruit(LevelDefinition level, IList<LevelDefinition> sources, System.Random random, int mixWindow)
         {
-            var sources = new[] { seam.a, seam.b };
+
             double depth = sources.SelectMany(s => s.columns.Where(c => !c.isExtra)).Select(c => (double)c.crates.Count).DefaultIfEmpty(4).Average();
             var kinds = LevelRemixer.UsableKinds.OrderBy(k => random.Next()).Take(random.Next(3, 6)).ToList();
             int crateCount = 0;

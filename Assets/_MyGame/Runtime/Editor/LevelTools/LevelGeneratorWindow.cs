@@ -43,8 +43,10 @@ namespace SnackDash.Editor.LevelTools
             _options.seed = EditorGUILayout.IntField(new GUIContent("Hạt ngẫu nhiên", "Cùng hạt + cùng lựa chọn = cùng kết quả."), _options.seed);
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Cách tạo", EditorStyles.boldLabel);
-            _options.method = (LevelGenerator.Method)EditorGUILayout.Popup(new GUIContent("Cách", "Xáo / lật: biến đổi một màn gốc. Cắt ghép: nửa trái một màn nối nửa phải màn khác ở chỗ đường khớp nhau, khay và trái tạo mới."),
-                (int)_options.method, new[] { "Xáo dữ liệu / lật bàn (một màn gốc)", "Cắt ghép hai màn" });
+            _options.method = (LevelGenerator.Method)EditorGUILayout.Popup(new GUIContent("Cách", "Xáo / lật: biến đổi một màn gốc. Cắt ghép: nửa trái một màn nối nửa phải màn khác ở chỗ đường khớp nhau, khay và trái tạo mới. Tự thiết kế: dựng bản đồ khối cỏ mới, có ý đồ chính (khối nâng / cổng / tường)."),
+                (int)_options.method, new[] { "Xáo dữ liệu / lật bàn (một màn gốc)", "Cắt ghép hai màn", "Tự thiết kế bản đồ" });
+            if (_options.method != LevelGenerator.Method.Remix)
+                _options.mechanics = EditorGUILayout.Toggle(new GUIContent("Đặt cơ chế", "Tắt: chỉ dựng bàn đường để xem hình."), _options.mechanics);
             bool remix = _options.method == LevelGenerator.Method.Remix;
             using (new EditorGUI.DisabledScope(!remix))
             {

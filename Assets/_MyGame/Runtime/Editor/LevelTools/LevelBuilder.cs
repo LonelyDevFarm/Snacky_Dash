@@ -435,7 +435,18 @@ namespace SnackDash.Editor.LevelTools
         /// cầu ở ngã tư (chỗ vòng dài cắt qua chính nó); rồi tiêu ngân sách độ khó (<see cref="Budget"/>) bằng các vật chặn, cái nào
         /// không làm vòng dài ra / không chặn lối khay thì không đặt; khối nâng 2-3 cụm ở các đoạn vòng ngoài.
         /// </summary>
-        public static List<string> AddMechanics(ref string json, LevelDefinition level, TileDefinitionDatabase database, System.Random random, out int unspent)
+        /// <summary>
+        /// Ý đồ chính của màn: cơ chế đặt trước tiên, quyết định cách chơi [user 19/10: vật chặn phải có mục đích]:
+        /// khối nâng = các lối vòng ngoài chỉ dùng được một lần (màn 76); cổng một chiều = ép đi vòng; tường = một vùng đóng lúc đầu,
+        /// phá xong bàn rộng ra.
+        /// </summary>
+        public static readonly string[] Themes = { "khối nâng", "cổng một chiều", "tường" };
+
+        public static List<string> AddMechanics(ref string json, LevelDefinition level, TileDefinitionDatabase database, System.Random random, out int unspent) =>
+            AddMechanics(ref json, level, database, random, out unspent, out _);
+
+        /// <param name="theme">Ý đồ chính đã đặt được (<see cref="Themes"/>); null khi không đặt được cái nào.</param>
+        public static List<string> AddMechanics(ref string json, LevelDefinition level, TileDefinitionDatabase database, System.Random random, out int unspent, out string theme)
         {
             var placed = new List<string>();
             // Cầu: 1-4 ở ngã tư, không sát nhau (xem Bridges): rắn dài đi vòng số 8 cắt qua thân mình ở đó mà không chết (bỏ cầu: 32/111 màn gốc không thắng).
@@ -444,6 +455,9 @@ namespace SnackDash.Editor.LevelTools
             var normal = level.columns.Where(c => !c.isExtra).ToList();
             var exhausted = new HashSet<string>(); // loại đã thử nhiều chỗ mà không chỗ nào đạt
             const int Attempts = 5;
+            var themes = Themes.Where(t => (t == "khối nâng" ? RisingCost : t == "tường" ? WallCost : GateCost) <= budget).ToList();
+            string wanted = themes.Count > 0 ? themes[random.Next(themes.Count)] : null;
+            theme = null;
             for (int guard = 0; budget > 0 && guard < 12; guard++)
             {
                 var choices = new List<(string name, int cost)> { ("cổng một chiều", GateCost), ("tường", WallCost) };
@@ -451,7 +465,9 @@ namespace SnackDash.Editor.LevelTools
                 if (!placed.Contains("khay đóng / mở") && normal.Count >= 2) choices.Add(("khay đóng / mở", ToggleCrateCost));
                 choices.RemoveAll(c => c.cost > budget || exhausted.Contains(c.name));
                 if (choices.Count == 0) break;
-                var (name, cost) = choices[random.Next(choices.Count)];
+                // Lượt đầu: ý đồ chính; không đặt được thì màn không có ý đồ (bên gọi bỏ bàn).
+                if (guard == 0 && wanted != null && !choices.Any(c => c.name == wanted)) break;
+                var (name, cost) = guard == 0 && wanted != null ? choices.First(c => c.name == wanted) : choices[random.Next(choices.Count)];
                 bool ok = false;
                 switch (name)
                 {
@@ -476,6 +492,7 @@ namespace SnackDash.Editor.LevelTools
                 }
                 if (ok) budget -= cost;
                 else exhausted.Add(name);
+                if (guard == 0) { if (!ok) break; theme = name; }
             }
             unspent = budget;
             if (TiledMap.Parse(json).LayerNames().Contains("ldf") && new BoardGraph(TiledMap.Parse(json), database).TunnelMouths.Count > 0) placed.Add("hầm");
