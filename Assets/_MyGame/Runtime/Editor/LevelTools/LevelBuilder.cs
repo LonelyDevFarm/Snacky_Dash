@@ -474,27 +474,16 @@ namespace SnackDash.Editor.LevelTools
                 if (guard == 0 && wanted != null && !choices.Any(c => c.name == wanted)) break;
                 var (name, cost) = guard == 0 && wanted != null ? choices.First(c => c.name == wanted) : choices[random.Next(choices.Count)];
                 bool ok = false;
-                switch (name)
+                if (name == "khối nâng")
                 {
-                    case "cổng một chiều":
-                        for (int i = 0; i < Attempts && !ok; i++) ok = Try(ref json, level, database, placed, name, (map, ldf, lvl) => Gate(map, ldf, database, random), true);
-                        break;
-                    case "tường":
-                        for (int i = 0; i < Attempts && !ok; i++) ok = Try(ref json, level, database, placed, name, (map, ldf, lvl) => Wall(map, ldf, lvl, database, random), true);
-                        break;
-                    case "khối nâng":
-                        // 2-3 cụm như màn gốc (màn 76: 4 cụm trên ba đoạn vòng ngoài); đủ 2 cụm mới tính.
-                        int groups = 0, want = random.Next(2, 4);
-                        for (int i = 0; i < want * 3 && groups < want; i++)
-                            if (Try(ref json, level, database, placed, name, (map, ldf, lvl) => Rising(map, ldf, lvl, database, random), false)) groups++;
-                        ok = groups >= 2;
-                        break;
-                    default:
-                        normal[random.Next(normal.Count)].closedAtStart = true;
-                        placed.Add(name);
-                        ok = true;
-                        break;
+                    // 2-3 cụm như màn gốc (màn 76: 4 cụm trên ba đoạn vòng ngoài); đủ 2 cụm mới tính.
+                    int groups = 0, want = random.Next(2, 4);
+                    for (int i = 0; i < want * 3 && groups < want; i++)
+                        if (PlaceOne(ref json, level, database, random, name, placed)) groups++;
+                    ok = groups >= 2;
                 }
+                else
+                    for (int i = 0; i < Attempts && !ok; i++) ok = PlaceOne(ref json, level, database, random, name, placed);
                 if (ok) budget -= cost;
                 else exhausted.Add(name);
                 if (guard == 0) { if (!ok) break; theme = name; }
@@ -502,6 +491,30 @@ namespace SnackDash.Editor.LevelTools
             unspent = budget;
             if (TiledMap.Parse(json).LayerNames().Contains("ldf") && new BoardGraph(TiledMap.Parse(json), database).TunnelMouths.Count > 0) placed.Add("hầm");
             return placed;
+        }
+
+        /// <summary>Vật chặn <see cref="PlaceOne"/> đặt được (cầu không: cầu làm màn dễ đi).</summary>
+        public static readonly string[] Blockers = { "cổng một chiều", "tường", "khối nâng", "khay đóng / mở" };
+
+        /// <summary>
+        /// Thử đặt một vật chặn <paramref name="name"/> (<see cref="Blockers"/>) ở một chỗ ngẫu nhiên đạt mọi luật (khối nâng: một
+        /// cụm; khay đóng / mở: một cột thường đang mở, khi chưa cột nào đóng và có ≥ 2 cột thường). Gọi lại thì ra chỗ / hướng khác.
+        /// </summary>
+        public static bool PlaceOne(ref string json, LevelDefinition level, TileDefinitionDatabase database, System.Random random, string name, List<string> placed)
+        {
+            switch (name)
+            {
+                case "cổng một chiều": return Try(ref json, level, database, placed, name, (map, ldf, lvl) => Gate(map, ldf, database, random), true);
+                case "tường": return Try(ref json, level, database, placed, name, (map, ldf, lvl) => Wall(map, ldf, lvl, database, random), true);
+                case "khối nâng": return Try(ref json, level, database, placed, name, (map, ldf, lvl) => Rising(map, ldf, lvl, database, random), false);
+                case "khay đóng / mở":
+                    var normal = level.columns.Where(c => !c.isExtra).ToList();
+                    if (normal.Count < 2 || normal.Any(c => c.closedAtStart)) return false;
+                    normal[random.Next(normal.Count)].closedAtStart = true;
+                    if (!placed.Contains(name)) placed.Add(name);
+                    return true;
+                default: return false;
+            }
         }
 
         /// <summary>Đếm vì sao cơ chế bị loại ("cơ chế: lý do" → số lần), để chỉnh luật khi một loại không bao giờ được đặt.</summary>

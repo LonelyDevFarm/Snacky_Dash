@@ -443,13 +443,7 @@ namespace SnackDash.Editor.LevelTools
             int total = level.columns.Sum(c => c.crates.Sum(k => k.requiredCount));
             double waveSize = sources.SelectMany(s => s.batches).Select(b => (double)b.pills.Sum(p => p.count)).DefaultIfEmpty(27).Average();
             int waves = Mathf.Max(1, Mathf.CeilToInt(total / (float)Mathf.Clamp((int)Math.Round(waveSize), 9, 60)));
-            for (int w = 0; w < waves; w++)
-            {
-                int size = total / waves + (w < total % waves ? 1 : 0);
-                level.batches.Add(new SpawnBatchDefinition { pills = new List<PillCount> { new PillCount { kind = kinds[0], count = size } } });
-            }
-            var blank = TiledMap.Parse("{\"width\":1,\"height\":1,\"layers\":[]}");
-            LevelRemixer.RegroupWaves(level, blank, random, mixWindow);
+            Regroup(level, waves, random, mixWindow);
             for (int i = 0; i < level.curtainGroups.Count; i++)
             {
                 var g = level.curtainGroups[i];
@@ -458,6 +452,21 @@ namespace SnackDash.Editor.LevelTools
                 g.count = Mathf.Clamp(g.count, 1, Mathf.Max(1, ofKind / 2));
                 level.curtainGroups[i] = g;
             }
+        }
+
+        /// <summary>Chia lại trái của các khay thành <paramref name="waves"/> đợt đều nhau, theo thứ tự khay cần (LevelRemixer.RegroupWaves).</summary>
+        internal static void Regroup(LevelDefinition level, int waves, System.Random random, int mixWindow)
+        {
+            int total = level.columns.Sum(c => c.crates.Sum(k => k.requiredCount));
+            var any = level.columns.SelectMany(c => c.crates).First().kind;
+            level.batches.Clear();
+            for (int w = 0; w < waves; w++)
+            {
+                int size = total / waves + (w < total % waves ? 1 : 0);
+                level.batches.Add(new SpawnBatchDefinition { pills = new List<PillCount> { new PillCount { kind = any, count = size } } });
+            }
+            var blank = TiledMap.Parse("{\"width\":1,\"height\":1,\"layers\":[]}");
+            LevelRemixer.RegroupWaves(level, blank, random, mixWindow);
         }
 
         /// <summary>Khung JSON Tiled tối thiểu mà TiledMap đọc (width, height, tilesets, layers name / data).</summary>

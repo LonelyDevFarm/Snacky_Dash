@@ -79,6 +79,18 @@ namespace SnackDash.Editor.LevelTools
                 if (GUILayout.Button("Thêm tất cả vào danh sách màn")) { AddToList(list, _generated); }
                 if (GUILayout.Button("Bỏ tất cả khỏi danh sách")) { RemoveFromList(list, _generated); }
             }
+            if (GUILayout.Button(new GUIContent("Làm khó các màn đã sinh", "Giữ bản đồ; thêm loại trái rồi thêm vật chặn từng cái, máy còn thắng mới giữ (LevelHardener).")))
+            {
+                try
+                {
+                    for (int i = 0; i < _generated.Count; i++)
+                    {
+                        if (EditorUtility.DisplayCancelableProgressBar("Làm khó", _generated[i].name, i / (float)_generated.Count)) break;
+                        LevelHardener.Harden(_generated[i], _options.seed + i, out _);
+                    }
+                }
+                finally { EditorUtility.ClearProgressBar(); }
+            }
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
             foreach (var level in _generated.ToList())
             {
