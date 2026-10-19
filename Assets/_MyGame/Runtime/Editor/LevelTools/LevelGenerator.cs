@@ -64,6 +64,9 @@ namespace SnackDash.Editor.LevelTools
             {
                 progress?.Invoke("Tìm chỗ ghép giữa các bản đồ...", 0f);
                 seams = LevelStitcher.FindSeams(sources.Select(s => s.level).ToList(), database, StitchMinWidth, StitchMaxWidth);
+                // Bỏ cặp màn gốc đã ghép ở màn sinh trước (tên GenNNN_StitchAxB): khỏi ra nhiều bàn gần giống nhau.
+                var used = new HashSet<string>(All().Select(l => l.name.Substring(l.name.IndexOf('_') + 1)));
+                seams = seams.Where(s => !used.Contains($"Stitch{sources.First(x => x.level == s.a).number}x{sources.First(x => x.level == s.b).number}")).ToList();
                 if (seams.Count == 0) { Debug.LogWarning("[LevelGenerator] Không có chỗ ghép nào trong khoảng màn đã chọn."); return saved; }
             }
             int NumberOf(LevelDefinition level) => sources.First(s => s.level == level).number;
@@ -103,14 +106,17 @@ namespace SnackDash.Editor.LevelTools
                     }
                     if (candidate == null) continue;
                     if (!LevelBuilder.Check(json, candidate, database, out _)
-                        || !Validate(candidate, json, database, options.games, out int game, out int moves, out int snips))
+                        || !Validate(candidate, json, database, options.games, out _, out _, out _)
+                        || !SolveWithoutBoosters(candidate, json, database, out int moves, out int nodes)
+                        || moves > MaxSolutionMoves)
                     {
                         UnityEngine.Object.DestroyImmediate(candidate);
                         continue;
                     }
-                    candidate.origin = (seams != null ? "" : $"Từ màn {source.number} ({source.level.name}); ") + $"{how}; hạt {seed}; người chơi thử thắng ván {game}: {moves} lượt vuốt, {snips} lần cắn đuôi";
+                    candidate.origin = (seams != null ? "" : $"Từ màn {source.number} ({source.level.name}); ") + $"{how}; hạt {seed}; thắng không booster: {moves} lượt vuốt, tìm {nodes} thế cờ";
                     saved.Add(Save(candidate, json, sourceName));
                     made++;
+                    if (seams != null) seams.RemoveAll(s => s.a == source.level && sourceName == $"Stitch{NumberOf(s.a)}x{NumberOf(s.b)}"); // cặp này đã dùng
                     break;
                 }
             }
@@ -153,6 +159,36 @@ namespace SnackDash.Editor.LevelTools
             return board.CrateStops.Count > 0 && board.CrateStops.Keys.All(board.CrateAnchors.ContainsKey);
         }
 
+        /// <summary>Giới hạn tìm của SmartPlayer khi kiểm màn sinh ra (329/345 màn gốc thắng trong giới hạn này, đo 19/10).</summary>
+        public const int SolveMaxNodes = 6000, SolveMaxMoves = 600;
+
+        /// <summary>Đường thắng dài nhất được nhận: màn gốc p50 ~190, p90 ~300 lượt; dài hơn thì màn lê thê [đo 19/10].</summary>
+        public const int MaxSolutionMoves = 350;
+
+        /// <summary>
+        /// SmartPlayer tìm được đường thắng không dùng booster nào (không Snip, không hoàn tác) [user 19/10]; <paramref name="moves"/>
+        /// là độ dài đường thắng, <paramref name="nodes"/> số thế cờ phải thử (càng nhiều càng khó).
+        /// </summary>
+        public static bool SolveWithoutBoosters(LevelDefinition level, string json, TileDefinitionDatabase database, out int moves, out int nodes)
+        {
+            Func<GameSession> newGame = () =>
+            {
+                var map = TiledMap.Parse(json);
+                var session = new GameSession(new BoardGraph(map, database), map, level);
+                session.SetSeed(1);
+                session.Begin();
+                if (session.ExtraColumn >= 0) session.UnlockExtraColumn(); // như test: khay phụ mua bằng xu, không phải booster
+                return session;
+            };
+            var player = new SmartPlayer(newGame) { MaxNodes = SolveMaxNodes };
+            bool won;
+            try { won = player.Play(SolveMaxMoves); }
+            catch (Exception e) { Debug.LogWarning($"[LevelGenerator] {level.name}: {e.Message}"); won = false; }
+            moves = player.Moves;
+            nodes = player.Nodes;
+            return won;
+        }
+
         /// <summary>LevelAutoPlayer chơi tối đa <paramref name="games"/> ván (hạt 1..games, như test Level_IsWinnable); thắng một ván là đạt.</summary>
         public static bool Validate(LevelDefinition level, string json, TileDefinitionDatabase database, int games, out int game, out int moves, out int snips)
         {
@@ -170,7 +206,9 @@ namespace SnackDash.Editor.LevelTools
                     // Cùng luật với test Level_IsWinnable: rắn không bao giờ dừng trên cầu hay miệng hầm.
                     bool stoppedOnBridge = false;
                     player.Moved += () => stoppedOnBridge |= session.Board.IsBridge(session.CurrentCell) || session.Board.TunnelMouths.ContainsKey(session.CurrentCell);
-                    if (player.Play(session, game) && !stoppedOnBridge) { moves = player.Moves; snips = player.Snips; return true; }
+                    bool won = player.Play(session, game);
+                    if (stoppedOnBridge) return false; // như test Level_IsWinnable: ván nào dừng trên cầu cũng hỏng
+                    if (won) { moves = player.Moves; snips = player.Snips; return true; }
                 }
                 catch (Exception e)
                 {

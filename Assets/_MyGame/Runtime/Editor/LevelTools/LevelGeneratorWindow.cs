@@ -26,7 +26,7 @@ namespace SnackDash.Editor.LevelTools
         private void OnGUI()
         {
             EditorGUILayout.LabelField("Sinh màn mới từ màn có sẵn", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("Mỗi màn sinh ra được người chơi thử tự chơi; chỉ màn thắng được mới được lưu (Data/Levels/Generated). Màn gốc không bị sửa.", MessageType.Info);
+            EditorGUILayout.HelpBox("Mỗi màn sinh ra phải qua kiểm bàn (không chỗ cụt) và người chơi thử SmartPlayer phải thắng được mà không dùng booster nào; chỉ màn đạt mới được lưu (Data/Levels/Generated). Màn gốc không bị sửa.", MessageType.Info);
             using (new EditorGUILayout.HorizontalScope())
             {
                 _options.fromLevel = EditorGUILayout.IntField("Màn gốc từ", _options.fromLevel);

@@ -14,8 +14,10 @@ namespace SnackDash.Editor.LevelTools
     /// - Màn gốc không có ô cụt (ô chỉ một lối đều là miệng hầm); mọi đường nằm trên vòng.
     /// - Tính theo trạng thái (ô + hướng đang đi, rắn không quay đầu): trạng thái tới được mà không quay về được điểm xuất phát
     ///   p90 là 2.1% ở màn gốc; màn 365 cũ là 14%.
-    /// - Cầu (359) ở ngã tư; cổng một chiều (299 / 302 / 305 / 308) trên đường thẳng; tường (đá 286, nắp 283 dọc / 291 ngang,
-    ///   máu ở một nắp) và khối nâng (285) lấp kín một đoạn đường giữa hai ngã rẽ.
+    /// - Cầu (359) ở ngã tư; cổng một chiều (299 / 302 / 305 / 308) ở ô đường thẳng sát ngã rẽ, chỉ vào ngã rẽ (69% cổng gốc);
+    ///   tường (đá 286, nắp 283 dọc / 291 ngang, máu ở một nắp) và khối nâng (285) lấp kín một đoạn có hai đầu là ngã rẽ.
+    /// - Mọi vật chặn rắn: sau khi đặt không có trạng thái "vào không ra", và rắn tới sát vật chặn còn vòng quay lại ≥ 14 ô
+    ///   (vòng ngắn nhất qua cổng ở màn gốc: p10 = 14) [user 19/10: không đặt bừa tạo đường cụt].
     /// </summary>
     public static class LevelBuilder
     {
@@ -26,8 +28,15 @@ namespace SnackDash.Editor.LevelTools
         };
         private static readonly int[] TunnelTiles = { 278, 279, 280, 281, 360, 361, 362, 363, 378, 379, 380, 381, 382, 384, 385, 386 };
 
-        /// <summary>Trạng thái "vào không ra" tối đa cho phép (p90 của 350 màn gốc).</summary>
-        public const float MaxTrapRate = 0.021f;
+        /// <summary>
+        /// Trạng thái "vào không ra" tối đa cho phép: 0 như phần lớn màn gốc (p50 = 0). Ngưỡng cũ 2.1% (p90) để lọt túi cụt do cổng /
+        /// tường ở màn 351, 353 [user 19/10].
+        /// </summary>
+        public const float MaxTrapRate = 0f;
+
+        /// <summary>Vòng ngắn nhất qua một cổng một chiều (rắn đi qua cổng rồi quay lại được đúng cổng đó): màn gốc p10 = 14 ô;
+        /// ngắn hơn thì rắn dài vòng lại sẽ cắn đuôi.</summary>
+        public const int MinGateCycle = 14;
 
         // ------------------------------------------------------------------ kiểm bàn
 
@@ -84,6 +93,51 @@ namespace SnackDash.Editor.LevelTools
             return reach == 0 ? 1f : trapped / (float)reach;
         }
 
+        /// <summary>Ô cổng một chiều và ô đường sát tường đang đóng / khối nâng đang nhô.</summary>
+        private static HashSet<Vector2Int> BlockerCells(BoardGraph board)
+        {
+            var cells = new HashSet<Vector2Int>(board.OneWayGates.Keys);
+            var blocked = board.WallGroups.SelectMany(g => g).Where(board.IsClosedWall).Concat(board.RisingBlocks.Where(board.IsRisen));
+            foreach (var b in blocked)
+                foreach (var d in DirectionExtensions.All)
+                {
+                    var next = b + d.ToCell();
+                    if (board.HasRoad(b, d) && board.IsWalkable(next) && !board.IsClosedWall(next) && !board.IsRisen(next)) cells.Add(next);
+                }
+            return cells;
+        }
+
+        /// <summary>Số ô của vòng ngắn nhất (không quay đầu) từ ô <paramref name="cell"/> đang đi hướng <paramref name="heading"/>
+        /// quay về lại ô đó; int.MaxValue khi không quay về được.</summary>
+        public static int ShortestCycle(BoardGraph board, int width, int height, Vector2Int cell, Direction heading)
+        {
+            var dist = new Dictionary<(Vector2Int, Direction), int>();
+            var queue = new Queue<(Vector2Int cell, Direction heading)>();
+            void Push(Vector2Int from, Direction h, int d)
+            {
+                foreach (var dir in DirectionExtensions.All)
+                {
+                    if (dir == h.Opposite() || !board.CanMove(from, dir)) continue;
+                    var next = from + dir.ToCell();
+                    var nextHeading = dir;
+                    if (board.TunnelMouths.ContainsKey(next) && board.TryTunnel(next, dir, out var exit, out var exitHeading)) { next = exit; nextHeading = exitHeading; }
+                    if (next.x < 0 || next.y < 0 || next.x >= width || next.y >= height || !board.IsWalkable(next)) continue;
+                    if (dist.ContainsKey((next, nextHeading))) continue;
+                    dist[(next, nextHeading)] = d + 1;
+                    queue.Enqueue((next, nextHeading));
+                }
+            }
+            Push(cell, heading, 0);
+            while (queue.Count > 0)
+            {
+                var (c, h) = queue.Dequeue();
+                int d = dist[(c, h)];
+                if (c == cell) return d;
+                Push(c, h, d);
+            }
+            return int.MaxValue;
+        }
+
         private static bool[] Flood(List<int> starts, List<int>[] edges, int n)
         {
             var seen = new bool[n];
@@ -106,6 +160,14 @@ namespace SnackDash.Editor.LevelTools
             if (DeadEnds(board, map.Width, map.Height) > 0) { why = "có ô cụt"; return false; }
             foreach (var plot in board.RisingBlocks) board.SetRisen(plot, true); // xấu nhất: mọi khối nâng đều đang nhô
             if (TrapRate(board, map.Width, map.Height, out _) > MaxTrapRate) { why = "có chỗ vào rồi không ra được"; return false; }
+            // Mọi vật chặn rắn (cổng một chiều, tường đóng, khối nâng nhô): rắn tới sát nó phải còn vòng quay lại đủ dài [user 19/10].
+            foreach (var cell in BlockerCells(board))
+                foreach (var heading in DirectionExtensions.All)
+                {
+                    var from = cell - heading.ToCell();
+                    if (!board.IsWalkable(cell) || !board.IsWalkable(from) || !board.CanMove(from, heading)) continue; // không vào ô này theo hướng đó được
+                    if (ShortestCycle(board, map.Width, map.Height, cell, heading) < MinGateCycle) { why = "vòng quanh vật chặn quá ngắn"; return false; }
+                }
             if (!LevelStitcher.Connected(map, level, database)) { why = "khay / ô rải trái không đi tới và quay về được"; return false; }
             why = null;
             return true;
@@ -240,27 +302,54 @@ namespace SnackDash.Editor.LevelTools
 
         private static bool Gate(TiledMap map, long[] ldf, TileDefinitionDatabase database, System.Random random)
         {
+            // Như màn gốc (69% cổng): cổng ở ô đường thẳng sát ngã rẽ, chỉ vào ngã rẽ — rắn từ đoạn đường đi ra ngã rẽ được, từ ngã
+            // rẽ không rẽ vào đoạn đó được; không bao giờ ở giữa một đoạn một làn [user 19/10].
             var board = new BoardGraph(map, database);
-            var options = Corridors(board, map.Width, map.Height).Where(c => c.Count >= 3 && c.All(cell => Free(map, ldf, cell))).ToList();
+            var options = new List<(Vector2Int cell, Direction dir)>();
+            foreach (var corridor in Corridors(board, map.Width, map.Height))
+                foreach (var end in new[] { corridor[0], corridor[corridor.Count - 1] })
+                    foreach (var d in DirectionExtensions.All)
+                    {
+                        var junction = end + d.ToCell();
+                        if (!board.HasRoad(end, d) || corridor.Contains(junction) || !IsJunction(board, junction) || !Free(map, ldf, end)) continue;
+                        if (!board.HasRoad(end, d.Opposite())) continue; // ô cổng phải thẳng theo hướng cổng
+                        options.Add((end, d));
+                    }
             if (options.Count == 0) return false;
-            var corridor = options[random.Next(options.Count)];
-            // ô thẳng giữa đoạn, cổng chỉ dọc đường
-            var straight = corridor.Skip(1).Take(corridor.Count - 2).Where(c => board.HasRoad(c, Direction.Up) && board.HasRoad(c, Direction.Down)
-                || board.HasRoad(c, Direction.Left) && board.HasRoad(c, Direction.Right)).ToList();
-            if (straight.Count == 0) return false;
-            var cell = straight[random.Next(straight.Count)];
-            bool vertical = board.HasRoad(cell, Direction.Up);
-            var dir = vertical ? (random.Next(2) == 0 ? Direction.Up : Direction.Down) : (random.Next(2) == 0 ? Direction.Left : Direction.Right);
+            var (cell, dir) = options[random.Next(options.Count)];
             ldf[Index(map, cell)] = GateTiles[dir] + map.FirstGid;
             return true;
         }
 
-        /// <summary>Đoạn đường có hai đầu là đường thẳng (để đặt nắp tường), dài 3-14 ô, chưa có gì.</summary>
-        private static List<Vector2Int> PickCorridor(TiledMap map, long[] ldf, BoardGraph board, System.Random random, bool needStraightEnds)
+        private static bool IsJunction(BoardGraph board, Vector2Int cell) =>
+            board.IsWalkable(cell) && !board.TunnelMouths.ContainsKey(cell) && DirectionExtensions.All.Count(d => board.HasRoad(cell, d)) >= 3;
+
+        /// <summary>Hai ô ngay ngoài hai đầu đoạn đường.</summary>
+        private static List<Vector2Int> Ends(BoardGraph board, List<Vector2Int> corridor)
+        {
+            var ends = new List<Vector2Int>();
+            foreach (var end in new[] { corridor[0], corridor[corridor.Count - 1] })
+                foreach (var d in DirectionExtensions.All)
+                {
+                    var next = end + d.ToCell();
+                    if (board.HasRoad(end, d) && !corridor.Contains(next)) ends.Add(next);
+                }
+            return ends;
+        }
+
+        /// <summary>
+        /// Đoạn đường cho tường / khối nâng, như màn gốc: hai đầu đều là ngã rẽ (khối nâng được thêm miệng hầm), dài
+        /// <paramref name="min"/>-<paramref name="max"/> ô (tường gốc 4-13+, khối nâng 2-12), chưa có gì; tường cần hai đầu là
+        /// đường thẳng để đặt nắp.
+        /// </summary>
+        private static List<Vector2Int> PickCorridor(TiledMap map, long[] ldf, BoardGraph board, System.Random random, bool wall, int min, int max)
         {
             bool Straight(Vector2Int c) => board.HasRoad(c, Direction.Up) && board.HasRoad(c, Direction.Down) || board.HasRoad(c, Direction.Left) && board.HasRoad(c, Direction.Right);
+            bool GoodEnd(Vector2Int c) => IsJunction(board, c) || (!wall && board.TunnelMouths.ContainsKey(c));
             var options = Corridors(board, map.Width, map.Height)
-                .Where(c => c.Count >= 3 && c.Count <= 14 && c.All(cell => Free(map, ldf, cell)) && (!needStraightEnds || Straight(c[0]) && Straight(c[c.Count - 1])))
+                .Where(c => c.Count >= min && c.Count <= max && c.All(cell => Free(map, ldf, cell))
+                    && Ends(board, c) is var ends && ends.Count == 2 && ends.All(GoodEnd)
+                    && (!wall || Straight(c[0]) && Straight(c[c.Count - 1])))
                 .ToList();
             return options.Count == 0 ? null : options[random.Next(options.Count)];
         }
@@ -268,7 +357,7 @@ namespace SnackDash.Editor.LevelTools
         private static bool Wall(TiledMap map, long[] ldf, LevelDefinition level, TileDefinitionDatabase database, System.Random random)
         {
             var board = new BoardGraph(map, database);
-            var corridor = PickCorridor(map, ldf, board, random, true);
+            var corridor = PickCorridor(map, ldf, board, random, true, 4, 13);
             if (corridor == null) return false;
             foreach (var c in corridor) ldf[Index(map, c)] = RockTile + map.FirstGid;
             foreach (var end in new[] { corridor[0], corridor[corridor.Count - 1] })
@@ -280,7 +369,7 @@ namespace SnackDash.Editor.LevelTools
         private static bool Rising(TiledMap map, long[] ldf, LevelDefinition level, TileDefinitionDatabase database, System.Random random)
         {
             var board = new BoardGraph(map, database);
-            var corridor = PickCorridor(map, ldf, board, random, false);
+            var corridor = PickCorridor(map, ldf, board, random, false, 2, 12);
             if (corridor == null) return false;
             foreach (var c in corridor) ldf[Index(map, c)] = PlotTile + map.FirstGid;
             level.risingBlockDeliveriesToLower = 3;
