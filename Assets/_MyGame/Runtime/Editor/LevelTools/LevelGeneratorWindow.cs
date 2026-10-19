@@ -23,6 +23,13 @@ namespace SnackDash.Editor.LevelTools
 
         private void OnEnable() => _generated = LevelGenerator.All();
 
+        // Màn sinh / xoá ngoài cửa sổ (code, Project) thì danh sách cũ trỏ vào asset đã mất: nạp lại.
+        private void OnProjectChange()
+        {
+            _generated = LevelGenerator.All();
+            Repaint();
+        }
+
         private void OnGUI()
         {
             EditorGUILayout.LabelField("Sinh màn mới từ màn có sẵn", EditorStyles.boldLabel);

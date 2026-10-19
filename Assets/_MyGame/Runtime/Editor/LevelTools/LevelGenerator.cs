@@ -92,8 +92,9 @@ namespace SnackDash.Editor.LevelTools
                             continue;
                         }
                         // Bước 2: đặt cơ chế theo quy luật, mỗi cái kiểm lại bàn.
-                        var mechanics = LevelBuilder.AddMechanics(ref json, candidate, database, new System.Random(seed));
-                        if (options.difficulty >= 0) candidate.difficulty = options.difficulty;
+                        if (options.difficulty >= 0) candidate.difficulty = options.difficulty; // ngân sách độ khó theo bậc
+                        var mechanics = LevelBuilder.AddMechanics(ref json, candidate, database, new System.Random(seed), out int unspent);
+                        if (unspent > 1) { UnityEngine.Object.DestroyImmediate(candidate); continue; } // bàn này không đủ chỗ cho độ khó của bậc
                         how = $"ghép đường cột 0-{seam.xa - 1} màn {NumberOf(seam.a)} với cột {seam.xb}+ màn {NumberOf(seam.b)}; cơ chế: {(mechanics.Count > 0 ? string.Join(", ", mechanics) : "không")}; khay và đợt trái mới (trộn {options.mixWindow})";
                         sourceName = $"Stitch{NumberOf(seam.a)}x{NumberOf(seam.b)}";
                         source = (NumberOf(seam.a), seam.a);

@@ -40,6 +40,9 @@ namespace SnackDash.Editor.LevelTools
         /// <summary>Thử tối đa bao nhiêu thế cờ rồi coi là thua.</summary>
         public int MaxNodes { get; set; } = 3000;
 
+        /// <summary>Mỗi nước thử dẫn tới cắn đuôi / hết đường: thế cờ ngay trước nước đó và ván sau nước đó (LevelAnalysis ghi chỗ chết).</summary>
+        public event Action<GameSession, GameSession> Died;
+
         /// <param name="newGame">Tạo ván mới đã Begin (cùng hạt), như LevelGenerator.Validate.</param>
         public SmartPlayer(Func<GameSession> newGame) => _newGame = newGame;
 
@@ -52,7 +55,7 @@ namespace SnackDash.Editor.LevelTools
             MaxWaste = 0;
             var root = _newGame();
             if (root.IsWon) { Failure = null; return true; }
-            var stack = new List<Frame> { new Frame(Children(root)) };
+            var stack = new List<Frame> { new Frame(root, Children(root)) };
             var seen = new HashSet<string> { Key(root) };
             var waste = new List<int>();
             while (stack.Count > 0 && Nodes < MaxNodes)
@@ -68,7 +71,8 @@ namespace SnackDash.Editor.LevelTools
                 var (move, game, score) = top.Options[top.Next];
                 top.Options[top.Next] = (move, null, score); // thả bản chép đã dùng
                 top.Next++;
-                if (score <= -1e8 || !seen.Add(Key(game))) continue;
+                if (score <= -1e8) { Died?.Invoke(top.From, game); continue; }
+                if (!seen.Add(Key(game))) continue;
                 Nodes++;
                 _moves.Add(move);
                 waste.Add(Waste(game));
@@ -78,7 +82,7 @@ namespace SnackDash.Editor.LevelTools
                     MaxWaste = waste.Max();
                     return true;
                 }
-                stack.Add(new Frame(Children(game)));
+                stack.Add(new Frame(Died != null ? game : null, Children(game)));
             }
             _moves.Clear();
             Failure = Nodes >= MaxNodes ? $"thử quá {MaxNodes} thế cờ chưa thấy đường thắng" : "mọi đường đều dẫn tới cắn đuôi / hết đường";
@@ -101,8 +105,10 @@ namespace SnackDash.Editor.LevelTools
         private sealed class Frame
         {
             public readonly List<(Direction move, GameSession game, double score)> Options;
+            /// <summary>Thế cờ của khung này (chỉ giữ khi có người nghe <see cref="Died"/>, đỡ tốn bộ nhớ).</summary>
+            public readonly GameSession From;
             public int Next;
-            public Frame(List<(Direction move, GameSession game, double score)> options) => Options = options;
+            public Frame(GameSession from, List<(Direction move, GameSession game, double score)> options) { From = from; Options = options; }
         }
 
         private static bool Apply(GameSession game, Direction d)
