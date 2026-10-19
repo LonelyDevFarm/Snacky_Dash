@@ -12,7 +12,8 @@ namespace SnackDash.UI
     /// <summary>
     /// Màn thắng (prefab <c>Prefabs/UI/Popups/Victory</c>, gốc: VictoryPopup, đo trên LV2-3 và Lv11-15): nền đen hiện dần cùng VICTORY!,
     /// đống xu bật ra kèm pháo giấy và "+N", đống "combo" nhập vào đống lớn rồi số đếm lên, thanh NEW ITEM (khi có cơ chế sắp mở),
-    /// nút x2 (miễn phí, nhân đôi) và CONTINUE. Có cơ chế vừa mở thì CONTINUE chuyển sang trang UNLOCKED! rồi CONTINUE lần nữa [user].
+    /// nút x2 (miễn phí, nhân đôi) và CONTINUE. Có cơ chế vừa mở thì CONTINUE tắt trang thắng và bật trang UNLOCKED! ngay, rồi
+    /// CONTINUE lần nữa [user].
     /// Các phần đều có sẵn trong prefab, script bật / tắt theo trận thắng. Mở qua <see cref="VictoryView"/>.
     /// </summary>
     public class VictoryPopup : BasePopup
@@ -261,7 +262,8 @@ namespace SnackDash.UI
 
         // ------------------------------------------------------------------ UNLOCKED!
 
-        /// <summary>UNLOCKED!: trang riêng sau màn thắng [user]: VICTORY!, xu, NEW ITEM và x2 thu lại trên nền đen, rồi hình cơ chế và CONTINUE ở giữa.</summary>
+        /// <summary>UNLOCKED!: trang riêng sau màn thắng [user]. Bấm CONTINUE thì trang thắng (VICTORY!, xu, NEW ITEM, x2) tắt ngay trên
+        /// nền đen và UNLOCKED! bật ra luôn — không thu nhỏ trang cũ (các phần thu về điểm neo trông như bị kéo lên) [user 19/10].</summary>
         private IEnumerator ShowUnlocked(UnlockPopups.Entry entry)
         {
             unlockedIcon.sprite = entry.booster ? boosterIcons[Mathf.Clamp(entry.icon, 0, boosterIcons.Length - 1)] : entry.icon < mechanicIcons.Length ? mechanicIcons[entry.icon] : null;
@@ -269,14 +271,8 @@ namespace SnackDash.UI
             unlocked.gameObject.SetActive(true);
             unlocked.localScale = Vector3.zero;
             var button = (RectTransform)continueButton.transform;
-            var doubleRect = (RectTransform)doubleButton.transform;
-            yield return Tween.Run(titlePopDuration, Tween.Linear, t =>
-            {
-                title.localScale = Vector3.one * (1f - t);
-                button.localScale = Vector3.one * (1f - t);
-                main.localScale = Vector3.one * (1f - t);
-                doubleRect.localScale = Vector3.one * (1f - t);
-            });
+            title.localScale = Vector3.zero;
+            button.localScale = Vector3.zero;
             main.gameObject.SetActive(false);
             doubleButton.gameObject.SetActive(false);
             button.anchoredPosition = new Vector2(0f, button.anchoredPosition.y);
