@@ -127,7 +127,7 @@ namespace SnackDash.Editor.LevelTools
         // ------------------------------------------------------------------ ghép
 
         /// <summary>Màn ghép (chưa lưu) và bản đồ JSON; null kèm lý do khi không ghép được.</summary>
-        public static LevelDefinition Stitch(Seam seam, TileDefinitionDatabase database, System.Random random, int mixWindow, out string json, out string why)
+        public static LevelDefinition Stitch(Seam seam, TileDefinitionDatabase database, System.Random random, int mixWindow, out string json, out string why, bool roadsOnly = false)
         {
             json = null;
             var a = JsonUtility.FromJson<TiledJson.Map>(seam.a.map.text);
@@ -154,6 +154,8 @@ namespace SnackDash.Editor.LevelTools
             }
             int Local(long gid) => TiledMap.ToLocalTileId(gid, firstGid);
             long Gid(int local) => local + firstGid;
+            // Chỉ ghép đường (LevelBuilder đặt cơ chế lại sau): bỏ mọi cơ chế ở lớp phủ, giữ hầm.
+            if (roadsOnly) LevelBuilder.StripMechanics(layers, firstGid);
 
             // Một điểm xuất phát: giữ của nửa có nó (ưu tiên A).
             if (layers.TryGetValue("spawn", out var spawn))
@@ -180,7 +182,7 @@ namespace SnackDash.Editor.LevelTools
             level.risingBlockDeliveriesToLower = seam.a.risingBlockDeliveriesToLower;
             Vector2Int ToNew(Vector2Int c, bool fromA) => fromA ? c : new Vector2Int(c.x - seam.xb + seam.xa, c.y);
             bool Kept(Vector2Int c, bool fromA) => fromA ? c.x < seam.xa : c.x >= seam.xb;
-            foreach (var (source, fromA) in new[] { (seam.a, true), (seam.b, false) })
+            foreach (var (source, fromA) in roadsOnly ? new (LevelDefinition, bool)[0] : new[] { (seam.a, true), (seam.b, false) })
             {
                 foreach (var w in source.wallGroupHealths)
                     if (Kept(w.seedCell, fromA)) level.wallGroupHealths.Add(new WallGroupHealth { seedCell = ToNew(w.seedCell, fromA), health = w.health });
@@ -230,7 +232,7 @@ namespace SnackDash.Editor.LevelTools
         /// mở; mũi tên lật đi được hai chiều; ống rẽ / cầu bật chỉ đổi được khi bàn còn vạch công tắc. Cắt bàn có thể làm mất vạch
         /// công tắc của ống, hay tạo bẫy một chiều (vào được, không ra được).
         /// </summary>
-        private static bool Connected(TiledMap map, LevelDefinition level, TileDefinitionDatabase database)
+        internal static bool Connected(TiledMap map, LevelDefinition level, TileDefinitionDatabase database)
         {
             BoardGraph Open(bool switched)
             {

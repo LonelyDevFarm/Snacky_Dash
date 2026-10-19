@@ -63,7 +63,7 @@ namespace SnackDash.Editor.LevelTools
             if (options.method == Method.Stitch)
             {
                 progress?.Invoke("Tìm chỗ ghép giữa các bản đồ...", 0f);
-                seams = LevelStitcher.FindSeams(sources.Select(s => s.level).ToList(), database, MinWidth, MaxWidth);
+                seams = LevelStitcher.FindSeams(sources.Select(s => s.level).ToList(), database, StitchMinWidth, StitchMaxWidth);
                 if (seams.Count == 0) { Debug.LogWarning("[LevelGenerator] Không có chỗ ghép nào trong khoảng màn đã chọn."); return saved; }
             }
             int NumberOf(LevelDefinition level) => sources.First(s => s.level == level).number;
@@ -81,10 +81,17 @@ namespace SnackDash.Editor.LevelTools
                     if (seams != null)
                     {
                         var seam = seams[random.Next(seams.Count)];
-                        candidate = LevelStitcher.Stitch(seam, database, new System.Random(seed), options.mixWindow, out json, out string why);
-                        if (candidate == null || !AnchorsComplete(json, database)) { if (candidate != null) UnityEngine.Object.DestroyImmediate(candidate); continue; }
+                        // Bước 1: bàn đường thông (chỉ đường, hầm, khay) — phải đạt quy luật màn gốc trước khi có cơ chế nào.
+                        candidate = LevelStitcher.Stitch(seam, database, new System.Random(seed), options.mixWindow, out json, out string why, roadsOnly: true);
+                        if (candidate == null || !AnchorsComplete(json, database) || !LevelBuilder.Check(json, candidate, database, out why))
+                        {
+                            if (candidate != null) UnityEngine.Object.DestroyImmediate(candidate);
+                            continue;
+                        }
+                        // Bước 2: đặt cơ chế theo quy luật, mỗi cái kiểm lại bàn.
+                        var mechanics = LevelBuilder.AddMechanics(ref json, candidate, database, new System.Random(seed));
                         if (options.difficulty >= 0) candidate.difficulty = options.difficulty;
-                        how = $"ghép cột 0-{seam.xa - 1} màn {NumberOf(seam.a)} với cột {seam.xb}+ màn {NumberOf(seam.b)}, khay và đợt trái mới (trộn {options.mixWindow})";
+                        how = $"ghép đường cột 0-{seam.xa - 1} màn {NumberOf(seam.a)} với cột {seam.xb}+ màn {NumberOf(seam.b)}; cơ chế: {(mechanics.Count > 0 ? string.Join(", ", mechanics) : "không")}; khay và đợt trái mới (trộn {options.mixWindow})";
                         sourceName = $"Stitch{NumberOf(seam.a)}x{NumberOf(seam.b)}";
                         source = (NumberOf(seam.a), seam.a);
                     }
@@ -95,7 +102,8 @@ namespace SnackDash.Editor.LevelTools
                         sourceName = source.level.name;
                     }
                     if (candidate == null) continue;
-                    if (!Validate(candidate, json, database, options.games, out int game, out int moves, out int snips))
+                    if (!LevelBuilder.Check(json, candidate, database, out _)
+                        || !Validate(candidate, json, database, options.games, out int game, out int moves, out int snips))
                     {
                         UnityEngine.Object.DestroyImmediate(candidate);
                         continue;
@@ -135,8 +143,8 @@ namespace SnackDash.Editor.LevelTools
             return level;
         }
 
-        /// <summary>Bề ngang bàn ghép (bản đồ gốc 11-22 ô; trên 20 thì bàn quá nhỏ trên màn hình dọc).</summary>
-        public const int MinWidth = 11, MaxWidth = 20;
+        /// <summary>Bề ngang bàn ghép: p10-p90 của 350 bản đồ gốc là 15-18 ô [đo 19/10].</summary>
+        public const int StitchMinWidth = 15, StitchMaxWidth = 18;
 
         /// <summary>Mọi điểm giao khay có ô đặt khay kề bên (không thì khay không có chỗ đứng).</summary>
         private static bool AnchorsComplete(string json, TileDefinitionDatabase database)

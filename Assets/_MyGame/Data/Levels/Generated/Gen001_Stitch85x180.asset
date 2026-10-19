@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81670f59cfe347c41bad25d85bca6a16, type: 3}
+  m_Name: Gen001_Stitch85x180
+  m_EditorClassIdentifier: 
+  map: {fileID: 4900000, guid: 5459519b7a434c34da84089256b32982, type: 3}
+  columns:
+  - crates:
+    - kind: 2
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 18
+    - kind: 2
+      requiredCount: 9
+    closedAtStart: 0
+    isExtra: 0
+  - crates: []
+    closedAtStart: 0
+    isExtra: 1
+  batches:
+  - pills:
+    - kind: 4
+      count: 12
+    - kind: 2
+      count: 8
+    - kind: 1
+      count: 7
+  - pills:
+    - kind: 4
+      count: 13
+    - kind: 1
+      count: 2
+    - kind: 2
+      count: 12
+  - pills:
+    - kind: 2
+      count: 25
+    - kind: 4
+      count: 2
+  timeLimitSeconds: 0
+  speedOverride: 0
+  wallHealth: 3
+  difficulty: 0
+  wallGroupHealths: []
+  curtainCells: []
+  curtainGroups: []
+  risingBlockDeliveriesToLower: 3
+  origin: "gh\xE9p \u0111\u01B0\u1EDDng c\u1ED9t 0-6 m\xE0n 85 v\u1EDBi c\u1ED9t
+    6+ m\xE0n 180; c\u01A1 ch\u1EBF: c\u1EA7u, c\u1ED5ng m\u1ED9t chi\u1EC1u, c\u1ED5ng
+    m\u1ED9t chi\u1EC1u, c\u1ED5ng m\u1ED9t chi\u1EC1u; khay v\xE0 \u0111\u1EE3t
+    tr\xE1i m\u1EDBi (tr\u1ED9n 12); h\u1EA1t 1447366984; ng\u01B0\u1EDDi ch\u01A1i
+    th\u1EED th\u1EAFng v\xE1n 1: 103 l\u01B0\u1EE3t vu\u1ED1t, 0 l\u1EA7n c\u1EAFn
+    \u0111u\xF4i"
