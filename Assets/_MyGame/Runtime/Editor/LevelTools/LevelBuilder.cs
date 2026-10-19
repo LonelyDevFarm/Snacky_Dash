@@ -168,9 +168,11 @@ namespace SnackDash.Editor.LevelTools
                     if (!board.IsWalkable(cell) || !board.IsWalkable(from) || !board.CanMove(from, heading)) continue; // không vào ô này theo hướng đó được
                     if (ShortestCycle(board, map.Width, map.Height, cell, heading) < MinGateCycle) { why = "vòng quanh vật chặn quá ngắn"; return false; }
                 }
-            int hanging = SmallestHangingLoop(board, map.Width, map.Height);
-            if (hanging < MinHangingLoop) { why = $"vòng treo {hanging} ô (nối bàn qua một ô)"; return false; }
+            // Vòng treo xét cả lúc mọi tường đóng, mọi khối nâng nhô: vòng 2 lối vào bị vật chặn bịt một lối thì thành vòng treo,
+            // vòng nhỏ thì rắn vào ăn trái là cắn đuôi [user 19/10, màn 359 tự thiết kế].
             var closed = ClosedCells(board);
+            int hanging = SmallestHangingLoop(board, map.Width, map.Height, closed);
+            if (hanging < MinHangingLoop) { why = $"vòng treo {hanging} ô (nối bàn qua một ô)"; return false; }
             if (board.CrateStops.Values.Distinct().Any(c => CrateRoutes(board, c, closed) < MinCrateRoutes)) { why = "khay còn dưới 2 lối riêng khi vật chặn đóng"; return false; }
             if (!LevelStitcher.Connected(map, level, database)) { why = "khay / ô rải trái không đi tới và quay về được"; return false; }
             why = null;
@@ -264,15 +266,15 @@ namespace SnackDash.Editor.LevelTools
         public const int MinHangingLoop = 32;
 
         /// <summary>Số ô của vòng treo nhỏ nhất (bỏ một ô thì bàn tách ra phần nhỏ có vòng); int.MaxValue khi không có.</summary>
-        public static int SmallestHangingLoop(BoardGraph board, int width, int height)
+        public static int SmallestHangingLoop(BoardGraph board, int width, int height, HashSet<Vector2Int> closed = null)
         {
-            var cells = Enumerable.Range(0, width * height).Select(i => new Vector2Int(i % width, i / width)).Where(board.IsWalkable).ToList();
+            var cells = Enumerable.Range(0, width * height).Select(i => new Vector2Int(i % width, i / width)).Where(board.IsWalkable).Where(c => closed == null || !closed.Contains(c)).ToList();
             List<Vector2Int> Next(Vector2Int c)
             {
                 var list = new List<Vector2Int>();
                 foreach (var d in DirectionExtensions.All)
-                    if (board.HasRoad(c, d) && board.IsWalkable(c + d.ToCell())) list.Add(c + d.ToCell());
-                if (board.TryGetTunnelOther(c, out var other)) list.Add(other);
+                    if (board.HasRoad(c, d) && board.IsWalkable(c + d.ToCell()) && (closed == null || !closed.Contains(c + d.ToCell()))) list.Add(c + d.ToCell());
+                if (board.TryGetTunnelOther(c, out var other) && (closed == null || !closed.Contains(other))) list.Add(other);
                 return list;
             }
             int smallest = int.MaxValue;
@@ -419,8 +421,9 @@ namespace SnackDash.Editor.LevelTools
         public const int RisingCost = 3, WallCost = 2, GateCost = 2, ToggleCrateCost = 1;
 
         /// <summary>Ngân sách điểm khó theo bậc màn (difficulty 0 thường, 2 khó, 4 siêu khó).</summary>
-        private static int Budget(LevelDefinition level, System.Random random) =>
-            level.difficulty >= 4 ? random.Next(6, 9) : level.difficulty >= 2 ? random.Next(4, 7) : random.Next(2, 5);
+        // Bàn rộng thêm điểm: cứ 20 ô đường trên 100 thêm 1 điểm, tối đa 3; mức nền nâng 1 [user 19/10: bàn rộng mà ít vật chặn].
+        private static int Budget(LevelDefinition level, System.Random random, int roads) =>
+            (level.difficulty >= 4 ? random.Next(7, 10) : level.difficulty >= 2 ? random.Next(5, 8) : random.Next(3, 6)) + Mathf.Clamp((roads - 100) / 20, 0, 3);
 
         /// <summary>Vật chặn có tác dụng khi vòng qua khay hoặc vòng ở ngã rẽ dài thêm ít nhất chừng này ô, hay khay mất một lối
         /// (vẫn ≥ 2) [user 19/10: không đặt cho có].</summary>
@@ -451,7 +454,9 @@ namespace SnackDash.Editor.LevelTools
             var placed = new List<string>();
             // Cầu: 1-4 ở ngã tư, không sát nhau (xem Bridges): rắn dài đi vòng số 8 cắt qua thân mình ở đó mà không chết (bỏ cầu: 32/111 màn gốc không thắng).
             Try(ref json, level, database, placed, "cầu", (map, ldf, lvl) => Bridges(map, ldf, database, random));
-            int budget = Budget(level, random);
+            var roadMap = TiledMap.Parse(json);
+            var roadBoard = new BoardGraph(roadMap, database);
+            int budget = Budget(level, random, Enumerable.Range(0, roadMap.Width * roadMap.Height).Count(i => roadBoard.IsWalkable(new Vector2Int(i % roadMap.Width, i / roadMap.Width))));
             var normal = level.columns.Where(c => !c.isExtra).ToList();
             var exhausted = new HashSet<string>(); // loại đã thử nhiều chỗ mà không chỗ nào đạt
             const int Attempts = 5;

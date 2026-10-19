@@ -425,9 +425,10 @@ namespace SnackDash.Editor.LevelTools
         /// </summary>
         internal static void FillFruit(LevelDefinition level, IList<LevelDefinition> sources, System.Random random, int mixWindow)
         {
-
             double depth = sources.SelectMany(s => s.columns.Where(c => !c.isExtra)).Select(c => (double)c.crates.Count).DefaultIfEmpty(4).Average();
-            var kinds = LevelRemixer.UsableKinds.OrderBy(k => random.Next()).Take(random.Next(3, 6)).ToList();
+            // Số loại trái theo bậc [user 19/10: màn nào cũng 3-5 loại, thêm loại cho hay]: thường 4-5, khó 5-6, siêu khó 6 (đủ 6 loại có hình).
+            int kindCount = level.difficulty >= 4 ? 6 : level.difficulty >= 2 ? random.Next(5, 7) : random.Next(4, 6);
+            var kinds = LevelRemixer.UsableKinds.OrderBy(k => random.Next()).Take(kindCount).ToList();
             int crateCount = 0;
             foreach (var column in level.columns.Where(c => !c.isExtra))
             {
@@ -435,6 +436,10 @@ namespace SnackDash.Editor.LevelTools
                 for (int i = 0; i < n; i++, crateCount++)
                     column.crates.Add(new CrateDefinition { kind = kinds[crateCount < kinds.Count ? crateCount : random.Next(kinds.Count)], requiredCount = random.Next(7) == 0 ? 18 : 9 });
             }
+            // Đủ khay cho mọi loại đã chọn (một cột 4 khay thì 6 loại không có chỗ).
+            var regular = level.columns.Where(c => !c.isExtra).ToList();
+            for (int i = 0; crateCount < kinds.Count && regular.Count > 0; i++, crateCount++)
+                regular[i % regular.Count].crates.Add(new CrateDefinition { kind = kinds[crateCount], requiredCount = 9 });
             int total = level.columns.Sum(c => c.crates.Sum(k => k.requiredCount));
             double waveSize = sources.SelectMany(s => s.batches).Select(b => (double)b.pills.Sum(p => p.count)).DefaultIfEmpty(27).Average();
             int waves = Mathf.Max(1, Mathf.CeilToInt(total / (float)Mathf.Clamp((int)Math.Round(waveSize), 9, 60)));

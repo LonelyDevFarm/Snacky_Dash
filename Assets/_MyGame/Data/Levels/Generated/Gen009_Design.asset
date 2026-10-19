@@ -15,32 +15,19 @@ MonoBehaviour:
   map: {fileID: 4900000, guid: fb93958e27627a34c88bb894b54cac72, type: 3}
   columns:
   - crates:
-    - kind: 3
-      requiredCount: 9
-    - kind: 4
+    - kind: 2
       requiredCount: 9
     - kind: 1
+      requiredCount: 9
+    - kind: 4
       requiredCount: 9
     - kind: 0
       requiredCount: 9
-    - kind: 4
-      requiredCount: 9
-    - kind: 4
-      requiredCount: 9
-    closedAtStart: 1
-    isExtra: 0
-  - crates:
-    - kind: 1
-      requiredCount: 9
-    - kind: 4
+    - kind: 3
       requiredCount: 9
     - kind: 3
       requiredCount: 9
     - kind: 4
-      requiredCount: 9
-    - kind: 4
-      requiredCount: 18
-    - kind: 1
       requiredCount: 9
     - kind: 1
       requiredCount: 9
@@ -48,28 +35,25 @@ MonoBehaviour:
     isExtra: 0
   batches:
   - pills:
+    - kind: 2
+      count: 9
     - kind: 1
-      count: 15
-    - kind: 3
-      count: 10
-    - kind: 4
-      count: 17
-  - pills:
-    - kind: 3
-      count: 7
-    - kind: 0
       count: 9
     - kind: 4
-      count: 23
-    - kind: 1
-      count: 3
-  - pills:
-    - kind: 4
-      count: 23
+      count: 9
+    - kind: 0
+      count: 5
     - kind: 3
-      count: 1
+      count: 4
+  - pills:
+    - kind: 3
+      count: 14
+    - kind: 0
+      count: 4
+    - kind: 4
+      count: 9
     - kind: 1
-      count: 18
+      count: 9
   timeLimitSeconds: 0
   speedOverride: 0
   wallHealth: 3
@@ -78,8 +62,8 @@ MonoBehaviour:
   curtainCells: []
   curtainGroups: []
   risingBlockDeliveriesToLower: 3
-  origin: "t\u1EF1 thi\u1EBFt k\u1EBF 17x23, 2 c\u1ED9t khay; \xFD \u0111\u1ED3:
-    kh\u1ED1i n\xE2ng; c\u01A1 ch\u1EBF: kh\u1ED1i n\xE2ng, khay \u0111\xF3ng / m\u1EDF;
-    khay v\xE0 \u0111\u1EE3t tr\xE1i m\u1EDBi (tr\u1ED9n 12); h\u1EA1t 424439933;
-    th\u1EAFng kh\xF4ng booster: 202 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 1221 th\u1EBF
-    c\u1EDD"
+  origin: "t\u1EF1 thi\u1EBFt k\u1EBF 15x22, 1 c\u1ED9t khay; \xFD \u0111\u1ED3:
+    kh\u1ED1i n\xE2ng; c\u01A1 ch\u1EBF: c\u1EA7u, kh\u1ED1i n\xE2ng, c\u1ED5ng m\u1ED9t
+    chi\u1EC1u; khay v\xE0 \u0111\u1EE3t tr\xE1i m\u1EDBi (tr\u1ED9n 12); h\u1EA1t
+    268018530; th\u1EAFng kh\xF4ng booster: 179 l\u01B0\u1EE3t vu\u1ED1t, t\xECm
+    182 th\u1EBF c\u1EDD"
