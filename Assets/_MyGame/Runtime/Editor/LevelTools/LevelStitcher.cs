@@ -426,8 +426,8 @@ namespace SnackDash.Editor.LevelTools
         internal static void FillFruit(LevelDefinition level, IList<LevelDefinition> sources, System.Random random, int mixWindow)
         {
             double depth = sources.SelectMany(s => s.columns.Where(c => !c.isExtra)).Select(c => (double)c.crates.Count).DefaultIfEmpty(4).Average();
-            // Số loại trái theo bậc [user 19/10: màn nào cũng 3-5 loại, thêm loại cho hay]: thường 4-5, khó 5-6, siêu khó 6 (đủ 6 loại có hình).
-            int kindCount = level.difficulty >= 4 ? 6 : level.difficulty >= 2 ? random.Next(5, 7) : random.Next(4, 6);
+            // Số loại trái theo bậc [user 20/10: từ 5 loại trở lên]: thường 5, khó 5-6, siêu khó 6 (đủ 6 loại có hình).
+            int kindCount = level.difficulty >= 4 ? 6 : level.difficulty >= 2 ? random.Next(5, 7) : 5;
             var kinds = LevelRemixer.UsableKinds.OrderBy(k => random.Next()).Take(kindCount).ToList();
             int crateCount = 0;
             foreach (var column in level.columns.Where(c => !c.isExtra))
@@ -442,7 +442,7 @@ namespace SnackDash.Editor.LevelTools
                 regular[i % regular.Count].crates.Add(new CrateDefinition { kind = kinds[crateCount], requiredCount = 9 });
             int total = level.columns.Sum(c => c.crates.Sum(k => k.requiredCount));
             double waveSize = sources.SelectMany(s => s.batches).Select(b => (double)b.pills.Sum(p => p.count)).DefaultIfEmpty(27).Average();
-            int waves = Mathf.Max(1, Mathf.CeilToInt(total / (float)Mathf.Clamp((int)Math.Round(waveSize), 9, 60)));
+            int waves = Mathf.Clamp(Mathf.CeilToInt(total / (float)Mathf.Clamp((int)Math.Round(waveSize), 9, 60)), MinWaves, MaxWaves); // [user 20/10: 3-5 đợt]
             Regroup(level, waves, random, mixWindow);
             for (int i = 0; i < level.curtainGroups.Count; i++)
             {
@@ -452,6 +452,43 @@ namespace SnackDash.Editor.LevelTools
                 g.count = Mathf.Clamp(g.count, 1, Mathf.Max(1, ofKind / 2));
                 level.curtainGroups[i] = g;
             }
+        }
+
+        /// <summary>Số đợt rải trái của màn sinh ra [user 20/10: 3-5 đợt].</summary>
+        public const int MinWaves = 3, MaxWaves = 5;
+
+        /// <summary>Số loại trái tối thiểu của màn sinh ra [user 20/10: từ 5 loại trở lên].</summary>
+        public const int MinKinds = 5;
+
+        /// <summary>
+        /// Nâng trái của màn đã sinh cho đúng <see cref="MinKinds"/> loại và <see cref="MinWaves"/>-<see cref="MaxWaves"/> đợt, giữ
+        /// bản đồ, số khay và tổng trái: thiếu loại thì đổi một khay của loại đang nhiều khay nhất sang loại chưa có; số đợt ngoài
+        /// khoảng thì kéo về mép gần nhất rồi chia lại đợt. Trả về false khi không đổi gì.
+        /// </summary>
+        public static bool EnsureFruit(LevelDefinition level, System.Random random, int mixWindow = 12)
+        {
+            bool changed = false;
+            var used = new HashSet<PillKind>(level.columns.SelectMany(c => c.crates).Select(k => k.kind));
+            while (used.Count < MinKinds)
+            {
+                var fresh = LevelRemixer.UsableKinds.Where(k => !used.Contains(k)).ToList();
+                var common = level.columns.SelectMany(c => c.crates).GroupBy(k => k.kind).OrderByDescending(g => g.Count()).First();
+                if (fresh.Count == 0 || common.Count() < 2) break; // loại nào cũng một khay: đổi thì mất loại cũ
+                var targets = level.columns.SelectMany(c => Enumerable.Range(0, c.crates.Count).Where(i => c.crates[i].kind == common.Key).Select(i => (c, i))).ToList();
+                var (column, index) = targets[random.Next(targets.Count)];
+                var crate = column.crates[index];
+                crate.kind = fresh[random.Next(fresh.Count)];
+                column.crates[index] = crate;
+                used.Add(crate.kind);
+                changed = true;
+            }
+            int waves = Mathf.Clamp(level.batches.Count, MinWaves, MaxWaves);
+            if (changed || waves != level.batches.Count)
+            {
+                Regroup(level, waves, random, mixWindow);
+                changed = true;
+            }
+            return changed;
         }
 
         /// <summary>Chia lại trái của các khay thành <paramref name="waves"/> đợt đều nhau, theo thứ tự khay cần (LevelRemixer.RegroupWaves).</summary>
