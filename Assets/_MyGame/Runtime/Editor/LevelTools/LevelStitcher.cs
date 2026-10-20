@@ -442,8 +442,9 @@ namespace SnackDash.Editor.LevelTools
                 regular[i % regular.Count].crates.Add(new CrateDefinition { kind = kinds[crateCount], requiredCount = 9 });
             int total = level.columns.Sum(c => c.crates.Sum(k => k.requiredCount));
             double waveSize = sources.SelectMany(s => s.batches).Select(b => (double)b.pills.Sum(p => p.count)).DefaultIfEmpty(27).Average();
-            int waves = Mathf.Clamp(Mathf.CeilToInt(total / (float)Mathf.Clamp((int)Math.Round(waveSize), 9, 60)), MinWaves, MaxWaves); // [user 20/10: 3-5 đợt rải thêm sau đợt đầu]
-            Regroup(level, waves, random, mixWindow);
+            int size = Mathf.Clamp((int)Math.Round(waveSize), 9, 60);
+            int waves = Mathf.Clamp(Mathf.CeilToInt(total / (float)size), MinWaves, MaxWaves); // [user 20/10: 3-5 đợt rải thêm sau đợt đầu]
+            GrowFruit(level, waves, size, random, mixWindow); // đủ đợt mà mỗi đợt vẫn cỡ màn gốc: thêm khay [user 20/10]
             for (int i = 0; i < level.curtainGroups.Count; i++)
             {
                 var g = level.curtainGroups[i];
@@ -457,6 +458,26 @@ namespace SnackDash.Editor.LevelTools
         /// <summary>Số đợt trái của màn sinh ra, tính cả đợt có sẵn lúc vào màn: 4-6, tức 3-5 đợt rải thêm [user 20/10: 3-5 đợt không tính
         /// đợt đầu].</summary>
         public const int MinWaves = 4, MaxWaves = 6;
+
+        /// <summary>
+        /// Thêm khay 9 trái (loại đã có trong màn) vào cột thường ít khay nhất cho tới khi tổng trái gần đủ <paramref name="waves"/> ×
+        /// <paramref name="waveSize"/>, rồi chia lại thành <paramref name="waves"/> đợt [user 20/10: tăng số đợt mà giữ cỡ mỗi đợt, tổng trái
+        /// tăng]. Không bớt trái. Trả về số khay đã thêm.
+        /// </summary>
+        public static int GrowFruit(LevelDefinition level, int waves, int waveSize, System.Random random, int mixWindow = 12)
+        {
+            var kinds = level.columns.SelectMany(c => c.crates).Select(k => k.kind).Distinct().ToList();
+            var regular = level.columns.Where(c => !c.isExtra).ToList();
+            int added = 0, target = waves * waveSize;
+            while (regular.Count > 0 && kinds.Count > 0 && level.columns.Sum(c => c.crates.Sum(k => k.requiredCount)) + 4 < target)
+            {
+                var column = regular.OrderBy(c => c.crates.Count).First();
+                column.crates.Add(new CrateDefinition { kind = kinds[random.Next(kinds.Count)], requiredCount = 9 });
+                added++;
+            }
+            Regroup(level, waves, random, mixWindow);
+            return added;
+        }
 
         /// <summary>Số loại trái tối thiểu của màn sinh ra [user 20/10: từ 5 loại trở lên].</summary>
         public const int MinKinds = 5;

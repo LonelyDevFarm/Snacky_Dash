@@ -31,41 +31,61 @@ MonoBehaviour:
       requiredCount: 9
     - kind: 1
       requiredCount: 9
+    - kind: 4
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 0
+      requiredCount: 9
+    - kind: 4
+      requiredCount: 9
     closedAtStart: 0
     isExtra: 0
   batches:
   - pills:
-    - kind: 1
-      count: 6
     - kind: 2
-      count: 7
+      count: 9
+    - kind: 1
+      count: 9
     - kind: 4
-      count: 5
-  - pills:
+      count: 9
     - kind: 0
-      count: 7
-    - kind: 1
-      count: 2
-    - kind: 4
-      count: 4
-    - kind: 2
-      count: 2
+      count: 5
     - kind: 3
-      count: 3
+      count: 4
   - pills:
     - kind: 3
       count: 12
     - kind: 0
-      count: 2
-    - kind: 4
-      count: 4
-  - pills:
-    - kind: 1
-      count: 10
-    - kind: 3
       count: 3
     - kind: 4
-      count: 5
+      count: 15
+    - kind: 1
+      count: 6
+  - pills:
+    - kind: 1
+      count: 30
+    - kind: 4
+      count: 3
+    - kind: 3
+      count: 2
+    - kind: 0
+      count: 1
+  - pills:
+    - kind: 1
+      count: 18
+    - kind: 0
+      count: 9
+    - kind: 4
+      count: 9
   timeLimitSeconds: 0
   speedOverride: 0
   wallHealth: 3
@@ -81,4 +101,6 @@ MonoBehaviour:
     182 th\u1EBF c\u1EDD; n\xE2ng tr\xE1i: 5 lo\u1EA1i, 3 \u0111\u1EE3t; th\u1EAFng
     kh\xF4ng booster: 285 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 299 th\u1EBF c\u1EDD;
     \u0111\u1EE3t tr\xE1i: 4 (3 \u0111\u1EE3t r\u1EA3i th\xEAm); th\u1EAFng kh\xF4ng
-    booster: 274 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 293 th\u1EBF c\u1EDD"
+    booster: 274 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 293 th\u1EBF c\u1EDD; th\xEAm 8
+    khay: 144 tr\xE1i, 4 \u0111\u1EE3t ~36 tr\xE1i/\u0111\u1EE3t; th\u1EAFng kh\xF4ng
+    booster: 343 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 356 th\u1EBF c\u1EDD"

@@ -29,6 +29,12 @@ MonoBehaviour:
       requiredCount: 9
     - kind: 1
       requiredCount: 9
+    - kind: 1
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 9
+    - kind: 5
+      requiredCount: 9
     closedAtStart: 0
     isExtra: 0
   - crates:
@@ -46,45 +52,49 @@ MonoBehaviour:
       requiredCount: 9
     - kind: 0
       requiredCount: 9
+    - kind: 5
+      requiredCount: 9
+    - kind: 2
+      requiredCount: 9
     closedAtStart: 0
     isExtra: 0
   batches:
   - pills:
     - kind: 5
-      count: 15
+      count: 16
     - kind: 3
       count: 9
     - kind: 1
-      count: 8
+      count: 13
     - kind: 0
-      count: 2
-  - pills:
-    - kind: 0
-      count: 9
-    - kind: 5
-      count: 3
-    - kind: 1
-      count: 14
-    - kind: 2
-      count: 8
+      count: 7
   - pills:
     - kind: 1
-      count: 12
+      count: 19
     - kind: 0
       count: 15
-    - kind: 2
-      count: 3
     - kind: 5
-      count: 4
+      count: 2
+    - kind: 2
+      count: 9
   - pills:
     - kind: 0
-      count: 10
-    - kind: 2
-      count: 7
-    - kind: 5
-      count: 5
-    - kind: 1
       count: 11
+    - kind: 5
+      count: 10
+    - kind: 1
+      count: 15
+    - kind: 2
+      count: 9
+  - pills:
+    - kind: 5
+      count: 17
+    - kind: 1
+      count: 7
+    - kind: 2
+      count: 18
+    - kind: 0
+      count: 3
   timeLimitSeconds: 0
   speedOverride: 0
   wallHealth: 3
@@ -104,4 +114,6 @@ MonoBehaviour:
     lo\u1EA1i, 3 \u0111\u1EE3t; th\u1EAFng kh\xF4ng booster: 231 l\u01B0\u1EE3t vu\u1ED1t,
     t\xECm 242 th\u1EBF c\u1EDD; \u0111\u1EE3t tr\xE1i: 4 (3 \u0111\u1EE3t r\u1EA3i
     th\xEAm); th\u1EAFng kh\xF4ng booster: 218 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 247
-    th\u1EBF c\u1EDD"
+    th\u1EBF c\u1EDD; th\xEAm 5 khay: 180 tr\xE1i, 4 \u0111\u1EE3t ~45 tr\xE1i/\u0111\u1EE3t;
+    th\u1EAFng kh\xF4ng booster: 223 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 232 th\u1EBF
+    c\u1EDD"
