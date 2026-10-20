@@ -15,6 +15,8 @@ namespace SnackDash.UI
         public RectTransform bar;
         [Tooltip("Thứ tự: xẻng, boomerang, undo, nam châm.")]
         public BoosterButton[] buttons = new BoosterButton[4];
+        [Tooltip("Booster sáng tạo ở cuối thanh lướt ngang, theo BoosterConfig.creative: Khay thần kỳ.")]
+        public BoosterButton[] creativeButtons = new BoosterButton[0];
         public RectTransform aimPanel;
         public TMP_Text bannerTitle;
         public TMP_Text bannerText;

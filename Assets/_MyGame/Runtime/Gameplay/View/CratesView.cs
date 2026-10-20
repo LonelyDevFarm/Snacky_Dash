@@ -64,6 +64,8 @@ namespace SnackDash.Presentation
         [SerializeField] private float receiveShakeSpeed = 10f;
         [Tooltip("Hướng rung (gốc ShakeMainDirection 1, 1, 0), mỗi lần lệch ngẫu nhiên thêm tới 0.25 (gốc DirectionalNoise).")]
         [SerializeField] private Vector3 receiveShakeDirection = new Vector3(1f, 1f, 0f);
+        [Tooltip("Khay thần kỳ (sáng tạo): trái của đợt chưa rải hiện lên ở ô của nó trong chừng ấy giây rồi mới bay vào khay.")]
+        [SerializeField] private float aheadAppearDuration = 0.2f;
         [Tooltip("Giây khay đầy đứng yên trước khi bay đi (video).")]
         [SerializeField] private float fullCrateHold = 0.33f;
         [SerializeField] private float appearDuration = 0.35f;
@@ -91,6 +93,7 @@ namespace SnackDash.Presentation
         public float LastCompletionLag => _lastEffectLag;
         private readonly Dictionary<(int column, int crate), int> _inFlight = new Dictionary<(int, int), int>();
         private bool _boomerang; // trái SegmentSnipped hiện tại là do boomerang ném
+        private int _magicLeft, _magicOrder; // Khay thần kỳ: số trái còn chờ xếp lượt bay, lượt kế
         private readonly Dictionary<Transform, Coroutine> _shakes = new Dictionary<Transform, Coroutine>();
 
         /// <summary>Tâm khay trên cùng của cột.</summary>
@@ -119,6 +122,10 @@ namespace SnackDash.Presentation
             session.DeliveryStarted += column => _boomerang = false;
             session.CrateCompleted += OnCrateCompleted;
             session.PillMagnetized += OnMagnetized;
+            // Khay thần kỳ: trái bay lần lượt kiểu boomerang, khay đầy chờ trái cuối như boomerang.
+            session.MagicCrateUsed += (column, count) => { _magicLeft = count; _magicOrder = 0; _boomerang = true; };
+            session.FruitTakenAhead += (cell, kind, column, crate) =>
+                FlyToCrate(BoardView.CellToWorld(cell), kind, column, crate, NextMagicDelay(), true, aheadAppearDuration);
             session.CurtainOpened += index => StartCoroutine(ShowUncovered(curtains != null ? curtains.RevealTime : 0.6f));
             // Cửa đóng và cửa mở chạy cùng lúc, sau khi trái cuối bay vào xong [video lv70; user: không lần lượt].
             session.CrateShutterChanged += (column, closed) => StartCoroutine(SetShutter(column, closed, flightDuration + landingDuration));
@@ -173,8 +180,16 @@ namespace SnackDash.Presentation
             if (!_columns.TryGetValue(columnIndex, out var crates) || crates.Count == 0) return;
             var start = snake != null ? snake.SegmentWorldPosition(segmentIndex) : transform.position;
             // Boomerang đã ra từng trái theo GameSession.BoomerangInterval: không giãn thêm.
-            float delay = _boomerang ? 0f : _snipOrder++ * GameSession.DeliveryInterval;
+            float delay = _magicLeft > 0 ? NextMagicDelay() : _boomerang ? 0f : _snipOrder++ * GameSession.DeliveryInterval;
             FlyToCrate(start, kind, columnIndex, crateIndex, delay, _boomerang);
+        }
+
+        /// <summary>Lượt bay của trái Khay thần kỳ kế tiếp (0 khi không phải trái của nó, vd nam châm).</summary>
+        private float NextMagicDelay()
+        {
+            if (_magicLeft <= 0) return 0f;
+            _magicLeft--;
+            return _magicOrder++ * GameSession.MagicCrateInterval;
         }
 
         /// <summary>Vị trí khay của cột (world), vd cho bong bóng TAP TO UNLOCK.</summary>
@@ -213,11 +228,11 @@ namespace SnackDash.Presentation
             for (int column = 0; column < _session.Columns.Count; column++) Rebuild(column, column == extraColumn);
         }
 
-        /// <summary>Booster nam châm: trái bay từ ô vào khay, kiểu bay boomerang.</summary>
+        /// <summary>Booster nam châm (và trái trên bàn của Khay thần kỳ): trái bay từ ô vào khay, kiểu bay boomerang.</summary>
         private void OnMagnetized(Vector2Int cell, PillKind kind, int columnIndex, int crateIndex) =>
-            FlyToCrate(BoardView.CellToWorld(cell), kind, columnIndex, crateIndex, 0f, true);
+            FlyToCrate(BoardView.CellToWorld(cell), kind, columnIndex, crateIndex, NextMagicDelay(), true);
 
-        private void FlyToCrate(Vector3 start, PillKind kind, int columnIndex, int crateIndex, float delay, bool boomerang)
+        private void FlyToCrate(Vector3 start, PillKind kind, int columnIndex, int crateIndex, float delay, bool boomerang, float appear = 0f)
         {
             if (!_columns.TryGetValue(columnIndex, out var crates) || crates.Count == 0) return;
             int slot = _session.Columns[columnIndex].FilledIn(crateIndex) - 1;
@@ -226,13 +241,13 @@ namespace SnackDash.Presentation
                 var key = (columnIndex, crateIndex);
                 _inFlight[key] = InFlight(key) + 1;
                 StartCoroutine(Fly(kind, () => SlotFor(columnIndex, crateIndex, slot), start, delay, boomerang: boomerang,
-                    landed: () => _inFlight[key] = InFlight(key) - 1));
+                    landed: () => _inFlight[key] = InFlight(key) - 1, appear: appear));
             }
             else
             {
                 // Khay sâu hơn chồng đang hiện: bay vào khay dưới cùng rồi biến, hiện lại khi khay dâng lên.
                 var bottom = crates[crates.Count - 1].transform;
-                StartCoroutine(Fly(kind, () => bottom, start, delay, vanish: true, boomerang: boomerang));
+                StartCoroutine(Fly(kind, () => bottom, start, delay, vanish: true, boomerang: boomerang, appear: appear));
             }
         }
 
@@ -250,13 +265,18 @@ namespace SnackDash.Presentation
         }
 
         /// <summary>Hỏi lại <paramref name="target"/> mỗi frame vì chồng khay có thể đổi khi trái đang bay.</summary>
-        private IEnumerator Fly(PillKind kind, System.Func<Transform> target, Vector3 start, float delay, bool vanish = false, bool boomerang = false, System.Action landed = null)
+        private IEnumerator Fly(PillKind kind, System.Func<Transform> target, Vector3 start, float delay, bool vanish = false, bool boomerang = false,
+            System.Action landed = null, float appear = 0f)
         {
             // Trái hiện ngay tại chỗ (thân đuôi cắt biến mất, trái ở lại) rồi chờ lượt [video Man_Lose, user].
             var fruit = Instantiate(pillPrefab, transform);
             PillVisual.SetKind(fruit, kind);
             PillVisual.HideShadow(fruit);
             fruit.transform.position = start;
+            // Trái chưa có trên bàn (đợt sau, Khay thần kỳ): nở ra tại chỗ trước, phần còn lại của lượt chờ như thường.
+            if (appear > 0f)
+                yield return Tween.Run(appear, Tween.OutBack(easeBack), t => { if (fruit != null) fruit.transform.localScale = Vector3.one * t; });
+            delay -= appear;
             if (delay > 0f) yield return new WaitForSeconds(delay);
             var slot = target();
             if (slot == null) { Destroy(fruit); landed?.Invoke(); yield break; }

@@ -29,3 +29,7 @@ MonoBehaviour:
     unlockLevel: 16
     description: <color=#8929F6>ATTRACT</color> NEARBY FRUITS TO THE CRATES FOR A
       FEW SWIPES!
+  creative:
+  - name: MAGIC CRATE
+    unlockLevel: 16
+    description: <color=#8929F6>CLICK ARROW</color> TO FILL THAT CRATE AT ONCE!

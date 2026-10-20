@@ -41,6 +41,7 @@ namespace SnackDash.UI
             gameObject.SetActive(shown > 0);
             session.PillEaten += (cell, kind, segment) => Refresh(kind);
             session.PillMagnetized += (cell, kind, column, crate) => Refresh(kind);
+            session.FruitTakenAhead += (cell, kind, column, crate) => Refresh(kind); // Khay thần kỳ lấy trái của đợt sau
             session.PillSpawned += (cell, kind) => Refresh(kind); // trái Snip thả lại bàn (hiếm)
             session.Rewound += RefreshAll;
         }

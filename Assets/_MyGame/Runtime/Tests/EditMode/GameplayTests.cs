@@ -290,6 +290,13 @@ namespace SnackDash.Tests
             eco.SetBoosters("booster_shovel", 0, countUse: false);
             Assert.AreEqual(0, eco.Boosters("booster_shovel"));
             Assert.AreEqual(0, counted, "no mission progress from cheats");
+            // Creative boosters (Magic crate) stand apart from the original's systems: using one counts for no mission [user 20/10].
+            var creative = SnackDash.Economy.PlayerEconomy.CreativeBoosterKeys[0];
+            eco.AddBoosters(creative, 3);
+            eco.SetBoosters(creative, 2);
+            Assert.AreEqual(2, eco.Boosters(creative));
+            Assert.AreEqual(0, counted, "a creative booster used counts for no mission");
+            CollectionAssert.DoesNotContain(SnackDash.Economy.PlayerEconomy.BoosterKeys, creative, "events, chests and Shop bundles never hand it out");
         }
 
         [Test]
@@ -599,6 +606,64 @@ namespace SnackDash.Tests
             Run();
             Assert.AreEqual(to, session.CurrentCell);
             Assert.IsFalse(session.IsMoving, "waits where it came up");
+
+            // Magic crate (creative, not in the original) [user 20/10]: fills the chosen top crate with real fruit, board first
+            // (farthest from the head first), then waves not yet out, then the tail. Used again and again it wins the level: every
+            // colour keeps exactly as many fruit as crate slots. Level 11012 spreads fruit at random, Level 1 (11002) has spawn layers.
+            var sources = new HashSet<MagicCratePlanner.Source>();
+            foreach (var name in new[] { "11012_v5_nt_VO", "11002_v4_ftue_nt_VO" })
+            {
+                var magicLevel = Load(name);
+                var magicMap = TiledMap.Parse(magicLevel.map.text);
+                var magic = new GameSession(new BoardGraph(magicMap, _database), magicMap, magicLevel);
+                magic.SetSeed(2);
+                magic.Begin();
+                void RunMagic() { for (int i = 0; i < 3600 && (magic.IsMoving || magic.IsDelivering); i++) magic.Tick(1f / 60f); }
+                for (int m = 0; m < 30 && magic.Segments.Count < 3; m++)
+                    if (magic.RequestMove((Direction)random.Next(4))) RunMagic(); // some fruit on the tail too
+                AssertFruitMatchesCrates(magic, $"{name} before");
+                bool firstUse = true;
+                for (int use = 0; use < 200 && !magic.IsWon; use++)
+                {
+                    int column = Enumerable.Range(0, magic.Columns.Count).FirstOrDefault(magic.CanMagicCrate);
+                    if (!magic.CanMagicCrate(column)) { magic.Tick(0.1f); RunMagic(); continue; }
+                    var plan = magic.PlanMagicCrate(column);
+                    var order = plan.Select(p => (int)p.source).ToList();
+                    CollectionAssert.IsOrdered(order, $"{name}: board, then waves ahead, then tail");
+                    var board = plan.Where(p => p.source == MagicCratePlanner.Source.Board).Select(p => (p.cell - magic.HeadPosition).sqrMagnitude).ToList();
+                    CollectionAssert.IsOrdered(board.AsEnumerable().Reverse().ToList(), $"{name}: farthest fruit first");
+                    if (firstUse)
+                    {
+                        var kind = magic.Columns[column].Current.kind;
+                        Assert.IsTrue(plan.Count == magic.Columns[column].Current.requiredCount - magic.Columns[column].Filled, "fills every free slot");
+                        Assert.AreEqual(System.Math.Min(plan.Count, magic.Pills.Count(p => p.Value == kind)), board.Count, "board fruit taken before any other");
+                        firstUse = false;
+                    }
+                    foreach (var pick in plan) sources.Add(pick.source);
+                    int crateBefore = magic.Columns[column].CurrentIndex;
+                    Assert.IsTrue(magic.UseMagicCrate(column));
+                    Assert.IsFalse(magic.CanUndo, "like every booster, undo waits for the next swipe");
+                    RunMagic();
+                    Assert.Greater(magic.Columns[column].CurrentIndex, crateBefore, $"{name}: the filled crate leaves");
+                    AssertFruitMatchesCrates(magic, $"{name} after use {use}");
+                }
+                Assert.IsTrue(magic.IsWon, $"{name}: magic crates alone win the level");
+                foreach (PillKind k in System.Enum.GetValues(typeof(PillKind))) Assert.AreEqual(0, magic.RemainingFruit(k), $"{name}: no {k} left");
+            }
+            Assert.IsTrue(sources.Contains(MagicCratePlanner.Source.Ahead), "fruit taken from waves not yet out");
+            Assert.IsTrue(sources.Contains(MagicCratePlanner.Source.Tail), "fruit taken from the tail");
+        }
+
+        /// <summary>Fruit still to come (board, waves ahead) plus the tail equals the free crate slots, for every colour.</summary>
+        private static void AssertFruitMatchesCrates(GameSession session, string when)
+        {
+            foreach (PillKind kind in System.Enum.GetValues(typeof(PillKind)))
+            {
+                int fruit = session.RemainingFruit(kind) + session.Segments.Count(k => k == kind);
+                int slots = session.Columns.Sum(c => Enumerable.Range(c.CurrentIndex, c.Crates.Count - c.CurrentIndex)
+                    .Where(i => c.Crates[i].kind == kind).Sum(i => c.Crates[i].requiredCount - c.FilledIn(i)));
+                Assert.AreEqual(slots, fruit, $"{when}: {kind} fruit vs free crate slots");
+            }
         }
 
         /// <summary>Every imported level (cohort ab-vo-co of v1.15, LevelGenerator.OriginalLevelCount levels).</summary>
@@ -690,7 +755,12 @@ namespace SnackDash.Tests
             void Took(PillKind k) { remaining[k]--; Assert.AreEqual(remaining[k], session.RemainingFruit(k), $"{k} remaining after eating one"); }
             session.PillEaten += (c, k, i) => Took(k);
             session.PillMagnetized += (c, k, column, crate) => Took(k);
+            session.FruitTakenAhead += (c, k, column, crate) => Took(k);
             session.Rewound += () => { foreach (var k in kinds) remaining[k] = session.RemainingFruit(k); };
+            // One magic crate at the start (creative booster) [user 20/10]: whatever the mechanics (curtains count the fruit it takes,
+            // rising blocks, toggle crates, spawn layers), the level stays winnable. Not on the boomerang tutorial, which needs its boomerang.
+            int magicColumn = Enumerable.Range(0, session.Columns.Count).FirstOrDefault(session.CanMagicCrate);
+            if (!boomerangLevel && session.CanMagicCrate(magicColumn)) Assert.IsTrue(session.UseMagicCrate(magicColumn));
             // The shared test player (LevelAutoPlayer, also used by the Level Generator); the checks below hook into its moves.
             var player = new LevelAutoPlayer();
             bool switchBefore = false;

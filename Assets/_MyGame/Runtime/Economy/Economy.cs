@@ -292,6 +292,12 @@ namespace SnackDash.Economy
 
         /// <summary>Stock keys, in bar order: shovel, boomerang, undo, magnet.</summary>
         public static readonly string[] BoosterKeys = { "booster_shovel", "booster_boomerang", "booster_undo", "booster_magnet" };
+
+        /// <summary>
+        /// Booster sáng tạo (bản gốc không có), theo thứ tự sau nam châm: Khay thần kỳ. Tách khỏi <see cref="BoosterKeys"/> nên sự kiện,
+        /// nhiệm vụ, rương, gói Shop không tự tặng / đếm; chỉ mua được [user 20/10].
+        /// </summary>
+        public static readonly string[] CreativeBoosterKeys = { "booster_magic_crate" };
         public static int StartBoosterStock => Config.startBoosterStock; // none until a booster unlocks (it gives 3) or is bought [user]
 
         public int Boosters(string key) => _store.GetInt(key, StartBoosterStock);
@@ -309,6 +315,7 @@ namespace SnackDash.Economy
 
         private void ReportBoosterUse(string key, int used)
         {
+            if (Array.IndexOf(CreativeBoosterKeys, key) >= 0) return; // booster sáng tạo không tính vào nhiệm vụ
             Goal?.Invoke(MissionGoal.SpendAnyBooster, used);
             switch (key)
             {

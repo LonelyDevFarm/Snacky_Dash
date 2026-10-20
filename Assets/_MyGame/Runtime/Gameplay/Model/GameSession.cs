@@ -363,8 +363,8 @@ namespace SnackDash.Gameplay
 
         public int TotalFruit => FruitInWaves(_level.batches.Count - 1);
 
-        /// <summary>Đã ăn = đã rải trừ số còn trên bàn.</summary>
-        public int FruitEaten => BatchIndex < 0 ? 0 : FruitInWaves(BatchIndex) - _pills.Count;
+        /// <summary>Đã ăn = đã rải trừ số còn trên bàn, cộng trái Khay thần kỳ lấy trước ở các đợt chưa rải.</summary>
+        public int FruitEaten => BatchIndex < 0 ? 0 : FruitInWaves(BatchIndex) - _pills.Count + TakenFrom(BatchIndex + 1);
 
         public int WaveCount => _level.batches.Count;
 
@@ -378,7 +378,7 @@ namespace SnackDash.Gameplay
             foreach (var pill in _pills.Values) if (pill == kind) count++;
             for (int b = BatchIndex + 1; b < _level.batches.Count; b++)
                 foreach (var pill in _level.batches[b].pills) if (pill.kind == kind) count += pill.count;
-            return count;
+            return count - TakenFrom(BatchIndex + 1, kind);
         }
 
         /// <summary>Loại trái có trong màn (ở bất kỳ đợt nào): thanh đếm chỉ hiện các loại này.</summary>
@@ -814,20 +814,21 @@ namespace SnackDash.Gameplay
         {
             if (BatchIndex + 1 >= _level.batches.Count) return;
             BatchIndex++;
-            string layer = "spawn" + (BatchIndex + 1);
-            if (!_map.HasLayer(layer)) SpawnOnMapSlots(_level.batches[BatchIndex]);
+            string layer = SpawnLayer(BatchIndex);
+            if (!_map.HasLayer(layer)) SpawnOnMapSlots(WithoutTaken(BatchIndex));
             else
                 for (int y = 0; y < _map.Height; y++)
                 for (int x = 0; x < _map.Width; x++)
                 {
                     var cell = new Vector2Int(x, y);
-                    if (!_spawnIds.TryGetValue(_map.GetLocalTileId(layer, cell), out var kind)) continue;
+                    if (!_spawnIds.TryGetValue(_map.GetLocalTileId(layer, cell), out var kind) || SkippedSpawn(BatchIndex, cell)) continue;
                     if (NoFruitOnBlock(cell) && FreeCellNear(cell) is Vector2Int free) cell = free; // không rải lên khối nâng đang dựng
                     _pills[cell] = kind;
                     if (_board.IsSecretSpawn(BatchIndex, cell)) _secret.Add(cell);
                     PillSpawned?.Invoke(cell, kind);
                 }
             WaveSpawned?.Invoke(BatchIndex);
+            if (_pills.Count == 0) SpawnNextBatch(); // Khay thần kỳ đã lấy hết trái của đợt này
         }
 
         /// <summary>
@@ -918,6 +919,7 @@ namespace SnackDash.Gameplay
                     bool fromTail = _deliverFromTail && !_boomerang;
                     _deliveryColumn = -1;
                     if (_deliverFromTail) ToggleAfterDelivery(column); // rắn hay boomerang vừa giao: khay đóng / mở
+                    else ToggleAfterMagicCrate();
                     _boomerang = false;
                     if (fromTail) DeliveryEnded?.Invoke(column);
                     if (!IsWon) StartSettlingFullCrates();

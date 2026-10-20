@@ -22,10 +22,12 @@ namespace SnackDash.UI
     /// - Lần dùng đầu mỗi booster (BoosterData _forcedTutorialEntry): tới lúc thì màn tối, chỉ còn booster đó và mũi tên tím
     ///   nhún phía trên (một lần); quà mở khoá hiện FREE tới khi dùng [user].
     /// Số booster nằm trong PlayerEconomy: 0 lúc đầu, 3 khi mở khoá, mua 3 một lần hoặc từ gói trong Shop [user].
+    /// - Booster sáng tạo (BoosterConfig.creative) ở cuối thanh lướt ngang: Khay thần kỳ chọn khay bằng mũi tên như boomerang; không quà
+    ///   mở khoá, không thẻ, không hướng dẫn, hết thì mua bằng dấu + [user 20/10].
     /// </summary>
     public class BoosterBarView : MonoBehaviour
     {
-        private enum Booster { Shovel, Boomerang, Undo, Magnet }
+        private enum Booster { Shovel, Boomerang, Undo, Magnet, MagicCrate }
 
         private sealed class Info
         {
@@ -137,6 +139,18 @@ namespace SnackDash.UI
                     PlayerPrefs.SetInt(b.stockKey + "_gift", 1);
                     PlayerPrefs.Save();
                 }
+            }
+
+            var creative = SnackDash.Economy.BoosterConfig.Creative;
+            for (int i = 0; i < creative.Length && i < layout.creativeButtons.Length; i++)
+            {
+                var b = new Info { id = Booster.MagicCrate + i, name = creative[i].name, description = creative[i].description, unlockLevel = creative[i].unlockLevel,
+                    stockKey = SnackDash.Economy.PlayerEconomy.CreativeBoosterKeys[i], view = layout.creativeButtons[i] };
+                b.icon = b.view.Icon;
+                b.unlocked = levelNumber >= b.unlockLevel;
+                b.view.Setup(b.unlocked, b.unlockLevel);
+                b.view.Clicked += () => OnTapped(b);
+                _boosters.Add(b);
             }
 
             foreach (var stop in session.Board.CrateStops)
@@ -470,10 +484,11 @@ namespace SnackDash.UI
             var boomerang = Get(Booster.Boomerang);
             TryStartTutorial();
 
+            bool magic = _aiming != null && _aiming.id == Booster.MagicCrate;
             bool arrows = false;
             foreach (var pair in _arrows)
             {
-                bool show = _aiming == boomerang && _session.CanBoomerang(pair.Key);
+                bool show = (_aiming == boomerang && _session.CanBoomerang(pair.Key)) || (magic && _session.CanMagicCrate(pair.Key));
                 arrows |= show;
                 if (pair.Value.activeSelf != show) pair.Value.SetActive(show);
             }
@@ -489,8 +504,17 @@ namespace SnackDash.UI
                 StartCoroutine(FlyIcon(shovel, () => _session.UseShovel(cell.Value)));
                 return;
             }
-            if (_aiming != boomerang || !arrows) return;
+            if ((_aiming != boomerang && !magic) || !arrows) return;
             int column = ArrowUnder(UnityEngine.Input.mousePosition);
+            if (magic)
+            {
+                // Khay thần kỳ: bay vào miệng rắn như mọi booster rồi khay được lấp.
+                if (column < 0 || !_session.CanMagicCrate(column)) return;
+                var crate = _aiming;
+                SetAiming(null);
+                StartCoroutine(FlyIcon(crate, () => { if (_session.UseMagicCrate(column)) Spend(crate); }));
+                return;
+            }
             if (column < 0 || !_session.CanBoomerang(column)) return;
             SetAiming(null);
             // Like the others, the boomerang flies into the snake's mouth before it is thrown [user].
