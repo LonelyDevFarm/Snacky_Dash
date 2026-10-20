@@ -13,7 +13,7 @@ namespace SnackDash.UI
     /// Màn có bọ: khi đợt trái thứ nhất được rải (không tính đợt có sẵn), bọ bay lượn lên đậu trên quả chuối ở cuối thanh tiến độ HUD
     /// [user 19/10]; đợt thứ 2 rải hoặc thắng thì bay đi. Chạm trúng: bắt (<see cref="LuckyLadybug.Catch"/>), lần chạm đó không thành
     /// vuốt, bọ bay một vòng rồi vào lọ ở đầu trái thanh (lọ thay chỗ đầu rắn). Bay tới chậm cho người chơi kịp thấy [user 20/10].
-    /// Lúc đậu: bọ nhún vỗ cánh gọi (trạng thái Call) và nhóm Hint sáng lên [user 20/10: thay bàn tay]. Lần đầu gặp: đậu tới khi bị bắt / thắng. Đường bay chỉ lượn giữa HUD và mép trên bàn chơi, không bay qua bản đồ.
+    /// Lúc đậu: bọ nhún vỗ cánh gọi (trạng thái Call, mỗi 4 giây) và nhóm Hint sáng lên [user 20/10: thay bàn tay]. Lần đầu gặp: đậu tới khi bị bắt / thắng. Đường bay chỉ lượn giữa HUD và mép trên bàn chơi, không bay qua bản đồ.
     /// Hình và dáng nằm trong Unity [user 19/10]: Animator trên Body (trạng thái Fly / Idle, clip LB_Ladybug_*: đổi ảnh, nhún, dáng đậu
     /// quay trái ngóc đầu); đường bay là các điểm đặt sẵn trong HUD (ProgressBar/Fruits/LadybugPath), kéo thả để sửa. Code chỉ cho bọ
     /// bay mượt qua các điểm và lật hình theo hướng bay. Chỉ nghe sự kiện của màn, không đổi gì trong luật chơi.
@@ -40,10 +40,10 @@ namespace SnackDash.UI
         [Tooltip("Cỡ bọ lúc đậu so với lúc bay (cho vừa HUD).")]
         [SerializeField] private float sitScale = 0.55f;
         [Tooltip("Bay tới chậm cho người chơi kịp thấy bọ là gì [user 20/10: bay nhanh quá].")]
-        [SerializeField] private float flyInTime = 3.5f;
+        [SerializeField] private float flyInTime = 2.2f;
         [SerializeField] private float flyOutTime = 0.9f, catchTime = 1.5f;
 
-        [Tooltip("Gợi ý lúc bọ đậu (Body/Hint, tắt sẵn): quầng sáng, vòng sáng lan, sao bật lên — clip LB_Hint. Bọ chơi trạng thái Call (nhún vỗ cánh mỗi 2 giây) [user 20/10: thay bàn tay].")]
+        [Tooltip("Gợi ý lúc bọ đậu (Body/Hint, tắt sẵn): quầng sáng, vòng sáng lan, sao bật lên — clip LB_Hint. Bọ chơi trạng thái Call (nhún vỗ cánh mỗi 4 giây) [user 20/10: thay bàn tay].")]
         [SerializeField] private GameObject hint;
         [SerializeField] private LadybugJar jar;
 

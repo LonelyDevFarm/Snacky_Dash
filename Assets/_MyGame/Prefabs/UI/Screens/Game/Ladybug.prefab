@@ -488,7 +488,7 @@ MonoBehaviour:
   catchPath: []
   leavePath: []
   sitScale: 0.55
-  flyInTime: 3.5
+  flyInTime: 2.2
   flyOutTime: 0.7
   catchTime: 0.6
   hint: {fileID: 3818289025177929967}
