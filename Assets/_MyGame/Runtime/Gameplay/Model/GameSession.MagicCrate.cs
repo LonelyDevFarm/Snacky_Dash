@@ -55,12 +55,15 @@ namespace SnackDash.Gameplay
             int crate = stack.CurrentIndex;
             var kind = stack.Current.kind;
             ForgetUndo();
-            MagicCrateUsed?.Invoke(column, plan.Count);
-
             var tail = new List<int>();
             foreach (var pick in plan)
+                if (pick.source == MagicCratePlanner.Source.Tail) tail.Add(pick.segment);
+            int early = plan.Count - tail.Count; // trái trên bàn và đợt sau: bay ngay, view xếp lượt
+            MagicCrateUsed?.Invoke(column, early);
+
+            foreach (var pick in plan)
             {
-                if (pick.source == MagicCratePlanner.Source.Tail) { tail.Add(pick.segment); continue; }
+                if (pick.source == MagicCratePlanner.Source.Tail) continue;
                 stack.Add(crate);
                 CountCurtainFruit(kind); // rèm đếm trái đã ăn: trái bị lấy cũng tính, không thì rèm có thể không bao giờ mở
                 if (pick.source == MagicCratePlanner.Source.Board)
@@ -74,21 +77,24 @@ namespace SnackDash.Gameplay
                     FruitTakenAhead?.Invoke(cell, kind, column, crate);
                 }
             }
-            // Đuôi: xoá từ đốt xa đầu nhất để chỉ số gửi cho view vẫn đúng.
-            for (int i = tail.Count - 1; i >= 0; i--)
-            {
-                int segment = tail[i];
-                stack.Add(crate);
-                SegmentSnipped?.Invoke(segment, kind, column, crate);
-                _segments.RemoveAt(segment);
-                SegmentRemoved?.Invoke(segment);
-            }
-
-            _deliveredThisRun += plan.Count;
-            _toggleAfterSettle = column;
+            _deliveredThisRun += early;
             if (_pills.Count == 0) SpawnNextBatch();
             EnsureShutterProgress();
-            StartSettlingFullCrates(plan.Count * MagicCrateInterval);
+            if (tail.Count > 0)
+            {
+                // Trái trên đuôi đi đúng đường boomerang [user 20/10: xoá đốt ngay thì đốt sau trượt lên đè trái đang chờ bay]: các đốt
+                // được chọn đứng yên trong gió xoáy, mỗi trái bay theo lượt rồi đốt mới rời thân; bắt đầu sau lượt của trái trên bàn.
+                // Boomerang lấy đốt cùng loại gần đầu nhất, đúng các đốt planner đã chọn; xong thì khay đóng mở đổi cửa như sau một lần giao.
+                BoomerangThrown?.Invoke(column, tail);
+                _deliveryColumn = column;
+                _deliverFromTail = true;
+                _boomerang = true;
+                _boomerangLeft = tail.Count;
+                _deliveryTimer = BoomerangInterval - early * MagicCrateInterval;
+                return true;
+            }
+            _toggleAfterSettle = column;
+            StartSettlingFullCrates(early * MagicCrateInterval);
             return true;
         }
 
