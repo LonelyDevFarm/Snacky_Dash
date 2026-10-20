@@ -34,7 +34,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: -0.000011444, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6379680553711476749
@@ -66,7 +66,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_Sprite: {fileID: 21300000, guid: 3f2c653e129ef4e4a8d6fb2ea7e1dfe9, type: 2}
-  m_Type: 0
+  m_Type: 1
   m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
@@ -165,7 +165,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -317,7 +317,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -1073,6 +1073,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayButton
       objectReference: {fileID: 0}
+    - target: {fileID: 5008796673867995622, guid: 573b6522c713ae842a67cd55170dca37, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1105,6 +1109,14 @@ PrefabInstance:
     - target: {fileID: 3146389448153646679, guid: 787491de477201144ba57340501eef81, type: 3}
       propertyPath: m_Name
       value: Popup_Container
+      objectReference: {fileID: 0}
+    - target: {fileID: 4060985874398180545, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 5572989558432388985, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 6312263143091152847, guid: 787491de477201144ba57340501eef81, type: 3}
       propertyPath: m_Pivot.x
@@ -1186,6 +1198,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7909728981537834592, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4294965469
+      objectReference: {fileID: 0}
+    - target: {fileID: 7909728981537834592, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 8871240293915523836, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4294960578
+      objectReference: {fileID: 0}
+    - target: {fileID: 8871240293915523836, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
@@ -1229,6 +1257,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1917710502313848900}
     m_Modifications:
+    - target: {fileID: 569672131105172409, guid: 38ea80fec3bb72646a2a2752a87a3005, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 6137314080531463561, guid: 38ea80fec3bb72646a2a2752a87a3005, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5

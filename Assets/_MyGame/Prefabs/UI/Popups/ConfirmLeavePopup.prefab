@@ -74,7 +74,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4278230517
   m_fontColor: {r: 0.9607843, g: 0.6156863, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -87,7 +87,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -208,7 +208,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4282731007
   m_fontColor: {r: 1, g: 0.286, b: 0.271, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -221,7 +221,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -527,7 +527,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4287653956
   m_fontColor: {r: 0.26666668, g: 0.40784314, b: 0.5647059, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -540,7 +540,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -682,8 +682,9 @@ MonoBehaviour:
   hearts: {fileID: 7767054654801212787}
   heartTemplate: {fileID: 3522567281133524165}
   heartGap: 135
-  heartsWidth: 940
   heartSize: 125
+  loseBlinkRate: 0.65
+  loseBlinkMinAlpha: 0.25
   countdown: {fileID: 7777120791642168495}
   fullText: FULL
   continueButton: {fileID: 3019049623269258464}
@@ -796,7 +797,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -1077,6 +1078,10 @@ PrefabInstance:
     - target: {fileID: 319351306167149003, guid: 3a64eba79c2fe8b438578c56efb065f2, type: 3}
       propertyPath: m_text
       value: ARE YOU SURE?
+      objectReference: {fileID: 0}
+    - target: {fileID: 319351306167149003, guid: 3a64eba79c2fe8b438578c56efb065f2, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 4353460776793435389, guid: 3a64eba79c2fe8b438578c56efb065f2, type: 3}
       propertyPath: m_Pivot.x
