@@ -211,7 +211,7 @@ namespace SnackDash.Editor.LevelTools
             level.wallHealth = 3;
             level.risingBlockDeliveriesToLower = 3;
             for (int c = 0; c < stops.Count; c++) level.columns.Add(new CrateColumnDefinition());
-            var list = UnityEditor.AssetDatabase.LoadAssetAtPath<LevelList>(Restore.LevelDataImporter.LevelListPath);
+            var list = UnityEditor.AssetDatabase.LoadAssetAtPath<LevelList>(LevelGenerator.LevelListPath);
             var sameTier = list.levels.Take(350).Where(l => l != null && (l.difficulty >= 4) == (difficulty >= 4) && (l.difficulty >= 2) == (difficulty >= 2)).ToList();
             LevelParts.FillFruit(level, sameTier.OrderBy(_ => random.Next()).Take(2).ToList(), random, mixWindow);
             why = null;

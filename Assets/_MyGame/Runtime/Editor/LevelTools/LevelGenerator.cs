@@ -17,6 +17,10 @@ namespace SnackDash.Editor.LevelTools
     /// </summary>
     public static class LevelGenerator
     {
+        /// <summary>Danh sách màn chơi (350 màn gốc bản 1.15, màn 43 và 93 đã đổi chỗ, rồi các màn sinh ra).</summary>
+        public const string LevelListPath = "Assets/_MyGame/Data/Levels/LevelList.asset";
+        /// <summary>Số màn gốc đã nhập (cohort ab-vo-co bản 1.15) đứng đầu danh sách màn.</summary>
+        public const int OriginalLevelCount = 350;
         public const string Folder = "Assets/_MyGame/Data/Levels/Generated/";
         public const string MapFolder = Folder + "Maps/";
         private const string DatabasePath = "Assets/_MyGame/Data/Levels/TileDefinitionDatabase.asset";

@@ -601,7 +601,7 @@ namespace SnackDash.Tests
             Assert.IsFalse(session.IsMoving, "waits where it came up");
         }
 
-        /// <summary>Every imported level (cohort ab-vo-co of v1.15, LevelDataImporter.LevelCount levels).</summary>
+        /// <summary>Every imported level (cohort ab-vo-co of v1.15, LevelGenerator.OriginalLevelCount levels).</summary>
         private static IEnumerable<string> ImportedLevels() => LevelFiles().Select(System.IO.Path.GetFileNameWithoutExtension);
 
         /// <summary>Màn gốc (Definitions) và màn Level Generator đã sinh (Generated), cùng qua mọi kiểm tra.</summary>

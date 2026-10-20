@@ -27,7 +27,7 @@ namespace SnackDash.UI
             new Entry { level = 26, icon = 4, name = "MYSTERY FRUIT", description = $"COLLECT THE <color={Highlight}>MYSTERY FRUITS</color> TO REVEAL WHAT'S INSIDE!" },
             new Entry { level = 31, icon = 5, name = "ARROWS", description = $"MAKES THE ROAD ONE WAY, <color={Highlight}>CHANGES THE DIRECTION</color> WHEN YOU PASS!" },
             new Entry { level = 41, icon = 6, name = "SHUTTER", description = $"<color={Highlight}>COLLECT FRUITS</color> TO REVEAL THE HIDDEN AREA!" },
-            // Gốc cho khối nâng hiện ở 43, trước khi thanh mở khoá tới: màn 43 đã đổi chỗ với 93 (LevelDataImporter.Swaps) [user].
+            // Gốc cho khối nâng hiện ở 43, trước khi thanh mở khoá tới: màn 43 đã đổi chỗ với 93 (lúc nhập dữ liệu gốc) [user].
             new Entry { level = 51, icon = 7, name = "BOLLARD", description = $"<color={Highlight}>RISES</color> WHEN YOU PASS THROUGH, <color={Highlight}>OPENS</color> BACK UP WHEN YOU MAKE DELIVERIES!" },
             new Entry { level = 61, icon = 8, name = "SWITCH BRIDGE", description = "USE THE CROSSWALK TO HIT THE SWITCH AND TOGGLE THE BRIDGES!" },
             new Entry { level = 71, icon = 9, name = "TOGGLE CRATE", description = $"EACH DELIVERY <color={Highlight}>TOGGLES</color> THIS CRATE OPEN OR CLOSED!" },

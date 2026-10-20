@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using SnackDash.Editor.Restore;
 using SnackDash.LevelSystem;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -52,7 +51,7 @@ namespace SnackDash.Editor.LevelTools
             }
 
             EditorGUILayout.Space();
-            var list = AssetDatabase.LoadAssetAtPath<LevelList>(LevelDataImporter.LevelListPath);
+            var list = AssetDatabase.LoadAssetAtPath<LevelList>(LevelGenerator.LevelListPath);
             EditorGUILayout.LabelField($"Màn đã sinh: {_generated.Count}", EditorStyles.boldLabel);
             using (new EditorGUILayout.HorizontalScope())
             {

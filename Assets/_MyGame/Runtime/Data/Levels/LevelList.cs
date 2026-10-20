@@ -4,8 +4,8 @@ using UnityEngine;
 namespace SnackDash.LevelSystem
 {
     /// <summary>
-    /// Danh sách màn theo thứ tự chơi (cohort ab-vo-co), asset Data/Levels/LevelList.asset do menu
-    /// SnackDash/Restore/Import Level Data ghi. GameBootstrap, HomeView, LevelManager đọc qua LevelProgress.
+    /// Danh sách màn theo thứ tự chơi (cohort ab-vo-co), asset Data/Levels/LevelList.asset: 350 màn gốc
+    /// (nhập một lần từ bản gốc; công cụ nhập đã gỡ 20/10), Level Generator thêm màn sinh ra. GameBootstrap, HomeView, LevelManager đọc qua LevelProgress.
     /// </summary>
     public class LevelList : ScriptableObject
     {

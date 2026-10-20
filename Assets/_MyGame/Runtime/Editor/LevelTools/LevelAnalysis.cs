@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using SnackDash.Editor.Restore;
 using SnackDash.Gameplay;
 using SnackDash.LevelSystem;
 using UnityEditor;
@@ -48,7 +47,7 @@ namespace SnackDash.Editor.LevelTools
         public static void Start(int from, int to)
         {
             _database = AssetDatabase.LoadAssetAtPath<TileDefinitionDatabase>(DatabasePath);
-            _list = AssetDatabase.LoadAssetAtPath<LevelList>(LevelDataImporter.LevelListPath);
+            _list = AssetDatabase.LoadAssetAtPath<LevelList>(LevelGenerator.LevelListPath);
             _queue = Enumerable.Range(from, to - from + 1).Where(n => !Skipped.Contains(n) && n <= _list.levels.Count).ToList();
             Done = 0;
             File.WriteAllText("Temp/analysis_deaths.tsv", "level\ttier\twon\tmoves\tnodes\tdeaths\tavgLength\tavgCycle\tshortLoop%\t" + string.Join("\t", Features.Select(f => "near_" + f)) + "\n");
@@ -209,7 +208,7 @@ namespace SnackDash.Editor.LevelTools
         public static string Routes(int from, int to)
         {
             _database = AssetDatabase.LoadAssetAtPath<TileDefinitionDatabase>(DatabasePath);
-            _list = AssetDatabase.LoadAssetAtPath<LevelList>(LevelDataImporter.LevelListPath);
+            _list = AssetDatabase.LoadAssetAtPath<LevelList>(LevelGenerator.LevelListPath);
             var sb = new StringBuilder("level\ttier\tcrates\troutesOpen\troutesAllClosed\tkind\tgroup\tcells\tdrop\tdistCrate\tcrateLoopOpen\tcrateLoopShut\tjunctionLoopOpen\tjunctionLoopShut\tjunctionsNoLoop\n");
             for (int number = from; number <= to && number <= _list.levels.Count; number++)
             {
