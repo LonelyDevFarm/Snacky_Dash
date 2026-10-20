@@ -61,40 +61,42 @@ MonoBehaviour:
   batches:
   - pills:
     - kind: 5
-      count: 16
+      count: 14
     - kind: 3
       count: 9
-    - kind: 1
-      count: 13
+    - kind: 2
+      count: 9
     - kind: 0
+      count: 6
+    - kind: 1
       count: 7
   - pills:
     - kind: 1
-      count: 19
-    - kind: 0
-      count: 15
+      count: 14
     - kind: 5
-      count: 2
+      count: 14
     - kind: 2
-      count: 9
-  - pills:
+      count: 12
     - kind: 0
-      count: 11
+      count: 5
+  - pills:
+    - kind: 1
+      count: 17
+    - kind: 0
+      count: 13
+    - kind: 2
+      count: 8
+    - kind: 5
+      count: 7
+  - pills:
     - kind: 5
       count: 10
     - kind: 1
-      count: 15
-    - kind: 2
-      count: 9
-  - pills:
-    - kind: 5
-      count: 17
-    - kind: 1
-      count: 7
-    - kind: 2
-      count: 18
+      count: 16
     - kind: 0
-      count: 3
+      count: 12
+    - kind: 2
+      count: 7
   timeLimitSeconds: 0
   speedOverride: 0
   wallHealth: 3
@@ -116,4 +118,6 @@ MonoBehaviour:
     th\xEAm); th\u1EAFng kh\xF4ng booster: 218 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 247
     th\u1EBF c\u1EDD; th\xEAm 5 khay: 180 tr\xE1i, 4 \u0111\u1EE3t ~45 tr\xE1i/\u0111\u1EE3t;
     th\u1EAFng kh\xF4ng booster: 223 l\u01B0\u1EE3t vu\u1ED1t, t\xECm 232 th\u1EBF
-    c\u1EDD"
+    c\u1EDD; r\u1EA3i tr\xE1i ki\u1EC3u m\xE0n g\u1ED1c (xen k\u1EBD, khay c\xF9ng
+    m\xE0u ch\u1EC9 \u0111\u1EE7 m\u1ED9t); th\u1EAFng kh\xF4ng booster: 319 l\u01B0\u1EE3t
+    vu\u1ED1t, t\xECm 344 th\u1EBF c\u1EDD"

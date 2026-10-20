@@ -513,19 +513,96 @@ namespace SnackDash.Editor.LevelTools
             return changed;
         }
 
-        /// <summary>Chia lại trái của các khay thành <paramref name="waves"/> đợt đều nhau, theo thứ tự khay cần (LevelRemixer.RegroupWaves).</summary>
-        internal static void Regroup(LevelDefinition level, int waves, System.Random random, int mixWindow)
+        /// <summary>Phần mỗi đợt dành cho khay đang mở; còn lại cho khay chưa mở (màn gốc: ~50% trái đợt đầu thuộc khay chưa mở).</summary>
+        public const float OpenShare = 0.5f;
+
+        /// <summary>
+        /// Chia trái của các khay thành <paramref name="waves"/> đợt đều nhau như màn gốc [user 20/10; đo 337 màn gốc rải ngẫu nhiên]:
+        /// giả lập người chơi giao ngay khi được; mỗi đợt ~<see cref="OpenShare"/> cho khay đang mở — hai khay đang mở cùng màu thì chỉ
+        /// đủ một khay (+0-2 trái), chia cho cả hai là thiếu — phần còn lại cho khay chưa mở theo số trái mỗi loại còn cần (đợt đầu đủ mọi
+        /// loại: 90% màn gốc); đợt cuối rải hết phần còn lại. Tổng trái mỗi loại đúng bằng các khay cần.
+        /// </summary>
+        public static void Regroup(LevelDefinition level, int waves, System.Random random, int mixWindow = 12)
         {
-            int total = level.columns.Sum(c => c.crates.Sum(k => k.requiredCount));
-            var any = level.columns.SelectMany(c => c.crates).First().kind;
+            var columns = level.columns.Where(c => !c.isExtra && c.crates.Count > 0).ToList();
+            var remaining = new Dictionary<PillKind, int>();
+            foreach (var crate in level.columns.SelectMany(c => c.crates))
+                remaining[crate.kind] = (remaining.TryGetValue(crate.kind, out int r) ? r : 0) + crate.requiredCount;
+            int total = remaining.Values.Sum();
+            var index = new int[columns.Count];
+            var fill = new int[columns.Count];
+            var pool = new Dictionary<PillKind, int>(); // trái đã rải mà chưa giao (người chơi đang mang / nằm trên bàn)
+            int Pool(PillKind k) => pool.TryGetValue(k, out int v) ? v : 0;
             level.batches.Clear();
             for (int w = 0; w < waves; w++)
             {
                 int size = total / waves + (w < total % waves ? 1 : 0);
-                level.batches.Add(new SpawnBatchDefinition { pills = new List<PillCount> { new PillCount { kind = any, count = size } } });
+                var wave = new Dictionary<PillKind, int>();
+                int room = size;
+                void Give(PillKind k, int n)
+                {
+                    n = Mathf.Min(n, room, remaining.TryGetValue(k, out int left) ? left : 0);
+                    if (n <= 0) return;
+                    wave[k] = (wave.TryGetValue(k, out int had) ? had : 0) + n;
+                    remaining[k] -= n;
+                    room -= n;
+                }
+                if (w == waves - 1)
+                    foreach (var k in remaining.Keys.ToList()) { room = int.MaxValue; Give(k, remaining[k]); } // đợt cuối: hết phần còn lại
+                else
+                {
+                    // 1. Khay đang mở (một cột một khay): thiếu bao nhiêu thì cho; cùng màu nhiều khay thì chỉ đủ một khay.
+                    int openRoom = Mathf.RoundToInt(size * OpenShare);
+                    var open = new Dictionary<PillKind, List<int>>();
+                    for (int i = 0; i < columns.Count; i++)
+                        if (index[i] < columns[i].crates.Count)
+                        {
+                            var crate = columns[i].crates[index[i]];
+                            if (!open.TryGetValue(crate.kind, out var needs)) open[crate.kind] = needs = new List<int>();
+                            needs.Add(crate.requiredCount - fill[i]);
+                        }
+                    foreach (var pair in open.OrderBy(_ => random.Next()))
+                    {
+                        int need = pair.Value.Count >= 2 ? pair.Value.Max() + random.Next(0, 3) : pair.Value.Sum();
+                        int give = Mathf.Min(Mathf.Max(0, need - Pool(pair.Key)), openRoom);
+                        int before = room;
+                        Give(pair.Key, give);
+                        openRoom -= before - room;
+                    }
+                    // 2. Khay chưa mở: phần còn lại chia theo số trái mỗi loại còn cần; đợt đầu loại nào cũng có.
+                    var kinds = remaining.Where(p => p.Value > 0).Select(p => p.Key).OrderBy(_ => random.Next()).ToList();
+                    if (w == 0) foreach (var k in kinds) if (!wave.ContainsKey(k)) Give(k, Mathf.Min(3, Mathf.Max(1, room / Mathf.Max(1, kinds.Count))));
+                    for (int guard = 0; room > 0 && guard < 50; guard++)
+                    {
+                        int left = remaining.Values.Sum();
+                        if (left == 0) break;
+                        foreach (var k in kinds)
+                        {
+                            if (room <= 0) break;
+                            int share = Mathf.Max(1, Mathf.RoundToInt(room * remaining[k] / (float)left));
+                            Give(k, Mathf.Min(share, random.Next(1, share + 2)));
+                        }
+                    }
+                }
+                level.batches.Add(new SpawnBatchDefinition { pills = wave.Where(p => p.Value > 0).Select(p => new PillCount { kind = p.Key, count = p.Value }).ToList() });
+                // Người chơi giao ngay khi được: cập nhật khay và trái đang mang.
+                foreach (var p in wave) pool[p.Key] = Pool(p.Key) + p.Value;
+                for (bool progress = true; progress;)
+                {
+                    progress = false;
+                    for (int i = 0; i < columns.Count; i++)
+                    {
+                        if (index[i] >= columns[i].crates.Count) continue;
+                        var crate = columns[i].crates[index[i]];
+                        int take = Mathf.Min(Pool(crate.kind), crate.requiredCount - fill[i]);
+                        if (take <= 0) continue;
+                        pool[crate.kind] -= take;
+                        fill[i] += take;
+                        progress = true;
+                        if (fill[i] >= crate.requiredCount) { index[i]++; fill[i] = 0; }
+                    }
+                }
             }
-            var blank = TiledMap.Parse("{\"width\":1,\"height\":1,\"layers\":[]}");
-            LevelRemixer.RegroupWaves(level, blank, random, mixWindow);
         }
 
         /// <summary>Khung JSON Tiled tối thiểu mà TiledMap đọc (width, height, tilesets, layers name / data).</summary>
