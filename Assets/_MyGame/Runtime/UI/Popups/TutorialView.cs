@@ -9,19 +9,18 @@ using static SnackDash.UI.UiBuilder;
 namespace SnackDash.UI
 {
     /// <summary>
-    /// First-levels tutorial [video HuongDan7lvDau, user's phone test; original TutorialScenario_Redesign,
+    /// Hướng dẫn mấy màn đầu [video HuongDan7lvDau, bạn thử trên điện thoại; gốc TutorialScenario_Redesign,
     /// TutorialView_Redesign, TutorialController]:
-    /// - Level 1: a hand shows the first swipe (right, ForcedDirection 3) with "Swipe to Collect all the
-    ///   Berries!"; any other swipe does nothing [user].
-    /// - Level 1: once the second wave is out and the snake stops, "COLLECT ALL FRUITS TO MAKE THEM REGROW".
-    /// (The old version also had "BE CAREFUL NOT TO HIT YOURSELF..." on Level 3; the current one has not [user].)
-    /// - NEW ITEM! / NEW BOOSTER! cards when a level brings a mechanic or a booster (UnlockPopups).
-    /// - Level 3, on a bite (until the level is passed): "WHEN YOU HIT YOURSELF YOU WILL LOSE!" before NO WAY OUT.
-    /// Messages wait for the snake to stop (EnqueueOneOffPopup / OnPlayerStoppedForPopup), dim the
-    /// screen and go on a tap once "TAP TO CONTINUE!" has bounced in. They come back each time the level
-    /// is played until it is passed (the user quit and came back: the hand was there again).
-    /// The original is world-space (frame 9 x 3 units at y 17.1); here it is on the canvas at the
-    /// size the video shows (about two thirds of the screen wide, a third down).
+    /// - Màn 1: bàn tay chỉ cú vuốt đầu (sang phải, ForcedDirection 3) với "Swipe to Collect all the Berries!"; vuốt hướng
+    ///   khác không có tác dụng [user].
+    /// - Màn 1: khi đợt trái thứ hai ra và rắn dừng: "COLLECT ALL FRUITS TO MAKE THEM REGROW".
+    ///   (Bản cũ còn "BE CAREFUL NOT TO HIT YOURSELF..." ở màn 3; bản hiện tại không có [user].)
+    /// - Thẻ NEW ITEM! / NEW BOOSTER! khi màn mở cơ chế hay booster mới (UnlockPopups).
+    /// - Màn 3, khi cắn đuôi (tới khi qua màn): "WHEN YOU HIT YOURSELF YOU WILL LOSE!" trước NO WAY OUT.
+    /// Lời nhắn chờ rắn dừng (EnqueueOneOffPopup / OnPlayerStoppedForPopup), làm tối màn hình và đi tiếp khi chạm, sau khi
+    /// "TAP TO CONTINUE!" nảy vào. Chúng hiện lại mỗi lần chơi màn đó cho tới khi qua màn (bạn thoát rồi vào lại: bàn tay vẫn
+    /// có). Bản gốc đặt trong không gian thế giới (khung 9 x 3 đơn vị ở y 17.1); ở đây đặt trên canvas đúng cỡ video (rộng
+    /// khoảng 2/3 màn hình, cách trên 1/3).
     /// </summary>
     public class TutorialView : MonoBehaviour
     {

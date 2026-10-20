@@ -3,10 +3,10 @@ using UnityEngine;
 namespace SnackDash.Audio
 {
     /// <summary>
-    /// Short vibrations when the Haptics switch is on (GameSettings). The original goes through Nice Vibrations with a
-    /// throttle (HapticService, HapticThrottleConfigurator): here the Android vibrator with a strength (VibrationEffect,
-    /// Android 8+; a plain short buzz before that) and at most one buzz per <see cref="MinInterval"/>, so eating a row
-    /// of fruit or a delivery stream ticks instead of droning. iOS: Handheld.Vibrate. Nothing in the editor.
+    /// Rung ngắn khi công tắc Rung bật (GameSettings). Bản gốc dùng Nice Vibrations có giới hạn nhịp (HapticService,
+    /// HapticThrottleConfigurator); ở đây dùng bộ rung Android có độ mạnh (VibrationEffect, Android 8+; trước đó rung ngắn
+    /// thường) và tối đa một lần mỗi <see cref="MinInterval"/>, nên ăn một hàng trái hay giao liền mạch sẽ "tích tích" chứ
+    /// không rung rền. iOS: Handheld.Vibrate. Trong Editor không rung.
     /// </summary>
     public static class Haptics
     {

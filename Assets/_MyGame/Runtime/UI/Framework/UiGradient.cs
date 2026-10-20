@@ -4,8 +4,8 @@ using UnityEngine.UI;
 namespace SnackDash.UI
 {
     /// <summary>
-    /// A top-to-bottom colour fade over a graphic (multiplied with its colour): the Snacky Pass lanes, which go a shade
-    /// lighter or darker downward in the videos (the original draws them with layered glows).
+    /// Lớp màu chuyển từ trên xuống dưới phủ lên một graphic (nhân với màu của nó): các làn Snacky Pass, trong video sáng / tối
+    /// dần xuống dưới (bản gốc vẽ bằng nhiều lớp glow chồng nhau).
     /// </summary>
     [RequireComponent(typeof(Graphic))]
     public class UiGradient : BaseMeshEffect

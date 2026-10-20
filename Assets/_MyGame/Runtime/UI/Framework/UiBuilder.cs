@@ -4,7 +4,10 @@ using UnityEngine.UI;
 
 namespace SnackDash.UI
 {
-    /// <summary>Small helpers to build uGUI hierarchies in code from the original sprites.</summary>
+    /// <summary>
+    /// Hàm phụ nhỏ dựng cây uGUI bằng code từ sprite gốc. Chỉ còn dùng cho thứ sinh lặp lại (hạt, pháo giấy, xu bay) và vài
+    /// màn hướng dẫn cũ; giao diện chính là prefab.
+    /// </summary>
     public static class UiBuilder
     {
         /// <summary>Screen-space canvas at the original reference resolution (1080x1920, match height).</summary>

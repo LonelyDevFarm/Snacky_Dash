@@ -72,7 +72,7 @@ namespace SnackDash.Bootstrap
             if (loseFlow != null) loseFlow.Bind(Session, RestartLevel, cameraFitter);
             if (hud != null) hud.Bind(Session, LevelNumber);
             if (hud != null && hud.Ladybug != null) hud.Ladybug.Bind(Session); // sự kiện Lucky Ladybug, tách khỏi luật chơi
-            if (boosters != null) boosters.Bind(Session, LevelNumber, board, cameraFitter);
+            if (boosters != null) boosters.Bind(Session, LevelNumber, board, cameraFitter, snake);
             if (tutorial != null) tutorial.Bind(Session, LevelNumber);
             if (combo != null) combo.Bind(Session, crates, hud);
             board.gameObject.AddComponent<GuidanceView>().Bind(Session, LevelNumber, guidanceArrow, () => tutorial != null && tutorial.HidesBoosterBar); // mũi tên tím sau 3 s đứng yên, Level 1-7

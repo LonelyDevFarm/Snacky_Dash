@@ -4,7 +4,9 @@ using UnityEngine;
 
 namespace SnackDash.Economy
 {
-    /// <summary>Where the economy keeps its numbers: PlayerPrefs in the game, memory in tests.</summary>
+    /// <summary>
+    /// Nơi kinh tế lưu các con số: PlayerPrefs khi chạy game, bộ nhớ khi chạy test.
+    /// </summary>
     public interface IStore
     {
         int GetInt(string key, int fallback);

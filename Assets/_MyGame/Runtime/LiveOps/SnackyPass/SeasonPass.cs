@@ -2,7 +2,9 @@ using System;
 
 namespace SnackDash.Economy
 {
-    /// <summary>A Snacky Pass stage reward: a plain reward, a chest (its contents) or the 8 lives perk of stage 1.</summary>
+    /// <summary>
+    /// Phần thưởng một mốc Snacky Pass: phần thưởng thường, rương (kèm thứ bên trong) hoặc quyền 8 tim của mốc 1.
+    /// </summary>
     [Serializable]
     public struct PassReward
     {

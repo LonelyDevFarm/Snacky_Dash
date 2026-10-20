@@ -4,8 +4,8 @@ using UnityEngine;
 namespace SnackDash.Editor.Setup
 {
     /// <summary>
-    /// Saved data for testing (menu SnackDash/Test). Everything the game remembers lives in PlayerPrefs:
-    /// level progress, coins, lives, streak, booster stock, settings, and the one-time tutorials and gifts.
+    /// Dữ liệu lưu để thử (menu SnackDash/Test). Mọi thứ game nhớ đều nằm trong PlayerPrefs: tiến độ màn, xu, tim, chuỗi
+    /// thắng, số booster, cài đặt, và các hướng dẫn / quà chỉ hiện một lần.
     /// </summary>
     public static class TestDataMenu
     {

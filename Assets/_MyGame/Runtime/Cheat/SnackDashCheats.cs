@@ -11,11 +11,10 @@ using Object = UnityEngine.Object;
 namespace SnackDash.Cheat
 {
     /// <summary>
-    /// Snack Dash's commands for the shared cheat panel (Assets/CheatSystem), registered once at start:
-    /// Game (win / lose / restart, go to a level), Items (coins, lives, boosters, streak), Events (weekly missions,
-    /// Snacky Pass, Jungle Heist), Other (clock, saved data). The in-level commands only show in the Game scene.
-    /// While the panel is open the swipes are off, so scrolling it does not move the snake.
-    /// Only in the Editor and Development Builds (CheatManager.Enabled).
+    /// Lệnh của Snack Dash cho bảng cheat dùng chung (Assets/CheatSystem), đăng ký một lần lúc khởi động: Game (thắng / thua /
+    /// chơi lại, tới màn), Items (xu, tim, booster, chuỗi thắng), Events (nhiệm vụ tuần, Snacky Pass, Jungle Heist, Lucky
+    /// Ladybug), Other (đồng hồ, dữ liệu đã lưu). Lệnh trong màn chỉ hiện ở scene Game. Khi bảng mở thì tắt vuốt để cuộn bảng
+    /// không làm rắn chạy. Chỉ có trong Editor và bản Development Build (CheatManager.Enabled).
     /// </summary>
     public static class SnackDashCheats
     {

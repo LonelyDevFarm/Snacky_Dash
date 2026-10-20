@@ -455,7 +455,7 @@ namespace SnackDash.UI
                 for (int i = 0; i < flying.Count; i++) flying[i].item.localPosition = starts[i] + Vector3.up * 25f * t;
             }, true);
 
-            var home = FindObjectOfType<HomeTopBar>();
+            var home = SnackDash.Core.Services.Get<HomeTopBar>(); // HomeTopBar tự đăng ký khi Home mở
             int pending = 0;
             foreach (var (item, kind) in flying)
             {

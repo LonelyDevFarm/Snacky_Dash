@@ -4,9 +4,8 @@ using UnityEngine;
 namespace SnackDash.Bootstrap
 {
     /// <summary>
-    /// Which level the player is on, saved in PlayerPrefs. Skipped levels (LevelList.skipped) are
-    /// passed over. After the last imported level play wraps to the first (the original goes on to
-    /// more levels; only 13 are imported so far).
+    /// Người chơi đang ở màn nào, lưu trong PlayerPrefs. Màn bị bỏ qua (LevelList.skipped) được nhảy qua. Chơi hết màn cuối
+    /// (350 màn gốc + màn sinh ra) thì quay lại màn đầu.
     /// </summary>
     public static class LevelProgress
     {

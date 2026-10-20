@@ -3,8 +3,8 @@ using UnityEngine;
 namespace SnackDash.Audio
 {
     /// <summary>
-    /// UI sounds and the Home music for both scenes (the in-level sounds stay in GameAudio). Lives across
-    /// scene loads; follows the Music and Sound switches (GameSettings).
+    /// Âm thanh giao diện và nhạc Home cho cả hai scene (âm thanh trong màn do GameAudio lo). Sống qua các lần đổi scene;
+    /// theo công tắc Nhạc và Âm thanh (GameSettings).
     /// </summary>
     public class SoundPlayer : MonoBehaviour
     {

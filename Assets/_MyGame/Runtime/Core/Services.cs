@@ -19,6 +19,12 @@ namespace SnackDash.Core
 
         public static bool Has<T>() where T : class => Map.ContainsKey(typeof(T));
 
+        /// <summary>Gỡ <paramref name="service"/> khi nó bị huỷ (chỉ gỡ nếu đúng là cái đang đăng ký).</summary>
+        public static void Unregister<T>(T service) where T : class
+        {
+            if (Map.TryGetValue(typeof(T), out var current) && ReferenceEquals(current, service)) Map.Remove(typeof(T));
+        }
+
         public static void Clear() => Map.Clear();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

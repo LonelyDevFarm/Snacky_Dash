@@ -5,10 +5,9 @@ using UnityEngine;
 namespace SnackDash.Audio
 {
     /// <summary>
-    /// Plays the original sound names on game events. The event-to-name pairing follows the names in
-    /// the original sound table (Swipe, GetPill1-3, ShootToCrate, Complete_Crate, CrateConfetti,
-    /// SpawnPill, Confetti, Music_Core); the original call sites are stripped, so the pairing itself is
-    /// inferred from those names.
+    /// Phát âm thanh gốc theo sự kiện màn chơi. Cặp sự kiện ↔ tên âm thanh theo bảng âm thanh gốc (Swipe, GetPill1-3,
+    /// ShootToCrate, Complete_Crate, CrateConfetti, SpawnPill, Confetti, Music_Core); chỗ gọi trong bản gốc đã bị lược nên
+    /// cặp ghép được suy ra từ chính các tên đó.
     /// </summary>
     public class GameAudio : MonoBehaviour
     {

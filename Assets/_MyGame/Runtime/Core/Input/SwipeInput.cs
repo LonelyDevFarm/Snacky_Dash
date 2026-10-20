@@ -6,14 +6,11 @@ using UnityEngine;
 namespace SnackDash.Input
 {
     /// <summary>
-    /// Swipe detection matching the original setup (Game.unity): LeanTouch swipeThreshold 18 px at
-    /// referenceDpi 200, tapThreshold 0.2 s, and a LeanFingerFlick in "Multiple" mode - a finger that
-    /// stays down can flick again and again; each time it travels the threshold within the last
-    /// 0.2 s a new direction fires. Direction snaps to the dominant axis (SwipeController
-    /// _maxSnapAngle = 45). Arrow keys / WASD work too, for testing in the Editor.
-    /// Each swipe says whether it is a further flick of a finger that stayed down: the game only
-    /// buffers the first flick of a touch (see GameSession.RequestMove).
-    /// Uses the legacy Input Manager (the project's active input handling).
+    /// Nhận vuốt giống cài đặt gốc (Game.unity): LeanTouch swipeThreshold 18 px ở referenceDpi 200, tapThreshold 0.2 s, và
+    /// LeanFingerFlick chế độ "Multiple": ngón tay giữ trên màn có thể vuốt tiếp nhiều lần; mỗi lần đi đủ ngưỡng trong 0.2 s
+    /// gần nhất thì ra một hướng mới. Hướng làm tròn theo trục trội (SwipeController _maxSnapAngle = 45). Phím mũi tên / WASD
+    /// cũng chạy được để thử trong Editor. Mỗi lần vuốt báo có phải là vuốt tiếp của ngón đang giữ không: game chỉ nhớ trước
+    /// lần vuốt đầu của một lần chạm (xem GameSession.RequestMove). Dùng Input Manager cũ (cách nhận input đang bật của dự án).
     /// </summary>
     public class SwipeInput : MonoBehaviour
     {

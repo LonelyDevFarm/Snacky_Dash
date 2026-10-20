@@ -8,11 +8,10 @@ using static SnackDash.UI.UiBuilder;
 namespace SnackDash.UI
 {
     /// <summary>
-    /// The extra crate of a level (levels 8, 13, 18, 29, 30, 33, 39): its pit shows the wooden floor and a "TAP TO UNLOCK"
-    /// speech bubble (ExtraCratePadlock in the original Game.unity, 170 x 80, pops in over 0.3 s, OutBack). Tapping it
-    /// (while the snake is idle) opens EXTRA CRATE, Buy 700 [user]. Once paid: the trail flies to the crate
-    /// (ExtraCrate_Trail_FX, 1 s), the crate opens (Particle_Extra_Crate) and the waiting crates are shared out
-    /// (GameSession.UnlockExtraColumn). Input is locked meanwhile, as the original does (AcquireUnlockInputBlock).
+    /// Khay phụ của màn (màn 8, 13, 18, 29, 30, 33, 39): hố của nó hiện sàn gỗ và bóng nói "TAP TO UNLOCK" (ExtraCratePadlock
+    /// trong Game.unity gốc, 170 x 80, nảy vào trong 0.3 s, OutBack). Chạm (khi rắn đứng yên) mở EXTRA CRATE, mua 700 [user].
+    /// Trả xong: vệt bay tới khay (ExtraCrate_Trail_FX, 1 s), khay mở (Particle_Extra_Crate) và các khay đang chờ được chia
+    /// lại (GameSession.UnlockExtraColumn). Khoá input trong lúc đó như bản gốc (AcquireUnlockInputBlock).
     /// </summary>
     public class ExtraCrateView : MonoBehaviour
     {

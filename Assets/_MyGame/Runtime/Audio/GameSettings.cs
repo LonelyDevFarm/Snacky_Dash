@@ -4,8 +4,8 @@ using UnityEngine;
 namespace SnackDash.Audio
 {
     /// <summary>
-    /// The settings popup's switches (original SettingsPopup: Music, Haptics, Sound), saved in PlayerPrefs
-    /// so the Home and Game scenes share them.
+    /// Các công tắc của popup Cài đặt (SettingsPopup gốc: Nhạc, Rung, Âm thanh), lưu trong PlayerPrefs để Home và Game
+    /// dùng chung.
     /// </summary>
     public static class GameSettings
     {

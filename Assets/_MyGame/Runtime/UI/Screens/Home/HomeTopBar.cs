@@ -68,7 +68,10 @@ namespace SnackDash.UI
             coinsButton.onClick.AddListener(() => CoinsClicked?.Invoke());
             livesButton.onClick.AddListener(() => { if (!PlayerEconomy.Shared.InfiniteLives) UI.Show<LivesPopup>(); });
             settingsButton.onClick.AddListener(() => UI.Show<SettingsPopup>());
+            Core.Services.Register(this); // popup sự kiện cho xu / tim bay về các ô của thanh này
         }
+
+        private void OnDestroy() => Core.Services.Unregister(this);
 
         private void OnEnable()
         {

@@ -9,12 +9,10 @@ using static SnackDash.UI.UiBuilder;
 namespace SnackDash.UI
 {
     /// <summary>
-    /// Praise for crates filled one after another in one go (original ComboView, LocData combo_N_text_option_*):
-    /// from the second crate of a run [user] a word pops up with "+N" coins (the Nth crate of the run earns
-    /// N-1), and once the run is over "TOTAL +sum" (video: four crates in one delivery, +1 +2 +3, "TOTAL +6"). The coins are for show
-    /// until there is a coin economy [user]. A run ends when the snake moves again or the deliveries have
-    /// settled. Tier thresholds are stripped from the build: 2-4 crates tier 1 (video), 5-6 tier 2, 7+ tier 3
-    /// (inferred). Texts use the original "Combo - BG" / "Combo - Base" presets.
+    /// Lời khen khi lấp đầy nhiều khay liên tiếp trong một lần (ComboView gốc, LocData combo_N_text_option_*): từ khay thứ hai
+    /// của chuỗi [user] hiện một chữ kèm "+N" xu (khay thứ N của chuỗi được N-1), hết chuỗi thì "TOTAL +tổng" (video: bốn khay
+    /// trong một lần giao, +1 +2 +3, "TOTAL +6"). Chuỗi kết thúc khi rắn chạy tiếp hoặc việc giao đã xong. Ngưỡng bậc bị lược
+    /// khỏi bản build: 2-4 khay bậc 1 (video), 5-6 bậc 2, 7+ bậc 3 (suy ra). Chữ dùng preset gốc "Combo - BG" / "Combo - Base".
     /// </summary>
     public class ComboView : MonoBehaviour
     {

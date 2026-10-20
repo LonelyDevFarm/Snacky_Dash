@@ -3,12 +3,12 @@ using System;
 namespace SnackDash.Economy
 {
     /// <summary>
-    /// JUNGLE HEIST (the original LavaQuest feature, opens at Level 35): join, then win 7 levels in a row; you start
-    /// with 100 players and fewer stay on after each step; one lost level fails the challenge. Those who finish share the
-    /// grand prize of 10 000 coins (texts of Popup_Lava_Quest_Ftue / _Join). It runs in cycles: won or failed, "Next
-    /// Jungle Heist will start in:" the end of the cycle (Popup_Lava_Quest_Ended_*), and the widget counts that time down.
-    /// The survivors after each step and the cycle's length come from the original's server (LavaQuestRunSnapshot
-    /// .SurvivorsPerStep, CurrentCycleDuration): <see cref="SurvivorsPerStep"/> and <see cref="CycleHours"/> are stand-ins.
+    /// JUNGLE HEIST (tính năng LavaQuest của bản gốc, mở ở màn 35): tham gia rồi thắng 7 màn liên tiếp; bắt đầu với 100 người
+    /// chơi, mỗi bước còn lại ít hơn; thua một màn là trượt thử thách. Người về đích chia giải 10 000 xu (chữ của
+    /// Popup_Lava_Quest_Ftue / _Join). Chạy theo vòng: thắng hay trượt đều hiện "Next Jungle Heist will start in:" tới hết vòng
+    /// (Popup_Lava_Quest_Ended_*), widget đếm ngược thời gian đó. Số người còn lại sau mỗi bước và độ dài vòng bản gốc lấy từ
+    /// máy chủ (LavaQuestRunSnapshot.SurvivorsPerStep, CurrentCycleDuration): <see cref="SurvivorsPerStep"/> và
+    /// <see cref="CycleHours"/> là số thay thế.
     /// </summary>
     public sealed class JungleHeist
     {

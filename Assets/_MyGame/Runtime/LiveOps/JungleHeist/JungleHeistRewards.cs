@@ -60,7 +60,7 @@ namespace SnackDash.UI
         {
             if (JungleHeist.Shared.ClaimPrize())
             {
-                var home = FindObjectOfType<HomeTopBar>();
+                var home = SnackDash.Core.Services.Get<HomeTopBar>(); // HomeTopBar tự đăng ký khi Home mở
                 if (home != null) home.FlyCoins(coins.position, JungleHeist.Share);
             }
             Close();

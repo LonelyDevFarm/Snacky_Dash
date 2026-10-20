@@ -4,9 +4,9 @@ using UnityEngine.UI;
 namespace SnackDash.UI
 {
     /// <summary>
-    /// A band of light sweeping over a graphic and again after a pause, as UIEffect's UIShiny in the original (claimable
-    /// mission rows, unlocked Home widgets and their CLAIM bars). Writes each vertex's place across the graphic (along the
-    /// rotation) in TEXCOORD1.x for the UI/Shiny shader and moves the band.
+    /// Một dải sáng quét qua graphic rồi lặp lại sau một quãng nghỉ, như UIShiny của UIEffect trong bản gốc (dòng nhiệm vụ nhận
+    /// được, widget Home vừa mở và thanh CLAIM). Ghi vị trí từng đỉnh dọc graphic (theo góc xoay) vào TEXCOORD1.x cho shader
+    /// UI/Shiny rồi di chuyển dải sáng.
     /// </summary>
     [RequireComponent(typeof(Graphic))]
     public class UiShiny : BaseMeshEffect

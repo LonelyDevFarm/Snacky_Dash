@@ -4,7 +4,9 @@ using UnityEngine;
 
 namespace SnackDash.Audio
 {
-    /// <summary>Named sounds with volume and pitch. Generated from the original sound table in Main.unity.</summary>
+    /// <summary>
+    /// Bảng âm thanh có tên, kèm âm lượng và cao độ. Tạo từ bảng âm thanh gốc trong Main.unity.
+    /// </summary>
     [CreateAssetMenu(menuName = "SnackDash/Sound Library")]
     public class SoundLibrary : ScriptableObject
     {

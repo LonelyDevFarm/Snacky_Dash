@@ -5,8 +5,8 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Minimal coroutine tweens. Easing formulas follow DOTween, whose Ease ids are what the
-    /// original serialized (3 = OutSine, 26 = InBack, 27 = OutBack, with an overshoot value).
+    /// Tween tối giản chạy bằng coroutine. Công thức đường cong theo DOTween, vì bản gốc lưu mã Ease của DOTween (3 = OutSine,
+    /// 26 = InBack, 27 = OutBack, kèm độ vượt).
     /// </summary>
     public static class Tween
     {

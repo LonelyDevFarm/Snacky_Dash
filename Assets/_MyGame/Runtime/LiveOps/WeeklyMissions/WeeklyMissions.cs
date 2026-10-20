@@ -3,7 +3,9 @@ using System.Collections.Generic;
 
 namespace SnackDash.Economy
 {
-    /// <summary>What a weekly mission counts; numbered as the original MissionGoalType.</summary>
+    /// <summary>
+    /// Thứ một nhiệm vụ tuần đếm; đánh số theo MissionGoalType gốc.
+    /// </summary>
     public enum MissionGoal
     {
         CollectCoins = 0,

@@ -12,18 +12,17 @@ using static SnackDash.UI.UiBuilder;
 namespace SnackDash.UI
 {
     /// <summary>
-    /// Bottom booster bar and the booster flows [Lv7 and booster videos; original Game.unity
-    /// _bottom/button_list, Boosters_Pop-up_Tutorial, BoosterTutorialView, BoosterData, LocData].
-    /// - Bar: shovel, boomerang, undo (LVL. 11), magnet (LVL. 16); a centred row, slots 150.6 wide at
-    ///   scale 0.85; settings sit by the HUD bar, as on Level 27 (Man_Lose video).
-    /// - Tapping a booster: dark vignette, its banner (name + LocData description), the board refits
-    ///   between banner and bar. Shovel: a circle on every stop it can dig to, tap one. Boomerang: the
-    ///   delivery points' clickable arrows, tap one. Undo and Magnet: CONFIRM. X cancels.
-    /// - Unlock order 4, 7, 11, 16 [user]. Undo shows its disabled icon while it cannot be used.
-    /// - First use of each booster (BoosterData _forcedTutorialEntry): when its moment comes the screen
-    ///   dims, only that booster stays and a purple arrow bobs over it (once); the unlock gift shows FREE
-    ///   until it is used [user].
-    /// Stock lives in PlayerEconomy: 0 to start, 3 when a booster unlocks, bought 3 at a time or from Shop packs [user].
+    /// Thanh booster dưới đáy và các luồng booster [video Lv7 và booster; gốc Game.unity _bottom/button_list,
+    /// Boosters_Pop-up_Tutorial, BoosterTutorialView, BoosterData, LocData]:
+    /// - Thanh: xẻng, boomerang, hoàn tác (LVL. 11), nam châm (LVL. 16); hàng giữa màn, ô rộng 150.6 ở tỉ lệ 0.85; nút cài đặt
+    ///   nằm cạnh thanh HUD như màn 27 (video Man_Lose).
+    /// - Chạm một booster: viền tối, băng tên (tên + mô tả LocData), bàn chơi co lại giữa băng và thanh. Xẻng: vòng tròn trên
+    ///   mọi điểm dừng đào tới được, chạm một cái. Boomerang: mũi tên bấm được ở các điểm giao, chạm một cái. Hoàn tác và Nam
+    ///   châm: CONFIRM. X để huỷ.
+    /// - Thứ tự mở 4, 7, 11, 16 [user]. Hoàn tác hiện icon mờ khi chưa dùng được.
+    /// - Lần dùng đầu mỗi booster (BoosterData _forcedTutorialEntry): tới lúc thì màn tối, chỉ còn booster đó và mũi tên tím
+    ///   nhún phía trên (một lần); quà mở khoá hiện FREE tới khi dùng [user].
+    /// Số booster nằm trong PlayerEconomy: 0 lúc đầu, 3 khi mở khoá, mua 3 một lần hoặc từ gói trong Shop [user].
     /// </summary>
     public class BoosterBarView : MonoBehaviour
     {
@@ -93,12 +92,12 @@ namespace SnackDash.UI
             set => SnackDash.Economy.PlayerEconomy.Shared.SetBoosters("booster_boomerang", value);
         }
 
-        public void Bind(GameSession session, int levelNumber, BoardView board, BoardCameraFitter fitter)
+        public void Bind(GameSession session, int levelNumber, BoardView board, BoardCameraFitter fitter, SnakeView snake)
         {
             _session = session;
             _fitter = fitter;
             _camera = Camera.main;
-            _snake = FindObjectOfType<SnakeView>();
+            _snake = snake; // GameBootstrap đưa vào (không tìm khắp scene)
             _snakeHead = _snake != null ? _snake.transform.Find("SnakeHead") : null;
 
             var layout = Instantiate(barPrefab, transform);

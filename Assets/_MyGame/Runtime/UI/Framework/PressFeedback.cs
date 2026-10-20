@@ -5,8 +5,8 @@ using UnityEngine.EventSystems;
 namespace SnackDash.UI
 {
     /// <summary>
-    /// The original buttons' Feedbacks (Pointer Down / Pointer Up, scale 0.9 then back): the button dips
-    /// while held, springs back on release, with the Click sound and a light haptic.
+    /// Phản hồi bấm của nút gốc (Pointer Down / Pointer Up, co về 0.9 rồi trở lại): nút lún khi giữ, bật lại khi thả, kèm
+    /// tiếng Click và rung nhẹ.
     /// </summary>
     public class PressFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
