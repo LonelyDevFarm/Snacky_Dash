@@ -490,7 +490,7 @@ MonoBehaviour:
   sitScale: 0.55
   flyInTime: 2.2
   flyOutTime: 0.7
-  catchTime: 0.6
+  catchTime: 2.6
   hint: {fileID: 3818289025177929967}
   jar: {fileID: 0}
 --- !u!1 &8285215648053246658

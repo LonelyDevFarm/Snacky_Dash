@@ -41,7 +41,8 @@ namespace SnackDash.UI
         [SerializeField] private float sitScale = 0.55f;
         [Tooltip("Bay tới chậm cho người chơi kịp thấy bọ là gì [user 20/10: bay nhanh quá].")]
         [SerializeField] private float flyInTime = 2.2f;
-        [SerializeField] private float flyOutTime = 0.9f, catchTime = 1.5f;
+        [Tooltip("Bay vào lọ: tốc độ hơi nhanh hơn lúc bay tới (đường vòng dài ~1.3 lần) [user 20/10].")]
+        [SerializeField] private float flyOutTime = 0.9f, catchTime = 2.6f;
 
         [Tooltip("Gợi ý lúc bọ đậu (Body/Hint, tắt sẵn): quầng sáng, vòng sáng lan, sao bật lên — clip LB_Hint. Bọ chơi trạng thái Call (nhún vỗ cánh mỗi 4 giây) [user 20/10: thay bàn tay].")]
         [SerializeField] private GameObject hint;

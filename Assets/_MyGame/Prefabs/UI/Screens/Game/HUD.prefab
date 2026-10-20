@@ -370,7 +370,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 0.01
+  m_PixelsPerUnitMultiplier: 1.2333333
 --- !u!114 &1766339415887982658
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3006,7 +3006,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2192478749189561726, guid: 7f16aa7e1f6081b4c8c028b21c83aa62, type: 3}
       propertyPath: catchTime
-      value: 0.9
+      value: 2.6
       objectReference: {fileID: 0}
     - target: {fileID: 2192478749189561726, guid: 7f16aa7e1f6081b4c8c028b21c83aa62, type: 3}
       propertyPath: sitOffset.x
