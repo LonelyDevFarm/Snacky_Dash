@@ -13,7 +13,7 @@ namespace SnackDash.UI
     /// Màn có bọ: khi đợt trái thứ nhất được rải (không tính đợt có sẵn), bọ bay lượn lên đậu trên quả chuối ở cuối thanh tiến độ HUD
     /// [user 19/10]; đợt thứ 2 rải hoặc thắng thì bay đi. Chạm trúng: bắt (<see cref="LuckyLadybug.Catch"/>), lần chạm đó không thành
     /// vuốt, bọ bay một vòng rồi vào lọ ở đầu trái thanh (lọ thay chỗ đầu rắn). Bay tới chậm cho người chơi kịp thấy [user 20/10].
-    /// Lần đầu gặp: đậu tới khi bị bắt / thắng, bàn tay chỉ vào bọ suốt lúc đó. Đường bay chỉ lượn giữa HUD và mép trên bàn chơi, không bay qua bản đồ.
+    /// Lúc đậu: bọ nhún vỗ cánh gọi (trạng thái Call) và nhóm Hint sáng lên [user 20/10: thay bàn tay]. Lần đầu gặp: đậu tới khi bị bắt / thắng. Đường bay chỉ lượn giữa HUD và mép trên bàn chơi, không bay qua bản đồ.
     /// Hình và dáng nằm trong Unity [user 19/10]: Animator trên Body (trạng thái Fly / Idle, clip LB_Ladybug_*: đổi ảnh, nhún, dáng đậu
     /// quay trái ngóc đầu); đường bay là các điểm đặt sẵn trong HUD (ProgressBar/Fruits/LadybugPath), kéo thả để sửa. Code chỉ cho bọ
     /// bay mượt qua các điểm và lật hình theo hướng bay. Chỉ nghe sự kiện của màn, không đổi gì trong luật chơi.
@@ -21,7 +21,7 @@ namespace SnackDash.UI
     public class LadybugView : MonoBehaviour, IPointerDownHandler
     {
         private const string HandSeenKey = "lb_hand_seen";
-        private static readonly int FlyState = Animator.StringToHash("Fly"), IdleState = Animator.StringToHash("Idle");
+        private static readonly int FlyState = Animator.StringToHash("Fly"), CallState = Animator.StringToHash("Call");
 
         [Tooltip("Con bọ: chỗ code di chuyển; ảnh nằm ở con Sprite (nhận chạm).")]
         [SerializeField] private RectTransform body;
@@ -43,9 +43,8 @@ namespace SnackDash.UI
         [SerializeField] private float flyInTime = 3.5f;
         [SerializeField] private float flyOutTime = 0.9f, catchTime = 1.5f;
 
-        [Tooltip("Bàn tay hướng dẫn lần đầu (tắt sẵn).")]
-        [SerializeField] private RectTransform hand;
-        [SerializeField] private Vector2 handOffset = new Vector2(60f, -90f);
+        [Tooltip("Gợi ý lúc bọ đậu (Body/Hint, tắt sẵn): quầng sáng, vòng sáng lan, sao bật lên — clip LB_Hint. Bọ chơi trạng thái Call (nhún vỗ cánh mỗi 2 giây) [user 20/10: thay bàn tay].")]
+        [SerializeField] private GameObject hint;
         [SerializeField] private LadybugJar jar;
 
         private RectTransform _canvas;
@@ -58,7 +57,7 @@ namespace SnackDash.UI
             bool here = ladybug.LadybugThisLevel;
             jar.Show(here);
             body.gameObject.SetActive(false);
-            if (hand != null) hand.gameObject.SetActive(false);
+            if (hint != null) hint.SetActive(false);
             if (!here) return;
             _canvas = (RectTransform)transform;
             session.WaveSpawned += OnWave;
@@ -77,16 +76,17 @@ namespace SnackDash.UI
         {
             if (arrivePath.Length == 0) yield break;
             _busy = true;
-            _first = hand != null && PlayerPrefs.GetInt(HandSeenKey, 0) == 0;
+            _first = PlayerPrefs.GetInt(HandSeenKey, 0) == 0;
             body.gameObject.SetActive(true);
             animator.Play(FlyState, 0, 0f);
             Path(null, arrivePath, null);
             yield return Follow(flyInTime, 1f, sitScale);
             body.localScale = Vector3.one * sitScale; // dáng đậu (quay trái, ngóc đầu) nằm trong clip Idle
-            animator.Play(IdleState, 0, 0f);
+            animator.Play(CallState, 0, 0f); // đậu: nhún vỗ cánh gọi người chơi (clip LB_Ladybug_Call)
             _busy = false;
             _sitting = true;
-            if (_first) StartCoroutine(ShowHand());
+            if (hint != null) hint.SetActive(true);
+            if (_first) { PlayerPrefs.SetInt(HandSeenKey, 1); PlayerPrefs.Save(); }
         }
 
         private IEnumerator Leave()
@@ -94,7 +94,7 @@ namespace SnackDash.UI
             if (!_sitting) yield break;
             _sitting = false;
             _busy = true;
-            if (hand != null) hand.gameObject.SetActive(false);
+            if (hint != null) hint.SetActive(false);
             animator.Play(FlyState, 0, 0f);
             Path(body, leavePath, null);
             yield return Follow(flyOutTime, sitScale, 1f);
@@ -116,7 +116,7 @@ namespace SnackDash.UI
         private IEnumerator FlyToJar()
         {
             _busy = true;
-            if (hand != null) hand.gameObject.SetActive(false);
+            if (hint != null) hint.SetActive(false);
             SnackDash.Audio.SoundPlayer.Play("CollectCoin");
             SnackDash.Audio.Haptics.Light();
             animator.Play(FlyState, 0, 0f);
@@ -187,22 +187,6 @@ namespace SnackDash.UI
             if (Mathf.Abs(dx) <= 2f) return current; // ngưỡng nhỏ: lượn gần thẳng đứng không làm hình lật qua lật lại
             bool left = dx < 0f;
             return left == flyFacesLeft ? 1f : -1f;
-        }
-
-        /// <summary>Lần đầu: bàn tay chỉ vào bọ <see cref="LuckyLadybug.HandSeconds"/> giây (hoặc tới khi bọ bay đi / bị bắt).</summary>
-        private IEnumerator ShowHand()
-        {
-            PlayerPrefs.SetInt(HandSeenKey, 1);
-            PlayerPrefs.Save();
-            hand.anchoredPosition = body.anchoredPosition + handOffset;
-            hand.gameObject.SetActive(true);
-            float until = Time.time + LuckyLadybug.HandSeconds;
-            while ((Time.time < until || _first) && _sitting) // lần đầu: chỉ tới khi bắt được
-            {
-                hand.localScale = Vector3.one * (1f - 0.08f * Mathf.Abs(Mathf.Sin(Time.time * Mathf.PI * 1.5f)));
-                yield return null;
-            }
-            hand.gameObject.SetActive(false);
         }
     }
 }
