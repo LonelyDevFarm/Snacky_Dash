@@ -29,6 +29,9 @@ namespace SnackDash.UI
             _crates = crates;
             if (session.ExtraColumn < 0) return;
             _canvas = Canvas(transform, "ExtraCrate", 4); // under the HUD (5) and the booster bar (6)
+            // Canvas con trong HUD không override sorting nên vẽ theo thứ tự con: đặt lên đầu để bọ Lucky Ladybug và mọi thứ của HUD
+            // vẽ đè lên bóng TAP TO UNLOCK [user 20/10: bóng che bọ].
+            _canvas.SetAsFirstSibling();
             _bubble = Instantiate(bubblePrefab, _canvas);
             _bubble.GetComponentInChildren<Button>(true).onClick.AddListener(OnTapped);
             _bubble.localScale = Vector3.zero;
