@@ -207,7 +207,7 @@ MonoBehaviour:
   catchPath: []
   leavePath: []
   sitScale: 0.55
-  flyInTime: 0.9
+  flyInTime: 3.5
   flyOutTime: 0.7
   catchTime: 0.6
   hand: {fileID: 7437952849184950092}

@@ -12,7 +12,8 @@ namespace SnackDash.UI
     /// Con bọ Lucky Ladybug trong màn (prefab Prefabs/UI/Screens/Game/Ladybug, lớp phủ toàn màn trong HUD; Docs/KE_HOACH_LUCKY_LADYBUG.md).
     /// Màn có bọ: khi đợt trái thứ nhất được rải (không tính đợt có sẵn), bọ bay lượn lên đậu trên quả chuối ở cuối thanh tiến độ HUD
     /// [user 19/10]; đợt thứ 2 rải hoặc thắng thì bay đi. Chạm trúng: bắt (<see cref="LuckyLadybug.Catch"/>), lần chạm đó không thành
-    /// vuốt, bọ bay một vòng rồi vào lọ ở đầu trái thanh (lọ thay chỗ đầu rắn). Lần đầu gặp: bàn tay chỉ vào bọ vài giây.
+    /// vuốt, bọ bay một vòng rồi vào lọ ở đầu trái thanh (lọ thay chỗ đầu rắn). Bay tới chậm cho người chơi kịp thấy [user 20/10].
+    /// Lần đầu gặp: đậu tới khi bị bắt / thắng, bàn tay chỉ vào bọ suốt lúc đó. Đường bay chỉ lượn giữa HUD và mép trên bàn chơi, không bay qua bản đồ.
     /// Hình và dáng nằm trong Unity [user 19/10]: Animator trên Body (trạng thái Fly / Idle, clip LB_Ladybug_*: đổi ảnh, nhún, dáng đậu
     /// quay trái ngóc đầu); đường bay là các điểm đặt sẵn trong HUD (ProgressBar/Fruits/LadybugPath), kéo thả để sửa. Code chỉ cho bọ
     /// bay mượt qua các điểm và lật hình theo hướng bay. Chỉ nghe sự kiện của màn, không đổi gì trong luật chơi.
@@ -38,7 +39,9 @@ namespace SnackDash.UI
         [SerializeField] private RectTransform[] leavePath = new RectTransform[0];
         [Tooltip("Cỡ bọ lúc đậu so với lúc bay (cho vừa HUD).")]
         [SerializeField] private float sitScale = 0.55f;
-        [SerializeField] private float flyInTime = 1.6f, flyOutTime = 0.9f, catchTime = 1.5f;
+        [Tooltip("Bay tới chậm cho người chơi kịp thấy bọ là gì [user 20/10: bay nhanh quá].")]
+        [SerializeField] private float flyInTime = 3.5f;
+        [SerializeField] private float flyOutTime = 0.9f, catchTime = 1.5f;
 
         [Tooltip("Bàn tay hướng dẫn lần đầu (tắt sẵn).")]
         [SerializeField] private RectTransform hand;
@@ -46,7 +49,7 @@ namespace SnackDash.UI
         [SerializeField] private LadybugJar jar;
 
         private RectTransform _canvas;
-        private bool _sitting, _busy;
+        private bool _sitting, _busy, _first;
         private readonly List<Vector2> _points = new List<Vector2>();
 
         public void Bind(GameSession session)
@@ -65,7 +68,7 @@ namespace SnackDash.UI
         private void OnWave(int wave)
         {
             if (wave == 1 && !_sitting && !_busy && !LuckyLadybug.Shared.CaughtThisLevel) StartCoroutine(Land());
-            else if (wave >= 2 && _sitting) StartCoroutine(Leave());
+            else if (wave >= 2 && _sitting && !_first) StartCoroutine(Leave());
         }
 
         // ------------------------------------------------------------------ đậu / bay đi
@@ -74,6 +77,7 @@ namespace SnackDash.UI
         {
             if (arrivePath.Length == 0) yield break;
             _busy = true;
+            _first = hand != null && PlayerPrefs.GetInt(HandSeenKey, 0) == 0;
             body.gameObject.SetActive(true);
             animator.Play(FlyState, 0, 0f);
             Path(null, arrivePath, null);
@@ -82,7 +86,7 @@ namespace SnackDash.UI
             animator.Play(IdleState, 0, 0f);
             _busy = false;
             _sitting = true;
-            if (hand != null && PlayerPrefs.GetInt(HandSeenKey, 0) == 0) StartCoroutine(ShowHand());
+            if (_first) StartCoroutine(ShowHand());
         }
 
         private IEnumerator Leave()
@@ -193,7 +197,7 @@ namespace SnackDash.UI
             hand.anchoredPosition = body.anchoredPosition + handOffset;
             hand.gameObject.SetActive(true);
             float until = Time.time + LuckyLadybug.HandSeconds;
-            while (Time.time < until && _sitting)
+            while ((Time.time < until || _first) && _sitting) // lần đầu: chỉ tới khi bắt được
             {
                 hand.localScale = Vector3.one * (1f - 0.08f * Mathf.Abs(Mathf.Sin(Time.time * Mathf.PI * 1.5f)));
                 yield return null;
