@@ -442,7 +442,7 @@ namespace SnackDash.Editor.LevelTools
                 regular[i % regular.Count].crates.Add(new CrateDefinition { kind = kinds[crateCount], requiredCount = 9 });
             int total = level.columns.Sum(c => c.crates.Sum(k => k.requiredCount));
             double waveSize = sources.SelectMany(s => s.batches).Select(b => (double)b.pills.Sum(p => p.count)).DefaultIfEmpty(27).Average();
-            int waves = Mathf.Clamp(Mathf.CeilToInt(total / (float)Mathf.Clamp((int)Math.Round(waveSize), 9, 60)), MinWaves, MaxWaves); // [user 20/10: 3-5 đợt]
+            int waves = Mathf.Clamp(Mathf.CeilToInt(total / (float)Mathf.Clamp((int)Math.Round(waveSize), 9, 60)), MinWaves, MaxWaves); // [user 20/10: 3-5 đợt rải thêm sau đợt đầu]
             Regroup(level, waves, random, mixWindow);
             for (int i = 0; i < level.curtainGroups.Count; i++)
             {
@@ -454,8 +454,9 @@ namespace SnackDash.Editor.LevelTools
             }
         }
 
-        /// <summary>Số đợt rải trái của màn sinh ra [user 20/10: 3-5 đợt].</summary>
-        public const int MinWaves = 3, MaxWaves = 5;
+        /// <summary>Số đợt trái của màn sinh ra, tính cả đợt có sẵn lúc vào màn: 4-6, tức 3-5 đợt rải thêm [user 20/10: 3-5 đợt không tính
+        /// đợt đầu].</summary>
+        public const int MinWaves = 4, MaxWaves = 6;
 
         /// <summary>Số loại trái tối thiểu của màn sinh ra [user 20/10: từ 5 loại trở lên].</summary>
         public const int MinKinds = 5;
