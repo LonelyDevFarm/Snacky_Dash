@@ -31,6 +31,11 @@ namespace SnackDash.UI
         }
 
         [SerializeField] private Settings settings;
+        [Tooltip("Prefab mẫu một hạt (Prefabs/UI/Widgets/UiParticle): lấy từ kho tái dùng, không dựng bằng code.")]
+        [SerializeField] private Image particlePrefab;
+
+        private UiPool _pool;
+        private UiPool Pool => _pool ?? (_pool = new UiPool(particlePrefab, transform));
 
         private float _rate, _timer;
         private readonly List<Particle> _live = new List<Particle>();
@@ -71,7 +76,7 @@ namespace SnackDash.UI
                 p.age += dt;
                 if (p.age >= p.life || p.rect == null)
                 {
-                    if (p.rect != null) Destroy(p.rect.gameObject);
+                    Pool.Release(p.image);
                     _live.RemoveAt(i);
                     continue;
                 }
@@ -94,7 +99,7 @@ namespace SnackDash.UI
 
         private void Spawn()
         {
-            if (settings.sprite == null) return;
+            if (settings.sprite == null || particlePrefab == null) return;
             Vector2 at = Vector2.zero;
             if (settings.box.x > 0f || settings.box.y > 0f)
             {
@@ -105,9 +110,13 @@ namespace SnackDash.UI
                 else if (t < 2f * w + h) at = new Vector2(-w / 2f, t - 2f * w - h / 2f);
                 else at = new Vector2(w / 2f, t - 2f * w - h - h / 2f);
             }
-            var rect = UiBuilder.Rect(transform, "Particle", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), at, Vector2.zero);
+            var image = Pool.Get();
+            var rect = image.rectTransform;
+            rect.anchoredPosition = at;
+            rect.sizeDelta = Vector2.zero;
             rect.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
-            var image = UiBuilder.Image(rect, settings.sprite, Color.clear);
+            image.sprite = settings.sprite;
+            image.color = Color.clear;
             image.material = settings.material;
             _live.Add(new Particle
             {

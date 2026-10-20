@@ -167,6 +167,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   textPrefab: {fileID: 5382695003212775554, guid: 2637cb4fdc0b92442b3e4f003770a3c3, type: 3}
+  flyingCoinPrefab: {fileID: 4274157076814064358, guid: 428edafc1e5b8194dbb6ff3579f1aee4, type: 3}
   tier2From: 5
   tier3From: 7
   runGap: 0.6

@@ -7,7 +7,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using static SnackDash.UI.UiBuilder;
 
 namespace SnackDash.UI
 {

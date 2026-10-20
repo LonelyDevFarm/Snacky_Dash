@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using static SnackDash.UI.UiBuilder;
 
 namespace SnackDash.UI
 {
@@ -28,6 +27,11 @@ namespace SnackDash.UI
         [SerializeField] private RectTransform particleParent;
         [Tooltip("Màu hạt: vàng như video VFX_Unlock [user].")]
         [SerializeField] private Color tint = new Color(1f, 0.9f, 0.25f, 1f);
+        [Tooltip("Prefab mẫu một hạt (Prefabs/UI/Widgets/UiParticle): lấy từ kho tái dùng, không dựng bằng code.")]
+        [SerializeField] private Image particlePrefab;
+
+        private UiPool _pool;
+        private UiPool Pool => _pool ?? (_pool = new UiPool(particlePrefab, particleParent != null ? particleParent : transform));
 
         private readonly List<Emitter> _emitters = new List<Emitter>();
 
@@ -62,7 +66,7 @@ namespace SnackDash.UI
                 {
                     var p = emitter.live[i];
                     p.age += dt;
-                    if (p.age >= p.life) { Destroy(p.rect.gameObject); emitter.live.RemoveAt(i); continue; }
+                    if (p.age >= p.life) { Pool.Release(p.image); emitter.live.RemoveAt(i); continue; }
                     float grow = Mathf.Sin(p.age / p.life * Mathf.PI); // to dần rồi nhỏ lại
                     p.rect.sizeDelta = Vector2.one * p.size * grow;
                     p.rect.anchoredPosition += p.rect.anchoredPosition.normalized * 0.75f * dt; // startSpeed 0.5-1, bay ra ngoài
@@ -75,9 +79,14 @@ namespace SnackDash.UI
         {
             float angle = Random.value * Mathf.PI * 2f;
             var at = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius; // trên mép vòng tròn
-            var rect = Rect(particleParent != null ? particleParent : transform, "Particle", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), at, Vector2.zero);
+            if (particlePrefab == null) return;
+            var image = Pool.Get();
+            var rect = image.rectTransform;
+            rect.anchoredPosition = at;
+            rect.sizeDelta = Vector2.zero;
             rect.localRotation = Quaternion.Euler(0f, 0f, Random.Range(-90f, 0f));
-            var image = Image(rect, emitter.sprite, tint);
+            image.sprite = emitter.sprite;
+            image.color = tint;
             image.material = glow != null ? glow.material : null;
             emitter.live.Add((rect, image, 0f, Random.Range(1f, 1.3f), Random.Range(15f, 25f)));
         }

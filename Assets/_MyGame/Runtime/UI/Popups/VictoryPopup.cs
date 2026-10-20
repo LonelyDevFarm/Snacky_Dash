@@ -54,6 +54,18 @@ namespace SnackDash.UI
         [SerializeField] private float continueHeight = 380f;
         [SerializeField] private float buttonsSpread = 232f;
 
+        [Header("Pháo giấy quanh xu thưởng")]
+        [Tooltip("Prefab mẫu một mảnh (Prefabs/UI/Widgets/UiParticle): lấy từ kho tái dùng, không dựng bằng code.")]
+        [SerializeField] private Image confettiPrefab;
+        [Tooltip("Màu các mảnh pháo giấy, lần lượt.")]
+        [SerializeField] private Color[] confettiColours =
+        {
+            new Color32(0xFF, 0x4D, 0x6D, 0xFF), new Color32(0xFF, 0xD2, 0x3F, 0xFF), new Color32(0x3E, 0xC1, 0xF3, 0xFF),
+            new Color32(0x7C, 0xDB, 0x3A, 0xFF), new Color32(0xB0, 0x6B, 0xFF, 0xFF), new Color32(0xFF, 0x8A, 0x2B, 0xFF),
+        };
+
+        private UiPool _confetti;
+
         private Action _onContinue;
         private UnlockPopups.Entry? _unlock;
         private bool _unlockShown;
@@ -227,17 +239,22 @@ namespace SnackDash.UI
         }
 
         /// <summary>Pháo giấy (hệ hạt UI trong gốc): các mảnh màu bay ra thành vòng rồi rơi.</summary>
-        private static IEnumerator Confetti(RectTransform around)
+        private IEnumerator Confetti(RectTransform around)
         {
-            Color[] colours = { UiBuilder.Hex("FF4D6DFF"), UiBuilder.Hex("FFD23FFF"), UiBuilder.Hex("3EC1F3FF"), UiBuilder.Hex("7CDB3AFF"), UiBuilder.Hex("B06BFFFF"), UiBuilder.Hex("FF8A2BFF") };
+            if (confettiPrefab == null || confettiColours.Length == 0) yield break;
+            if (_confetti == null) _confetti = new UiPool(confettiPrefab, around);
+            var colours = confettiColours;
             const int Count = 46;
             var pieces = new Image[Count];
             var velocity = new Vector2[Count];
             var spin = new float[Count];
             for (int i = 0; i < Count; i++)
             {
-                var rect = UiBuilder.Rect(around, "confetti", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(Random.Range(14f, 22f), Random.Range(30f, 44f)));
-                pieces[i] = UiBuilder.Image(rect, null, colours[i % colours.Length]);
+                pieces[i] = _confetti.Get();
+                var rect = pieces[i].rectTransform;
+                rect.sizeDelta = new Vector2(Random.Range(14f, 22f), Random.Range(30f, 44f));
+                pieces[i].sprite = null;
+                pieces[i].color = colours[i % colours.Length];
                 float angle = i * Mathf.PI * 2f / Count + Random.Range(-0.1f, 0.1f);
                 velocity[i] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * Random.Range(700f, 1050f);
                 spin[i] = Random.Range(-540f, 540f);
@@ -257,7 +274,7 @@ namespace SnackDash.UI
                 }
                 yield return null;
             }
-            foreach (var piece in pieces) if (piece != null) Destroy(piece.gameObject);
+            foreach (var piece in pieces) _confetti.Release(piece);
         }
 
         // ------------------------------------------------------------------ UNLOCKED!

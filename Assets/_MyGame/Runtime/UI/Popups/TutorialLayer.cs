@@ -19,5 +19,7 @@ namespace SnackDash.UI
         public RectTransform handRoot;
         public RectTransform hand;
         public RectTransform trail;
+        [Tooltip("Lớp tối chừa một làn mềm dọc đường của cú vuốt bắt buộc (màn 1), tắt sẵn; TutorialView vẽ ảnh mặt nạ vào.")]
+        public RawImage pathOverlay;
     }
 }

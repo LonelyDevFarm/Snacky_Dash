@@ -87,6 +87,7 @@ MonoBehaviour:
   hatSprite: {fileID: 21300000, guid: 7c43467438bd9964a86695e8c676901d, type: 2}
   coinSprite: {fileID: 21300000, guid: fa6e40e4e8338d84e91c382d4da5e1c1, type: 2}
   singleCoinSprite: {fileID: 21300000, guid: de0b7c5b49626f746b2f54b48d95eb77, type: 2}
+  flyingCoinPrefab: {fileID: 4274157076814064358, guid: 428edafc1e5b8194dbb6ff3579f1aee4, type: 3}
   boosterSprites:
   - {fileID: 21300000, guid: f84816de66bc9624e91576f3e6abc014, type: 2}
   - {fileID: 21300000, guid: 40a14c586be4bdf4898d982309ea518d, type: 2}

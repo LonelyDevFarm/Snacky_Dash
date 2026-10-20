@@ -3092,6 +3092,7 @@ MonoBehaviour:
   glow: {fileID: 4918869976307711993}
   particleParent: {fileID: 7331876634923044768}
   tint: {r: 1, g: 0.9, b: 0.25, a: 1}
+  particlePrefab: {fileID: 299246170437037559, guid: 9a47d3d2a8b273241b4dc81a4e880c10, type: 3}
 --- !u!1 &6215309490863296658
 GameObject:
   m_ObjectHideFlags: 0
@@ -3979,6 +3980,14 @@ MonoBehaviour:
   continueDelay: 0.9
   continueHeight: 380
   buttonsSpread: 232
+  confettiPrefab: {fileID: 299246170437037559, guid: 9a47d3d2a8b273241b4dc81a4e880c10, type: 3}
+  confettiColours:
+  - {r: 1, g: 0.3019608, b: 0.42745098, a: 1}
+  - {r: 1, g: 0.8235294, b: 0.24705882, a: 1}
+  - {r: 0.24313726, g: 0.75686276, b: 0.9529412, a: 1}
+  - {r: 0.4862745, g: 0.85882354, b: 0.22745098, a: 1}
+  - {r: 0.6901961, g: 0.41960785, b: 1, a: 1}
+  - {r: 1, g: 0.5411765, b: 0.16862746, a: 1}
 --- !u!1 &7843903296897998547
 GameObject:
   m_ObjectHideFlags: 0

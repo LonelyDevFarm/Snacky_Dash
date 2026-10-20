@@ -138,6 +138,7 @@ MonoBehaviour:
     shrink: 1
     shrinkTo: 0.65
     noise: 0
+  particlePrefab: {fileID: 299246170437037559, guid: 9a47d3d2a8b273241b4dc81a4e880c10, type: 3}
 --- !u!1 &7042044956487806295
 GameObject:
   m_ObjectHideFlags: 0

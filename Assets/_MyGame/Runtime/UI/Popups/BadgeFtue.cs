@@ -27,6 +27,8 @@ namespace SnackDash.UI
         [SerializeField] private RectTransform content;
         [Tooltip("Chỗ đặt bản sao widget.")]
         [SerializeField] private RectTransform slot;
+        [Tooltip("Nút trên chính ô slot (ảnh trong suốt nhận chạm + PressFeedback): chạm bản sao widget là đóng và mở sự kiện.")]
+        [SerializeField] private Button tapArea;
         [Tooltip("Bàn tay (nhấn vào widget rồi lùi ra).")]
         [SerializeField] private RectTransform hand;
         [SerializeField] private float handDistance = 18f;
@@ -60,9 +62,8 @@ namespace SnackDash.UI
             copy.anchoredPosition = Vector2.zero;
             copy.localScale = widget.lossyScale.x / slot.lossyScale.x * Vector3.one;
             foreach (var button in copy.GetComponentsInChildren<Button>(true)) Destroy(button);
-            var hit = UiBuilder.Image(UiBuilder.Stretch(copy, "Tap Area"), null, Color.clear, raycast: true);
-            hit.gameObject.AddComponent<Button>().onClick.AddListener(() => Close(open));
-            UiBuilder.Pressable(copy);
+            tapArea.onClick.RemoveAllListeners();
+            tapArea.onClick.AddListener(() => Close(open));
         }
 
         private void Update()

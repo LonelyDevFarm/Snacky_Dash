@@ -186,7 +186,9 @@ MonoBehaviour:
     box: {x: 0, y: 0}
     spin: 45
     shrink: 0
+    shrinkTo: 0
     noise: 0.3
+  particlePrefab: {fileID: 299246170437037559, guid: 9a47d3d2a8b273241b4dc81a4e880c10, type: 3}
 --- !u!1 &5366299576341817082
 GameObject:
   m_ObjectHideFlags: 0
@@ -323,7 +325,9 @@ MonoBehaviour:
     box: {x: 0, y: 0}
     spin: 45
     shrink: 1
+    shrinkTo: 0
     noise: 1
+  particlePrefab: {fileID: 299246170437037559, guid: 9a47d3d2a8b273241b4dc81a4e880c10, type: 3}
 --- !u!1 &7472405526186017516
 GameObject:
   m_ObjectHideFlags: 0

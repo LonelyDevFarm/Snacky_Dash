@@ -4,6 +4,7 @@ using SnackDash.Gameplay;
 using SnackDash.Presentation;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using static SnackDash.UI.UiBuilder;
 
 namespace SnackDash.UI
@@ -22,6 +23,9 @@ namespace SnackDash.UI
 
         [Tooltip("Prefabs/UI/Screens/Game/ComboText: lời khen và dòng xu.")]
         [SerializeField] private ComboText textPrefab;
+        [Tooltip("Prefab mẫu một đồng xu bay (Prefabs/UI/Widgets/FlyingCoin): lấy từ kho tái dùng, không dựng bằng code.")]
+        [SerializeField] private Image flyingCoinPrefab;
+        private UiPool _coins;
         [Tooltip("Crates in a run for tier 2 and tier 3 words (not in the build; inferred).")]
         [SerializeField] private int tier2From = 5, tier3From = 7; // video: four crates in a row were still tier 1
         [Tooltip("After the deliveries have settled, wait this long before the total shows.")]
@@ -109,8 +113,12 @@ namespace SnackDash.UI
             var target = _hud != null ? _hud.CoinTag : null;
             if (target == null) { if (_hud != null) _hud.ShowComboCoins(coins); yield break; }
             yield return new WaitForSeconds(0.35f);
-            var coin = Rect(_root, "FlyingCoin", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), _at + new Vector2(0f, 45f), new Vector2(70f, 70f));
-            Image(coin, textPrefab.CoinSprite, Color.white).preserveAspect = true;
+            if (_coins == null) _coins = new UiPool(flyingCoinPrefab, _root);
+            var image = _coins.Get();
+            image.sprite = textPrefab.CoinSprite;
+            var coin = image.rectTransform;
+            coin.anchoredPosition = _at + new Vector2(0f, 45f);
+            coin.sizeDelta = new Vector2(70f, 70f);
             Vector2 start = coin.anchoredPosition;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_root, RectTransformUtility.WorldToScreenPoint(null, target.position), null, out var end);
             yield return Tween.Run(0.55f, Tween.InQuad, t =>
@@ -119,7 +127,7 @@ namespace SnackDash.UI
                 coin.anchoredPosition = Vector2.Lerp(start, end, t) + new Vector2(0f, Mathf.Sin(Mathf.PI * t) * 120f);
                 coin.localScale = Vector3.one * Mathf.Lerp(1f, 0.7f, t);
             });
-            if (coin != null) Destroy(coin.gameObject);
+            if (coin != null) _coins.Release(image);
             SoundPlayer.Play("CollectCoin");
             _hud.ShowComboCoins(coins); // this combo alone [user]
         }

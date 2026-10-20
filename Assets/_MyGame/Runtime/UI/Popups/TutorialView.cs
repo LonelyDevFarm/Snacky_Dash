@@ -4,7 +4,6 @@ using SnackDash.Presentation;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static SnackDash.UI.UiBuilder;
 
 namespace SnackDash.UI
 {
@@ -49,7 +48,7 @@ namespace SnackDash.UI
         [SerializeField] private float pathLaneFeather = 0.25f;
 
         private GameSession _session;
-        private RawImage _pathOverlay;
+        private RawImage _pathOverlay, _layerPathOverlay;
         private int _level;
         private RectTransform _root, _overlay, _frame, _tap, _hand, _trail;
         private TMP_Text _text;
@@ -100,11 +99,10 @@ namespace SnackDash.UI
         {
             var cam = Camera.main;
             if (cam == null) yield break;
-            var rect = Stretch(_root, "PathOverlay");
-            rect.SetAsFirstSibling(); // under the message and the hand
-            _pathOverlay = rect.gameObject.AddComponent<RawImage>();
-            _pathOverlay.raycastTarget = false;
+            if (_layerPathOverlay == null) yield break;
+            _pathOverlay = _layerPathOverlay; // nằm sẵn trong prefab TutorialLayer, dưới lời nhắn và bàn tay
             _pathOverlay.color = Color.clear;
+            _pathOverlay.gameObject.SetActive(true);
             // The camera may still be settling at the level start: remake the mask whenever it has moved.
             Vector3 bakedAt = Vector3.positiveInfinity;
             float bakedSize = -1f;
@@ -178,7 +176,13 @@ namespace SnackDash.UI
         private void OnFirstMove(Direction direction)
         {
             _session.MoveStarted -= OnFirstMove;
-            if (_pathOverlay != null) Destroy(_pathOverlay.gameObject);
+            if (_pathOverlay != null)
+            {
+                if (_pathOverlay.texture != null) Destroy(_pathOverlay.texture);
+                _pathOverlay.texture = null;
+                _pathOverlay.gameObject.SetActive(false);
+                _pathOverlay = null;
+            }
             _hand.gameObject.SetActive(false);
             _frame.gameObject.SetActive(false);
         }
@@ -318,6 +322,7 @@ namespace SnackDash.UI
             _tap = layer.tap;
             _hand = layer.hand;
             _trail = layer.trail;
+            _layerPathOverlay = layer.pathOverlay;
         }
     }
 }

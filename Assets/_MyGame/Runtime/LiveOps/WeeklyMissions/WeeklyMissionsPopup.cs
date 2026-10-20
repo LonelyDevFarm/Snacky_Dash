@@ -71,6 +71,9 @@ namespace SnackDash.UI
         [SerializeField] private Sprite coinSprite;
         [Tooltip("Một đồng xu bay về ô xu Home.")]
         [SerializeField] private Sprite singleCoinSprite;
+        [Tooltip("Prefab mẫu một đồng xu bay (Prefabs/UI/Widgets/FlyingCoin): lấy từ kho tái dùng, không dựng bằng code.")]
+        [SerializeField] private Image flyingCoinPrefab;
+        private UiPool _coins;
         [Tooltip("Xẻng, boomerang, undo, nam châm.")]
         [SerializeField] private Sprite[] boosterSprites = new Sprite[4];
         [SerializeField] private Sprite infiniteLivesSprite;
@@ -513,8 +516,8 @@ namespace SnackDash.UI
             int left = count;
             for (int i = 0; i < count; i++)
             {
-                var coin = UiBuilder.Rect(transform, "Flying Coin", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(60f, 60f));
-                UiBuilder.Image(coin, singleCoinSprite, Color.white).preserveAspect = true;
+                if (_coins == null) _coins = new UiPool(flyingCoinPrefab, transform);
+                var coin = _coins.Get().rectTransform;
                 coin.position = centre;
                 var spread = centre + (Vector3)(UnityEngine.Random.insideUnitCircle * 70f * unit);
                 StartCoroutine(Coin(coin, spread, target, i * 0.05f, () => left--));
@@ -536,7 +539,7 @@ namespace SnackDash.UI
                 coin.position = Vector3.Lerp(spread, end, e);
                 coin.localScale = Vector3.one * Mathf.Lerp(1f, 0.7f, e);
             }, true);
-            Destroy(coin.gameObject);
+            _coins.Release(coin.GetComponent<Image>());
             done();
         }
 

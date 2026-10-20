@@ -33,6 +33,9 @@ namespace SnackDash.UI
         [SerializeField] private Sprite infiniteLivesSprite;
         [Tooltip("Đồng xu bay về ô xu khi mua.")]
         [SerializeField] private Sprite flyingCoin;
+        [Tooltip("Prefab mẫu một đồng xu bay (Prefabs/UI/Widgets/FlyingCoin): lấy từ kho tái dùng, không dựng bằng code.")]
+        [SerializeField] private Image flyingCoinPrefab;
+        private UiPool _coins;
         [Header("Bố cục (gốc)")]
         [SerializeField] private float cardHeight = 410f, coinCellWidth = 268.67f, coinCellHeight = 350f, gap = 20f;
 
@@ -133,8 +136,11 @@ namespace SnackDash.UI
             Vector3 origin = from.TransformPoint(from.rect.center), target = coinIcon.TransformPoint(coinIcon.rect.center);
             for (int i = 0; i < count; i++)
             {
-                var coin = UiBuilder.Rect(transform, "FlyingCoin", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(80f, 80f));
-                UiBuilder.Image(coin, flyingCoin, Color.white).preserveAspect = true;
+                if (_coins == null) _coins = new UiPool(flyingCoinPrefab, transform);
+                var image = _coins.Get();
+                image.sprite = flyingCoin;
+                var coin = image.rectTransform;
+                coin.sizeDelta = new Vector2(80f, 80f);
                 coin.position = origin;
                 Vector3 burst = origin + (Vector3)(Random.insideUnitCircle * 120f * coin.lossyScale.x);
                 StartCoroutine(Fly(coin, burst, target, i * 0.05f, i == count - 1 ? () => CountTo(start, end) : (Action)null));
@@ -151,7 +157,7 @@ namespace SnackDash.UI
                 coin.position = Vector3.LerpUnclamped(burst, target, t);
                 coin.localScale = Vector3.one * Mathf.Lerp(1f, 0.7f, t);
             });
-            if (coin != null) Destroy(coin.gameObject);
+            if (coin != null) _coins.Release(coin.GetComponent<Image>());
             if (coinIcon != null) StartCoroutine(Tween.Punch(0.06f, t => coinIcon.localScale = Vector3.one * (1f + 0.2f * t)));
             landed?.Invoke();
         }
