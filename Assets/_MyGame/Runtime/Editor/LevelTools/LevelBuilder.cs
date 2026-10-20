@@ -8,8 +8,8 @@ using UnityEngine;
 namespace SnackDash.Editor.LevelTools
 {
     /// <summary>
-    /// Cách 3 làm lại [user 19/10, màn 365 cũ là ngõ cụt]: bàn ghép chỉ giữ đường (lớp map, điểm giao khay, hầm), bỏ hết cơ chế ở
-    /// lớp phủ; bàn đường phải thông như 350 bản đồ gốc; rồi đặt lại từng cơ chế theo quy luật đo trên màn gốc và kiểm lại bàn sau
+    /// Kiểm bàn và đặt cơ chế cho bàn đường đã thông (LevelDesigner dựng) [user 19/10, màn 365 cũ là ngõ cụt]: bàn đường phải thông
+    /// như 350 bản đồ gốc; rồi đặt từng cơ chế theo quy luật đo trên màn gốc và kiểm lại bàn sau
     /// mỗi cái — cái nào làm bàn có chỗ cụt thì bỏ. Quy luật (Docs/KE_HOACH_LEVEL_GENERATOR.md):
     /// - Màn gốc không có ô cụt (ô chỉ một lối đều là miệng hầm); mọi đường nằm trên vòng.
     /// - Tính theo trạng thái (ô + hướng đang đi, rắn không quay đầu): trạng thái tới được mà không quay về được điểm xuất phát
@@ -26,7 +26,6 @@ namespace SnackDash.Editor.LevelTools
         {
             { Direction.Up, 308 }, { Direction.Down, 299 }, { Direction.Left, 302 }, { Direction.Right, 305 },
         };
-        private static readonly int[] TunnelTiles = { 278, 279, 280, 281, 360, 361, 362, 363, 378, 379, 380, 381, 382, 384, 385, 386 };
 
         /// <summary>
         /// Trạng thái "vào không ra" tối đa cho phép: 0 như phần lớn màn gốc (p50 = 0). Ngưỡng cũ 2.1% (p90) để lọt túi cụt do cổng /
@@ -151,7 +150,7 @@ namespace SnackDash.Editor.LevelTools
 
         /// <summary>
         /// Bàn đạt quy luật màn gốc: không ô cụt; tường đóng và khối nâng đều nhô lên mà phần "vào không ra" vẫn ≤ 2.1%; điểm giao
-        /// khay và ô rải trái đi tới và quay về được (LevelStitcher.Connected).
+        /// khay và ô rải trái đi tới và quay về được (LevelParts.Connected).
         /// </summary>
         public static bool Check(string json, LevelDefinition level, TileDefinitionDatabase database, out string why)
         {
@@ -175,7 +174,7 @@ namespace SnackDash.Editor.LevelTools
             int hanging = SmallestHangingLoop(board, map.Width, map.Height, closed);
             if (hanging < MinHangingLoop) { why = $"vòng treo {hanging} ô (nối bàn qua một ô)"; return false; }
             if (board.CrateStops.Values.Distinct().Any(c => CrateRoutes(board, c, closed) < MinCrateRoutes)) { why = "khay còn dưới 2 lối riêng khi vật chặn đóng"; return false; }
-            if (!LevelStitcher.Connected(map, level, database)) { why = "khay / ô rải trái không đi tới và quay về được"; return false; }
+            if (!LevelParts.Connected(map, level, database)) { why = "khay / ô rải trái không đi tới và quay về được"; return false; }
             why = null;
             return true;
         }
@@ -359,22 +358,6 @@ namespace SnackDash.Editor.LevelTools
         }
         // ------------------------------------------------------------------ bàn đường
 
-        /// <summary>Bỏ mọi cơ chế ở lớp phủ (ldf, ldf_below, ldf_above), giữ hầm (một phần hình đường).</summary>
-        public static void StripMechanics(Dictionary<string, long[]> layers, int firstGid)
-        {
-            foreach (var name in new[] { "ldf", "ldf_below", "ldf_above" })
-            {
-                if (!layers.TryGetValue(name, out var data)) continue;
-                for (int i = 0; i < data.Length; i++)
-                {
-                    if (data[i] == 0) continue;
-                    int local = TiledMap.ToLocalTileId(data[i], firstGid);
-                    if (name == "ldf" && Array.IndexOf(TunnelTiles, local) >= 0) continue;
-                    data[i] = 0;
-                }
-            }
-        }
-
         // ------------------------------------------------------------------ đặt cơ chế
 
         /// <summary>Đoạn đường giữa hai ngã rẽ: các ô 2 lối liên tiếp (không phải ngã rẽ, miệng hầm, ô dừng hay điểm xuất phát).</summary>
@@ -534,11 +517,11 @@ namespace SnackDash.Editor.LevelTools
         private static bool Try(ref string json, LevelDefinition level, TileDefinitionDatabase database, List<string> placed, string what, Placer place, bool needEffect = false)
         {
             var before = needEffect ? Loops(json, database) : default;
-            var file = JsonUtility.FromJson<LevelStitcher.TiledJson.Map>(json);
+            var file = JsonUtility.FromJson<LevelParts.TiledJson.Map>(json);
             var ldfLayer = file.layers.FirstOrDefault(l => l.name == "ldf");
             if (ldfLayer == null)
             {
-                ldfLayer = new LevelStitcher.TiledJson.Layer { name = "ldf", data = new long[file.width * file.height], width = file.width, height = file.height, id = file.layers.Length + 1 };
+                ldfLayer = new LevelParts.TiledJson.Layer { name = "ldf", data = new long[file.width * file.height], width = file.width, height = file.height, id = file.layers.Length + 1 };
                 file.layers = file.layers.Concat(new[] { ldfLayer }).ToArray();
             }
             var backupData = (long[])ldfLayer.data.Clone();
@@ -632,7 +615,7 @@ namespace SnackDash.Editor.LevelTools
         /// <summary>Cổng một chiều đang phạm <see cref="GateRoom"/> trên bản đồ <paramref name="json"/> (bộ kiểm bàn từ chối).</summary>
         public static List<Vector2Int> CrowdedGates(string json, TileDefinitionDatabase database)
         {
-            var file = JsonUtility.FromJson<LevelStitcher.TiledJson.Map>(json);
+            var file = JsonUtility.FromJson<LevelParts.TiledJson.Map>(json);
             var ldf = file.layers.FirstOrDefault(l => l.name == "ldf");
             if (ldf == null) return new List<Vector2Int>();
             var map = TiledMap.Parse(json);

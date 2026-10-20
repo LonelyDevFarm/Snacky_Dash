@@ -171,7 +171,7 @@ namespace SnackDash.Editor.LevelTools
         /// <summary>Bản đồ bỏ các ô <paramref name="tiles"/> ở lớp phủ.</summary>
         private static string Strip(string json, int[] tiles, out int removed)
         {
-            var file = JsonUtility.FromJson<LevelStitcher.TiledJson.Map>(json);
+            var file = JsonUtility.FromJson<LevelParts.TiledJson.Map>(json);
             int firstGid = file.tilesets[0].firstgid;
             removed = 0;
             foreach (var layer in file.layers)

@@ -15,7 +15,7 @@ namespace SnackDash.Editor.LevelTools
     ///    (gộp 2 × 2 ô lưới), hoặc trên mép trên bàn (chừa 2 hàng cỏ). 1 / 2 / 3 cột khay theo tỉ lệ màn gốc 30 / 48 / 21%.
     /// 3. Gộp khối: bỏ dần đoạn đường cho tới số ô đường theo bậc màn; không bỏ đoạn nào làm có ô cụt hay vòng treo (mọi nút
     ///    còn ≥ 2 nhánh, bỏ bất kỳ một nút nào bàn vẫn liền).
-    /// 4. Điểm xuất phát ở một ngã rẽ xa khay. Lát mã ô: đường theo hướng nối, viền cỏ theo bảng học từ màn gốc (LevelStitcher).
+    /// 4. Điểm xuất phát ở một ngã rẽ xa khay. Lát mã ô: đường theo hướng nối, viền cỏ theo bảng học từ màn gốc (LevelParts).
     /// Cơ chế đặt sau bằng LevelBuilder.AddMechanics như cách 3.
     /// </summary>
     public static class LevelDesigner
@@ -166,7 +166,7 @@ namespace SnackDash.Editor.LevelTools
             var template = UnityEditor.AssetDatabase.FindAssets("t:LevelDefinition", new[] { TemplateLevel })
                 .Select(g => UnityEditor.AssetDatabase.LoadAssetAtPath<LevelDefinition>(UnityEditor.AssetDatabase.GUIDToAssetPath(g)))
                 .First(l => l != null && l.map != null);
-            var source = JsonUtility.FromJson<LevelStitcher.TiledJson.Map>(template.map.text);
+            var source = JsonUtility.FromJson<LevelParts.TiledJson.Map>(template.map.text);
             int firstGid = source.tilesets[0].firstgid;
             int Index(Vector2Int c) => (height - 1 - c.y) * width + c.x;
             var map = new long[width * height];
@@ -176,11 +176,11 @@ namespace SnackDash.Editor.LevelTools
             foreach (var pair in roads)
             {
                 int stopIndex = stops.IndexOf(pair.Key);
-                int local = stopIndex >= 0 ? LevelStitcher.DeliverTiles[stopIndex] : RoadTiles[pair.Value];
+                int local = stopIndex >= 0 ? LevelParts.DeliverTiles[stopIndex] : RoadTiles[pair.Value];
                 map[Index(pair.Key)] = local + firstGid;
             }
             foreach (var a in anchors) map[Index(a)] = EndPointTile + firstGid;
-            var grass = LevelStitcher.GrassTable(database);
+            var grass = LevelParts.GrassTable(database);
             bool RoadLikeAt(Vector2Int c) => roads.ContainsKey(c) || anchors.Contains(c);
             for (int x = 0; x < width; x++)
                 for (int y = 0; y < height; y++)
@@ -188,19 +188,19 @@ namespace SnackDash.Editor.LevelTools
                     var cell = new Vector2Int(x, y);
                     if (RoadLikeAt(cell)) continue;
                     int mask = 0;
-                    for (int k = 0; k < 8; k++) if (RoadLikeAt(cell + LevelStitcher.Around[k])) mask |= 1 << k;
+                    for (int k = 0; k < 8; k++) if (RoadLikeAt(cell + LevelParts.Around[k])) mask |= 1 << k;
                     map[Index(cell)] = grass.TryGetValue(mask, out int best) && best >= 0 ? best + firstGid : 0;
                 }
-            spawn[Index(start)] = LevelStitcher.StartTile + firstGid;
+            spawn[Index(start)] = LevelParts.StartTile + firstGid;
 
-            var output = new LevelStitcher.TiledJson.Map
+            var output = new LevelParts.TiledJson.Map
             {
                 width = width, height = height, tilewidth = source.tilewidth, tileheight = source.tileheight, tilesets = source.tilesets,
                 layers = new[]
                 {
-                    new LevelStitcher.TiledJson.Layer { name = "map", data = map, width = width, height = height, id = 1 },
-                    new LevelStitcher.TiledJson.Layer { name = "ldf", data = ldf, width = width, height = height, id = 2 },
-                    new LevelStitcher.TiledJson.Layer { name = "spawn", data = spawn, width = width, height = height, id = 3 },
+                    new LevelParts.TiledJson.Layer { name = "map", data = map, width = width, height = height, id = 1 },
+                    new LevelParts.TiledJson.Layer { name = "ldf", data = ldf, width = width, height = height, id = 2 },
+                    new LevelParts.TiledJson.Layer { name = "spawn", data = spawn, width = width, height = height, id = 3 },
                 },
             };
             json = JsonUtility.ToJson(output);
@@ -213,7 +213,7 @@ namespace SnackDash.Editor.LevelTools
             for (int c = 0; c < stops.Count; c++) level.columns.Add(new CrateColumnDefinition());
             var list = UnityEditor.AssetDatabase.LoadAssetAtPath<LevelList>(Restore.LevelDataImporter.LevelListPath);
             var sameTier = list.levels.Take(350).Where(l => l != null && (l.difficulty >= 4) == (difficulty >= 4) && (l.difficulty >= 2) == (difficulty >= 2)).ToList();
-            LevelStitcher.FillFruit(level, sameTier.OrderBy(_ => random.Next()).Take(2).ToList(), random, mixWindow);
+            LevelParts.FillFruit(level, sameTier.OrderBy(_ => random.Next()).Take(2).ToList(), random, mixWindow);
             why = null;
             return level;
         }
