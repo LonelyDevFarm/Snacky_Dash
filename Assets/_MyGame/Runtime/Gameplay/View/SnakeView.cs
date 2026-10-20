@@ -36,6 +36,8 @@ namespace SnackDash.Presentation
         [SerializeField] private float segmentPopOvershoot = 3.25f;
         [Tooltip("Độ cao giữa mặt cầu (TileCov_Bridge_LR ~1.8).")]
         [SerializeField] private float deckHeight = 1.8f;
+        [Tooltip("Mỗi đốt lùi ra sau chừng ấy so với đốt trước, để chỗ thân chồng lên nhau (Rắn bóng ma) đốt gần đầu nằm trên.")]
+        [SerializeField] private float segmentDepthStep = 0.002f;
 
         [Header("Eyes (SnakeHead_VO Feedbacks/Blinking, Stunned)")]
         [SerializeField] private Vector2 blinkInterval = new Vector2(0.5f, 4f);   // gốc: MMF_Looper pause
@@ -520,6 +522,8 @@ namespace SnackDash.Presentation
                 Vector3 position = flat;
                 float lift = DeckLift(flat, horizontal);
                 position.z -= lift;
+                // Thân bắt chéo qua mình (booster Rắn bóng ma): đốt gần đầu luôn vẽ đè đốt xa đầu, không tranh nhau nhấp nháy [user 20/10].
+                position.z += i * segmentDepthStep;
                 // Trong đường hầm thì ẩn tới khi ra miệng bên kia.
                 bool visible = !SampleHidden(distance);
                 if (segment.root.activeSelf != visible) segment.root.SetActive(visible);

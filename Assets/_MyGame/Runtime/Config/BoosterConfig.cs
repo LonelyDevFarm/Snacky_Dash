@@ -18,6 +18,8 @@ namespace SnackDash.Economy
             [Tooltip("Lời mô tả trên băng chọn booster và trên thẻ (LocData; <color=#8929F6>…</color> là chữ tím).")]
             [TextArea(2, 4)]
             public string description;
+            [Tooltip("Booster sáng tạo cần một con số: Rắn bóng ma = số lần đi xuyên thân. Booster khác bỏ trống.")]
+            public int amount;
         }
 
         [Tooltip("Xẻng, boomerang, undo, nam châm.")]

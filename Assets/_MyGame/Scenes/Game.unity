@@ -249,6 +249,10 @@ PrefabInstance:
       propertyPath: m_AdditionalShaderChannelsFlag
       value: 25
       objectReference: {fileID: 0}
+    - target: {fileID: 4201722856018423605, guid: 50fe43e4275cbf644ae3e3d05310fcc8, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8306502614001546690, guid: 50fe43e4275cbf644ae3e3d05310fcc8, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -411,6 +415,7 @@ GameObject:
   - component: {fileID: 1087866752}
   - component: {fileID: 1087866753}
   - component: {fileID: 1087866754}
+  - component: {fileID: 1087866755}
   m_Layer: 0
   m_Name: Snake
   m_TagString: Untagged
@@ -462,6 +467,7 @@ MonoBehaviour:
   segmentPopDuration: 0.35
   segmentPopOvershoot: 3.25
   deckHeight: 1.8
+  segmentDepthStep: 0.002
   blinkInterval: {x: 0.5, y: 4}
   blinkDuration: {x: 0.1, y: 0.2}
   stunnedJawAngle: 15
@@ -512,6 +518,28 @@ MonoBehaviour:
   angryShakeAngle: 10
   angryShakeSpeed: 9
   angryShakeTime: 0.35
+--- !u!114 &1087866755
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1087866750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43b40d42ff0b2624b8564b21fde72a70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  auraPrefab: {fileID: 1400917653387363441, guid: 332bb311f09cb1749958a71a00f88d13, type: 3}
+  ghostShader: {fileID: 4800000, guid: 63c05c32c0340f4418b5e2937bb413a3, type: 3}
+  alphaMin: 0.35
+  alphaMax: 1
+  pulsePeriod: 0.8
+  glowColor: {r: 0.6, g: 0.9, b: 1, a: 1}
+  glow: 0.3
+  rimColor: {r: 1, g: 1, b: 1, a: 1}
+  rim: 0.9
+  rimPower: 2.5
 --- !u!1 &1090080152
 GameObject:
   m_ObjectHideFlags: 0
@@ -993,6 +1021,7 @@ MonoBehaviour:
   receiveShakeRange: 0.06
   receiveShakeSpeed: 10
   receiveShakeDirection: {x: 1, y: 1, z: 0}
+  aheadAppearDuration: 0.2
   fullCrateHold: 0.33
   appearDuration: 0.35
   exitDuration: 0.3

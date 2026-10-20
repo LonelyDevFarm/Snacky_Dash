@@ -27,7 +27,7 @@ namespace SnackDash.UI
     /// </summary>
     public class BoosterBarView : MonoBehaviour
     {
-        private enum Booster { Shovel, Boomerang, Undo, Magnet, MagicCrate }
+        private enum Booster { Shovel, Boomerang, Undo, Magnet, MagicCrate, Ghost }
 
         private sealed class Info
         {
@@ -35,6 +35,7 @@ namespace SnackDash.UI
             public string name, description, stockKey;
             public Sprite icon;
             public int unlockLevel;
+            public int amount;     // booster sáng tạo: Rắn bóng ma = số lần xuyên thân (BoosterConfig)
             public bool confirm;  // used with the CONFIRM button (otherwise by tapping on the board)
             public BoosterButton view;
             public bool unlocked;
@@ -144,8 +145,9 @@ namespace SnackDash.UI
             var creative = SnackDash.Economy.BoosterConfig.Creative;
             for (int i = 0; i < creative.Length && i < layout.creativeButtons.Length; i++)
             {
-                var b = new Info { id = Booster.MagicCrate + i, name = creative[i].name, description = creative[i].description, unlockLevel = creative[i].unlockLevel,
+                var b = new Info { id = Booster.MagicCrate + i, name = creative[i].name, description = creative[i].description, unlockLevel = creative[i].unlockLevel, amount = creative[i].amount,
                     stockKey = SnackDash.Economy.PlayerEconomy.CreativeBoosterKeys[i], view = layout.creativeButtons[i] };
+                b.confirm = b.id == Booster.Ghost; // bóng ma dùng bằng CONFIRM như nam châm
                 b.icon = b.view.Icon;
                 b.unlocked = levelNumber >= b.unlockLevel;
                 b.view.Setup(b.unlocked, b.unlockLevel);
@@ -179,6 +181,7 @@ namespace SnackDash.UI
             }
             if (booster.id == Booster.Undo && !_session.CanUndo) return;
             if (booster.id == Booster.Magnet && _session.MagnetActive) return;
+            if (booster.id == Booster.Ghost && _session.GhostActive) return;
             SetAiming(_aiming == booster ? null : booster);
         }
 
@@ -228,7 +231,7 @@ namespace SnackDash.UI
             SetAiming(null);
             StartCoroutine(FlyIcon(booster, () =>
             {
-                bool used = booster.id == Booster.Undo ? _session.Undo() : _session.UseMagnet();
+                bool used = booster.id == Booster.Undo ? _session.Undo() : booster.id == Booster.Ghost ? _session.UseGhost(booster.amount) : _session.UseMagnet();
                 if (used) Spend(booster);
             }));
         }

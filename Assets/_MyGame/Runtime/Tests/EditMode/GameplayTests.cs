@@ -159,6 +159,39 @@ namespace SnackDash.Tests
             Assert.IsTrue(session.CheatWin());
             Assert.IsTrue(won && session.IsWon);
             Assert.IsFalse(session.CheatWin(), "only once");
+
+            // Ghost snake (creative booster) [user 20/10]: goes through its own tail a number of times instead of biting it; a time is the
+            // head touching the body after being off it, not a swipe. Never backwards into the neck; undo dims meanwhile; it ends once the
+            // times are used and the head is off the body (bites as usual are checked above).
+            session = new GameSession(new BoardGraph(map, _database), map, level);
+            session.Begin();
+            bool? ghost = null;
+            int passes = 0;
+            session.GhostChanged += on => ghost = on;
+            session.GhostPassed += () => passes++;
+            Assert.IsTrue(session.UseGhost(1));
+            Assert.IsTrue(ghost == true && session.GhostActive);
+            Assert.IsFalse(session.UseGhost(1), "not twice at once");
+            Assert.IsTrue(session.RequestMove(Direction.Up));
+            session.Tick(1f);
+            Assert.IsFalse(session.UndoReady, "undo dims while the ghost is on");
+            Assert.IsTrue(session.RequestMove(Direction.Left));
+            session.Tick(1f);
+            Assert.IsFalse(session.IsStuck, "round the loop through its own tail");
+            Assert.AreEqual(1, passes, "one time through the body");
+            var neck = Vector2Int.RoundToInt(session.SegmentPosition(0)) - session.CurrentCell;
+            foreach (var d in DirectionExtensions.All)
+                if (d.ToCell() == neck) Assert.IsFalse(session.CanGo(d), "never backwards into the neck");
+            // Its one time used, but it is still on its body: it holds. Round again along the body: still the same time.
+            Assert.IsTrue(session.RequestMove(Direction.Left));
+            session.Tick(1f);
+            Assert.IsFalse(session.IsStuck);
+            Assert.AreEqual(1, passes, "running along the body is one time");
+            Assert.IsTrue(session.GhostActive, "times used but the head is on the body: the ghost holds");
+            Assert.IsTrue(session.RequestMove(Direction.Down));
+            session.Tick(1f);
+            Assert.IsFalse(session.IsStuck);
+            Assert.IsTrue(ghost == false && !session.GhostActive, "times used and the head off the body: the ghost ends");
         }
 
         [Test]

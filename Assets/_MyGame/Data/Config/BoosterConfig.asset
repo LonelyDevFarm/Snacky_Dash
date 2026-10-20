@@ -33,3 +33,7 @@ MonoBehaviour:
   - name: MAGIC CRATE
     unlockLevel: 16
     description: <color=#8929F6>CLICK ARROW</color> TO FILL THAT CRATE AT ONCE!
+  - name: GHOST
+    unlockLevel: 16
+    description: <color=#8929F6>GO THROUGH</color> YOUR OWN TAIL 3 TIMES!
+    amount: 3

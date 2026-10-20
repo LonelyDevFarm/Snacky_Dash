@@ -63,7 +63,7 @@ namespace SnackDash.Gameplay
         /// Nút Undo sáng: có lượt vuốt để quay lại. Mờ ngay sau một undo hay booster khác và khi nam châm đang bật,
         /// tới lượt vuốt mới [user]; không mờ chỉ vì rắn đang chạy (nút nhấp nháy mỗi lượt, user 15/10).
         /// </summary>
-        public bool UndoReady => _beforeLastMove != null && !_magnetOn;
+        public bool UndoReady => _beforeLastMove != null && !_magnetOn && !_ghostOn;
 
         /// <summary>Undo dùng được ngay: nút sáng và rắn đang đứng yên.</summary>
         public bool CanUndo => UndoReady && IsIdle;

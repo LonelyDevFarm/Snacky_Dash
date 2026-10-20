@@ -545,15 +545,24 @@ namespace SnackDash.Gameplay
 
         private bool CheckBite()
         {
+            bool touching = HeadOnBody();
+            if (_ghostOn) { GhostTouched(touching); return false; } // bóng ma: đi xuyên thân, đếm lần va chạm
+            if (!touching) return false;
+            IsStuck = true;
+            SnipKeep = _segments.Count / KeptPerSegments;
+            TailBitten?.Invoke(SnipKeep);
+            return true;
+        }
+
+        /// <summary>Đầu chạm một đốt tính là cắn: thân từ 5 đốt, đốt trong hầm và đốt ở tầng kia của cầu không tính.</summary>
+        private bool HeadOnBody()
+        {
             if (_segments.Count < MinSegmentsBeforeBite) return false;
             for (int i = 1; i < _segments.Count; i++)
             {
                 if (SegmentInTunnel(i)) continue; // đốt trong hầm thì không cắn được
                 if (Vector2.Distance(SegmentPosition(i), HeadPosition) >= BiteDistance) continue;
                 if (OnOtherLevelOfBridge(i)) continue;
-                IsStuck = true;
-                SnipKeep = _segments.Count / KeptPerSegments;
-                TailBitten?.Invoke(SnipKeep);
                 return true;
             }
             return false;
