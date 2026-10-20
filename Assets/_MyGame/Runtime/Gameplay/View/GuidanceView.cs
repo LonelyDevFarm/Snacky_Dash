@@ -7,7 +7,7 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Mũi tên tím chỉ đường ở màn 1-7 (prefab Prefabs/InGame/guidance/GuidanceArrow, gốc GuidanceController) khi rắn đứng yên 3 s.
+    /// Mũi tên tím chỉ đường ở màn 1-7 (prefab Prefabs/InGame/Tutorial/GuidanceArrow, gốc GuidanceController) khi rắn đứng yên 3 s.
     /// GameBootstrap gắn lên bàn; không hiện khi có tutorial hay popup.
     /// </summary>
     public class GuidanceView : MonoBehaviour

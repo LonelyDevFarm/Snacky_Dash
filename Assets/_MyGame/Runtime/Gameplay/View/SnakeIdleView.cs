@@ -14,7 +14,7 @@ namespace SnackDash.Presentation
     /// </summary>
     public class SnakeIdleView : MonoBehaviour
     {
-        [Tooltip("Prefab Prefabs/InGame/fx/SnakeThoughtBubble: Canvas đặt trong bàn chơi, con FruitIcon (Image) là chỗ đặt hình trái.")]
+        [Tooltip("Prefab Prefabs/InGame/Snake/SnakeThoughtBubble: Canvas đặt trong bàn chơi, con FruitIcon (Image) là chỗ đặt hình trái.")]
         [SerializeField] private GameObject bubblePrefab;
         [Tooltip("Data/FruitGraphicSet: hình trái trong bong bóng (dùng icon trên sân).")]
         [SerializeField] private FruitGraphicSet fruits;

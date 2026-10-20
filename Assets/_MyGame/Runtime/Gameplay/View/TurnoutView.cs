@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Ống rẽ (prefab Prefabs/InGame/tilescovers/visualoverhaul/TileCov_Path_Turnout_*): hiện ống của hướng A hoặc B (gốc
+    /// Ống rẽ (prefab Prefabs/InGame/Mechanics/SwitchTube/TileCov_Path_Turnout_*): hiện ống của hướng A hoặc B (gốc
     /// TurnoutView._positionA / _positionB, ShowPosition). Lúc đổi ống mới bật nảy nhẹ cho thấy ống vừa xoay (tự thêm, gốc chỉ đổi hình).
     /// BoardView gọi theo GameSession.TurnoutChanged.
     /// </summary>

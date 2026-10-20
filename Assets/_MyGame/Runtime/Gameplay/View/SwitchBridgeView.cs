@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Cầu bật (prefab Prefabs/InGame/tilescovers/visualoverhaul/TileCov_Bridge_Switching_LR): mặt cầu (Rotate_Parent) dựng lên khi
+    /// Cầu bật (prefab Prefabs/InGame/Mechanics/SwitchBridge/TileCov_Bridge_Switching_LR): mặt cầu (Rotate_Parent) dựng lên khi
     /// công tắc On, xoay xuống dưới mặt đường khi Off, trong 0.25 s (gốc BridgeView._bridgeAxeToRotate, _tweenDuration). Hai thanh cam
     /// hai bên đứng yên. BoardView gọi theo GameSession.SwitchBridgeChanged.
     /// </summary>

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Cửa khay đóng / mở (prefab Prefabs/InGame/GameObject/ShutterCrateVisual, dựng theo ShutterCrateVisual gốc 1.15): hai cánh
+    /// Cửa khay đóng / mở (prefab Prefabs/InGame/Crates/ShutterCrateVisual, dựng theo ShutterCrateVisual gốc 1.15): hai cánh
     /// trái / phải, mỗi cánh là mesh cửa trượt ra mép khay và tấm phẳng co lại. Số đo lấy từ AN_ShutterCrateOpening (0.333 s) và
     /// AN_ShutterCrateClosing (0.25 s); gốc chạy bằng Animator, ở đây tween cho gọn. CratesView gắn lên khay trên cùng của cột.
     /// </summary>

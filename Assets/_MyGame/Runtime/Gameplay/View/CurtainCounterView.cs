@@ -5,7 +5,7 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Bộ đếm trên rèm (prefab Prefabs/InGame/tilescovers/curtain/View_CurtainCounter): số trái còn phải ăn và hình trái.
+    /// Bộ đếm trên rèm (prefab Prefabs/InGame/Mechanics/Curtain/View_CurtainCounter): số trái còn phải ăn và hình trái.
     /// CurtainsView tạo và gọi: số nảy khi giảm, khói bung rồi ẩn khi rèm mở.
     /// </summary>
     public class CurtainCounterView : MonoBehaviour

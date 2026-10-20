@@ -5,7 +5,7 @@ using UnityEngine;
 namespace SnackDash.Presentation
 {
     /// <summary>
-    /// Khối nâng (prefab Prefabs/InGame/ldfs/visualoverhaul/RisingBlock): nhô lên / chìm xuống mặt đường, hạ xuống thì bung lá.
+    /// Khối nâng (prefab Prefabs/InGame/Mechanics/RisingBlock/RisingBlock): nhô lên / chìm xuống mặt đường, hạ xuống thì bung lá.
     /// Ô góc dùng mảnh góc. BoardView gọi theo sự kiện của GameSession.
     /// </summary>
     public class RisingBlockView : MonoBehaviour
