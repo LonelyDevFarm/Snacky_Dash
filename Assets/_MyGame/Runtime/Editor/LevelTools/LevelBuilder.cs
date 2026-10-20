@@ -629,7 +629,7 @@ namespace SnackDash.Editor.LevelTools
             return true;
         }
 
-        /// <summary>Cổng một chiều đang phạm <see cref="GateRoom"/> trên bản đồ <paramref name="json"/> (để gỡ ở màn đã sinh).</summary>
+        /// <summary>Cổng một chiều đang phạm <see cref="GateRoom"/> trên bản đồ <paramref name="json"/> (bộ kiểm bàn từ chối).</summary>
         public static List<Vector2Int> CrowdedGates(string json, TileDefinitionDatabase database)
         {
             var file = JsonUtility.FromJson<LevelStitcher.TiledJson.Map>(json);
@@ -646,15 +646,6 @@ namespace SnackDash.Editor.LevelTools
         /// cổng hai đầu một đoạn chỉ ngược nhau, đoạn đó không vào được từ phía nào].</summary>
         private static bool LaneTaken(TiledMap map, long[] ldf, BoardGraph board, List<Vector2Int> corridor, Vector2Int gate) =>
             corridor.Any(c => c != gate && !Free(map, ldf, c)) || LaneBlocked(map, ldf, board, corridor);
-
-        /// <summary>Gỡ ô lớp phủ ở <paramref name="cell"/> khỏi bản đồ.</summary>
-        public static string ClearCell(string json, Vector2Int cell)
-        {
-            var file = JsonUtility.FromJson<LevelStitcher.TiledJson.Map>(json);
-            var ldf = file.layers.First(l => l.name == "ldf");
-            ldf.data[(file.height - 1 - cell.y) * file.width + cell.x] = 0;
-            return JsonUtility.ToJson(file);
-        }
 
         private static bool IsJunction(BoardGraph board, Vector2Int cell) =>
             board.IsWalkable(cell) && !board.TunnelMouths.ContainsKey(cell) && DirectionExtensions.All.Count(d => board.HasRoad(cell, d)) >= 3;
