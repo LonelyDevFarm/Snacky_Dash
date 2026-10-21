@@ -41,5 +41,19 @@ namespace SnackDash.Gameplay
         }
 
         public static bool IsHorizontal(this Direction direction) => direction == Direction.Left || direction == Direction.Right;
+
+        /// <summary>Hướng bên trái của rắn đang đi theo <paramref name="direction"/> (lưới y lên trên).</summary>
+        public static Direction TurnLeft(this Direction direction)
+        {
+            switch (direction)
+            {
+                case Direction.Up: return Direction.Left;
+                case Direction.Left: return Direction.Down;
+                case Direction.Down: return Direction.Right;
+                default: return Direction.Up;
+            }
+        }
+
+        public static Direction TurnRight(this Direction direction) => direction.TurnLeft().Opposite();
     }
 }

@@ -251,6 +251,7 @@ namespace SnackDash.Gameplay
             }
             SetUpMechanics(level);
             SetUpShutters(level);
+            SetUpIce(level);
 
             CurrentCell = board.PlayerStart;
             HeadPosition = CurrentCell;
@@ -322,7 +323,9 @@ namespace SnackDash.Gameplay
             _target = CurrentCell + direction.ToCell();
             IsMoving = true;
             OnMoveStartedForBoosters();
+            ClearIceRun();
             MoveStarted?.Invoke(direction);
+            HeadingOntoIce(_target);
             return true;
         }
 
@@ -636,6 +639,7 @@ namespace SnackDash.Gameplay
                     return;
                 }
                 Enter(CurrentCell);
+                ArriveOnIce(CurrentCell); // mặt băng: đủ nặng thì vỡ (dừng như thường), nhẹ thì trượt qua (NextStep)
                 if (_stopOnArrival) // vừa trồi lên từ hố xẻng: đứng chờ ở đó
                 {
                     _stopOnArrival = false;
@@ -672,11 +676,13 @@ namespace SnackDash.Gameplay
                 PruneTrail();
                 Heading = exitHeading;
                 _target = exit + Heading.ToCell();
+                HeadingOntoIce(_target);
                 return true;
             }
             if (!NextStep(cell, Heading, out var heading)) return false;
             Heading = heading;
             _target = cell + Heading.ToCell();
+            HeadingOntoIce(_target);
             return true;
         }
 
@@ -687,7 +693,11 @@ namespace SnackDash.Gameplay
         private bool NextStep(Vector2Int cell, Direction heading, out Direction next)
         {
             next = heading;
-            if (_board.IsStop(cell)) return false; // điểm dừng luôn dừng, dù cổng hay đá có chặn lối nào [user]
+            if (_board.IsStop(cell))
+            {
+                if (!SlidesOver(cell)) return false; // điểm dừng luôn dừng, dù cổng hay đá có chặn lối nào [user]
+                return SlideOn(cell, heading, out next); // mặt băng, rắn nhẹ: không dừng
+            }
             if (_board.CanMove(cell, heading)) return true;
             if (_board.IsBridge(cell)) return false; // cầu chỉ đi thẳng (map thật không gặp)
 
@@ -713,7 +723,8 @@ namespace SnackDash.Gameplay
             var cell = CurrentCell + direction.ToCell();
             var heading = direction;
             path.Add(cell);
-            for (int i = 0; i < 256 && NextStep(cell, heading, out heading); i++)
+            var slid = new HashSet<Vector2Int>(); // mặt băng: trượt vòng về ô băng cũ thì dừng ở đó, như lúc chạy thật
+            for (int i = 0; i < 256 && (!IceAt(cell, out _) || slid.Add(cell)) && NextStep(cell, heading, out heading); i++)
             {
                 cell += heading.ToCell();
                 path.Add(cell);

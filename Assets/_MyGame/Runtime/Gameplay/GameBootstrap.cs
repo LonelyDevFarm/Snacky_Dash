@@ -76,6 +76,8 @@ namespace SnackDash.Bootstrap
             if (tutorial != null) tutorial.Bind(Session, LevelNumber);
             if (combo != null) combo.Bind(Session, crates, hud);
             board.gameObject.AddComponent<GuidanceView>().Bind(Session, LevelNumber, guidanceArrow, () => tutorial != null && tutorial.HidesBoosterBar); // mũi tên tím sau 3 s đứng yên, Level 1-7
+            var ice = board.GetComponent<IceView>(); // cơ chế Mặt băng (sáng tạo, màn sau 366)
+            if (ice != null) ice.Bind(Session);
             var ghost = snake.GetComponent<SnakeGhostView>(); // booster Rắn bóng ma (sáng tạo): thân mờ, ánh tím
             if (ghost != null) ghost.Bind(Session, snake);
             var idle = snake.GetComponent<SnakeIdleView>(); // mắt liếc, bong bóng trái khi đứng yên lâu [user]

@@ -95,6 +95,52 @@ namespace SnackDash.Tests
             Assert.AreEqual(1, session.Columns[0].Filled);
             Assert.IsFalse(session.IsMoving, "the ignored swipe must not fire after the delivery");
             Assert.IsTrue(session.RequestMove(Direction.Left), "head-only snake may turn back");
+
+            // Ice (creative mechanic, levels after 366) [user 20-21/10]: a stretch of road from stop A to stop B swallowing the stops between,
+            // with a weight. A lighter snake slides over the swallowed stops to B; one carrying at least that many fruit breaks the whole stretch
+            // at the stop it reaches and stops there. Undo brings the ice back; previewing the path never breaks it. The Level Generator finds
+            // the same stretch (A = start, one swallowed stop, B = crate stop). Row: start Stop, road, road, Stop (ice), road, road, crate stop;
+            // three strawberries on (1..3, 0).
+            const string iceMap =
+                "{\"width\":7,\"height\":2,\"tilesets\":[{\"firstgid\":1}],\"layers\":[" +
+                "{\"name\":\"map\",\"data\":[343,343,343,343,343,343,388, 295,351,351,295,351,351,296]}," +
+                "{\"name\":\"spawn\",\"data\":[0,0,0,0,0,0,0, 288,0,0,0,0,0,0]}," +
+                "{\"name\":\"spawn1\",\"data\":[0,0,0,0,0,0,0, 0,372,372,372,0,0,0]}]}";
+            var iceTiles = TiledMap.Parse(iceMap);
+            var ice = new Vector2Int(3, 0);
+            foreach (int weight in new[] { 4, 3 })
+            {
+                var iceLevel = Level((PillKind.Strawberry, 3), (PillKind.Strawberry, 9));
+                var stretch = new List<Vector2Int> { new Vector2Int(1, 0), new Vector2Int(2, 0), ice, new Vector2Int(4, 0), new Vector2Int(5, 0) };
+                iceLevel.iceSegments.Add(new IceSegment { cells = stretch, weight = weight });
+                var iceGame = new GameSession(new BoardGraph(iceTiles, _database), iceTiles, iceLevel);
+                iceGame.Begin();
+                Assert.AreEqual(weight, iceGame.Ice[ice]);
+                CollectionAssert.AreEqual(stretch, LevelBuilder.IceRun(iceTiles, new long[iceTiles.Width * iceTiles.Height], iceGame.Board, new Vector2Int(0, 0), Direction.Right, 1, new Vector2Int[0]),
+                    "the Level Generator lays the same stretch from the start stop");
+                Assert.Contains(new Vector2Int(6, 0), iceGame.PreviewPath(Direction.Right), "an empty snake slides over in the preview");
+                Assert.AreEqual(weight, iceGame.Ice[ice], "previewing never breaks the ice");
+                int slid = 0, broke = 0;
+                iceGame.IceSlid += c => slid++;
+                iceGame.IceBroken += c => broke++;
+                iceGame.Tick(0.31f);
+                Assert.IsTrue(iceGame.RequestMove(Direction.Right));
+                iceGame.Tick(0.5f);
+                if (weight == 4)
+                {
+                    Assert.AreEqual(new Vector2Int(6, 0), iceGame.CurrentCell, "3 fruit < 4: slides over the stop");
+                    Assert.AreEqual(1, slid);
+                    Assert.IsTrue(iceGame.Ice.ContainsKey(ice), "the ice stays");
+                    continue;
+                }
+                Assert.AreEqual(ice, iceGame.CurrentCell, "3 fruit >= 3: breaks the ice and stops there");
+                Assert.AreEqual(1, broke);
+                Assert.IsFalse(iceGame.Ice.ContainsKey(ice));
+                bool restored = false;
+                iceGame.IceRestored += s => restored = s == 0;
+                Assert.IsTrue(iceGame.Undo());
+                Assert.IsTrue(restored && iceGame.Ice.ContainsKey(ice), "undo brings the ice back");
+            }
         }
 
         // "P" board, 3 wide x 12 high: a 3x3 loop on top whose bottom-middle Stop (1,9) joins a stem
@@ -192,6 +238,17 @@ namespace SnackDash.Tests
             session.Tick(1f);
             Assert.IsFalse(session.IsStuck);
             Assert.IsTrue(ghost == false && !session.GhostActive, "times used and the head off the body: the ghost ends");
+
+            // An ice stretch across the T-junction stop (1,9) [user 21/10]: a light snake never stops on ice; coming in from the side (up the stem)
+            // it turns to its left, runs round the loop and, back on the same ice in the same run, stops there instead of circling forever.
+            var iceLevel = Level((PillKind.Strawberry, 9), (PillKind.Strawberry, 9), (PillKind.Banana, 9), (PillKind.Strawberry, 9));
+            iceLevel.iceSegments.Add(new IceSegment { cells = new List<Vector2Int> { new Vector2Int(0, 9), new Vector2Int(1, 9), new Vector2Int(2, 9) }, weight = 99 });
+            var iceRun = new GameSession(new BoardGraph(map, _database), map, iceLevel);
+            iceRun.Begin();
+            var preview = iceRun.PreviewPath(Direction.Up);
+            int onIce = preview.IndexOf(new Vector2Int(1, 9));
+            Assert.AreEqual(new Vector2Int(0, 9), preview[onIce + 1], "up the stem onto the ice: turns to the snake's left");
+            Assert.AreEqual(new Vector2Int(1, 9), preview[preview.Count - 1], "round the loop and back on the same ice: stops there");
         }
 
         [Test]

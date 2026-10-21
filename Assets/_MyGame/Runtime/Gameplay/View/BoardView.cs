@@ -55,6 +55,9 @@ namespace SnackDash.Presentation
 
         public static Vector3 CellToWorld(Vector2Int cell) => new Vector3(cell.x, cell.y, 0f);
 
+        /// <summary>Gốc chứa các mảnh bản đồ đã dựng (mặt đường, viền cỏ...).</summary>
+        public Transform CoverRoot => coverRoot != null ? coverRoot : transform;
+
         public void Build(TiledMap map)
         {
             Clear();

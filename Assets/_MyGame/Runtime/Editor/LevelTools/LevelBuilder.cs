@@ -427,7 +427,13 @@ namespace SnackDash.Editor.LevelTools
         /// khối nâng = các lối vòng ngoài chỉ dùng được một lần (màn 76); cổng một chiều = ép đi vòng; tường = một vùng đóng lúc đầu,
         /// phá xong bàn rộng ra.
         /// </summary>
-        public static readonly string[] Themes = { "khối nâng", "cổng một chiều", "tường" };
+        public static readonly string[] Themes = { "khối nâng", "cổng một chiều", "tường", "mặt băng" };
+
+        /// <summary>Ép ý đồ chính của các màn sinh tiếp theo (vd. "mặt băng" để làm màn demo cơ chế mới); null = ngẫu nhiên.</summary>
+        public static string ForcedTheme;
+
+        /// <summary>Chi phí độ khó của mỗi cơ chế; mặt băng cùng loại với cổng một chiều [user 20/10].</summary>
+        private static int Cost(string name) => name == "khối nâng" ? RisingCost : name == "tường" ? WallCost : name == "khay đóng / mở" ? ToggleCrateCost : GateCost;
 
         public static List<string> AddMechanics(ref string json, LevelDefinition level, TileDefinitionDatabase database, System.Random random, out int unspent) =>
             AddMechanics(ref json, level, database, random, out unspent, out _);
@@ -444,12 +450,13 @@ namespace SnackDash.Editor.LevelTools
             var normal = level.columns.Where(c => !c.isExtra).ToList();
             var exhausted = new HashSet<string>(); // loại đã thử nhiều chỗ mà không chỗ nào đạt
             const int Attempts = 5;
-            var themes = Themes.Where(t => (t == "khối nâng" ? RisingCost : t == "tường" ? WallCost : GateCost) <= budget).ToList();
-            string wanted = themes.Count > 0 ? themes[random.Next(themes.Count)] : null;
+            var themes = Themes.Where(t => Cost(t) <= budget).ToList();
+            string wanted = ForcedTheme != null ? (Cost(ForcedTheme) <= budget ? ForcedTheme : null) : themes.Count > 0 ? themes[random.Next(themes.Count)] : null;
+            if (ForcedTheme != null && wanted == null) { unspent = budget; theme = null; return placed; } // ép ý đồ mà không đủ ngân sách: bỏ bàn
             theme = null;
             for (int guard = 0; budget > 0 && guard < 12; guard++)
             {
-                var choices = new List<(string name, int cost)> { ("cổng một chiều", GateCost), ("tường", WallCost) };
+                var choices = new List<(string name, int cost)> { ("cổng một chiều", GateCost), ("tường", WallCost), ("mặt băng", GateCost) };
                 if (!placed.Contains("khối nâng")) choices.Add(("khối nâng", RisingCost));
                 if (!placed.Contains("khay đóng / mở") && normal.Count >= 2) choices.Add(("khay đóng / mở", ToggleCrateCost));
                 choices.RemoveAll(c => c.cost > budget || exhausted.Contains(c.name));
@@ -478,7 +485,7 @@ namespace SnackDash.Editor.LevelTools
         }
 
         /// <summary>Vật chặn <see cref="PlaceOne"/> đặt được (cầu không: cầu làm màn dễ đi).</summary>
-        public static readonly string[] Blockers = { "cổng một chiều", "tường", "khối nâng", "khay đóng / mở" };
+        public static readonly string[] Blockers = { "cổng một chiều", "tường", "khối nâng", "khay đóng / mở", "mặt băng" };
 
         /// <summary>
         /// Thử đặt một vật chặn <paramref name="name"/> (<see cref="Blockers"/>) ở một chỗ ngẫu nhiên đạt mọi luật (khối nâng: một
@@ -491,6 +498,7 @@ namespace SnackDash.Editor.LevelTools
                 case "cổng một chiều": return Try(ref json, level, database, placed, name, (map, ldf, lvl) => Gate(map, ldf, database, random), true);
                 case "tường": return Try(ref json, level, database, placed, name, (map, ldf, lvl) => Wall(map, ldf, lvl, database, random), true);
                 case "khối nâng": return Try(ref json, level, database, placed, name, (map, ldf, lvl) => Rising(map, ldf, lvl, database, random), false);
+                case "mặt băng": return Ice(json, level, database, random, placed);
                 case "khay đóng / mở":
                     var normal = level.columns.Where(c => !c.isExtra).ToList();
                     if (normal.Count < 2 || normal.Any(c => c.closedAtStart)) return false;
@@ -592,6 +600,73 @@ namespace SnackDash.Editor.LevelTools
             var (cell, dir) = options[random.Next(options.Count)];
             ldf[Index(map, cell)] = GateTiles[dir] + map.FirstGid;
             return true;
+        }
+
+        /// <summary>
+        /// Mặt băng (sáng tạo, màn sau 366) [user 20-21/10]: một đoạn đường nối điểm dừng A với điểm dừng B, nuốt 1-2 điểm dừng ở giữa.
+        /// Bản đơn giản: qua điểm dừng giữa (kể cả ngã ba, ngã tư) đoạn luôn đi thẳng; chỉ cua ở khúc cua thường (một lối), nơi rắn đằng
+        /// nào cũng tự rẽ. Điểm dừng giữa không phải điểm giao khay / ô xuất phát / dưới rèm; đoạn không qua cầu, hầm, ngã rẽ không có điểm
+        /// dừng, vật lớp phủ, băng khác; A khác B. Độ nặng theo bậc [user 21/10: một khay đã 9 trái, combo tới 27]: thường 10-13, khó 12-16,
+        /// siêu khó 15-20 trái. Băng nằm trong dữ liệu màn (<c>iceSegments</c>), không đổi bản đồ; máy tự chơi kiểm thắng sau.
+        /// </summary>
+        private static bool Ice(string json, LevelDefinition level, TileDefinitionDatabase database, System.Random random, List<string> placed)
+        {
+            var map = TiledMap.Parse(json);
+            var board = new BoardGraph(map, database);
+            var ldf = map.LayerNames().Contains("ldf") ? JsonUtility.FromJson<LevelParts.TiledJson.Map>(json).layers.First(l => l.name == "ldf").data : new long[map.Width * map.Height];
+            var taken = new HashSet<Vector2Int>(level.iceSegments.SelectMany(s => s.cells));
+            var options = new List<List<Vector2Int>>();
+            foreach (var start in board.StopCells)
+                foreach (var exit in DirectionExtensions.All)
+                {
+                    var path = IceRun(map, ldf, board, start, exit, random.Next(1, 3), taken);
+                    if (path != null) options.Add(path);
+                }
+            if (options.Count == 0) { Reject("mặt băng", "không có chỗ hợp lệ"); return false; }
+            var chosen = options[random.Next(options.Count)];
+            level.iceSegments.Add(new IceSegment { cells = chosen, weight = IceWeight(level.difficulty, random) });
+            if (!placed.Contains("mặt băng")) placed.Add("mặt băng");
+            return true;
+        }
+
+        /// <summary>Độ nặng phá băng theo bậc: thường 10-13, khó 12-16, siêu khó 15-20 trái.</summary>
+        public static int IceWeight(int difficulty, System.Random random) =>
+            difficulty >= 4 ? random.Next(15, 21) : difficulty >= 2 ? random.Next(12, 17) : random.Next(10, 14);
+
+        /// <summary>
+        /// Đoạn băng đi từ điểm dừng <paramref name="start"/> theo <paramref name="heading"/>, nuốt đúng <paramref name="stops"/> điểm dừng
+        /// rồi tới điểm dừng cuối; trả về các ô từ sau A tới trước B, null khi không đạt luật của <see cref="Ice"/>.
+        /// </summary>
+        public static List<Vector2Int> IceRun(TiledMap map, long[] ldf, BoardGraph board, Vector2Int start, Direction heading, int stops, ICollection<Vector2Int> taken)
+        {
+            if (taken.Contains(start)) return null;
+            var path = new List<Vector2Int>();
+            var cell = start;
+            int swallowed = 0;
+            for (int step = 0; step < 40; step++)
+            {
+                if (!board.CanMove(cell, heading)) return null;
+                var next = cell + heading.ToCell();
+                if (next == start || path.Contains(next) || taken.Contains(next) || !Free(map, ldf, next)
+                    || board.IsBridge(next) || board.TunnelMouths.ContainsKey(next) || board.IsCovered(next)) return null;
+                if (board.IsStop(next))
+                {
+                    if (swallowed == stops) return path.Count > 0 ? path : null; // điểm dừng cuối B
+                    if (next == board.PlayerStart || board.IsCrateStopCell(next) || !board.CanMove(next, heading)) return null; // giữa đoạn: phải đi thẳng qua
+                    swallowed++;
+                    path.Add(next);
+                    cell = next;
+                    continue;
+                }
+                path.Add(next);
+                cell = next;
+                if (board.CanMove(cell, heading)) continue;
+                // Khúc cua thường: đúng một lối đi tiếp; ngã rẽ không điểm dừng (rắn sẽ dừng ở đó) thì không đặt.
+                var exits = board.Exits(cell).Where(d => d != heading.Opposite()).ToList();
+                if (exits.Count != 1) return null;
+                heading = exits[0];
+            }
+            return null;
         }
 
         /// <summary>

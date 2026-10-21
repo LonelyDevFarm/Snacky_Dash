@@ -49,6 +49,7 @@ namespace SnackDash.Gameplay
             public int batch;
             public (HashSet<Vector2Int> closedWalls, Dictionary<Vector2Int, Direction> ways, HashSet<Vector2Int> risen) board;
             public MechanicsState mechanics;
+            public bool[] ice;
         }
 
         // Chỉ nhớ lượt vuốt mới nhất: undo xong thì không lùi tiếp được tới lượt vuốt sau.
@@ -80,7 +81,7 @@ namespace SnackDash.Gameplay
                 trail = new List<Vector2>(_trail), trailJump = new List<float>(_trailJump),
                 pills = new Dictionary<Vector2Int, PillKind>(_pills), secret = new HashSet<Vector2Int>(_secret),
                 arrowEntered = new Dictionary<int, Vector2Int>(_arrowEntered),
-                batch = BatchIndex, board = _board.SaveState(), mechanics = SaveMechanics(),
+                batch = BatchIndex, board = _board.SaveState(), mechanics = SaveMechanics(), ice = SaveIce(),
             };
             _deliveredSinceSwipe.Clear();
             _swipePath.Clear();
@@ -140,6 +141,7 @@ namespace SnackDash.Gameplay
             var now = _board.SaveState();
             _board.RestoreState((now.closedWalls, s.board.ways, now.risen)); // mũi tên trả về, đá giữ như hiện tại
             RestoreMechanics(s.mechanics, s.board.risen); // trả về số đếm rèm và khối nâng
+            RestoreIce(s.ice); // băng vỡ trong lượt này hiện lại
             _deliveredSinceSwipe.Clear();
             _bufferedSwipe = null;
             _tunnelLeft = _tunnelWait = 0f;
@@ -267,7 +269,7 @@ namespace SnackDash.Gameplay
             for (int i = 0; i < _segments.Count; i++)
                 if (!SegmentInTunnel(i)) body.Add(Vector2Int.RoundToInt(SegmentPosition(i)));
             foreach (var cell in _board.StopCells)
-                if (cell != CurrentCell && !body.Contains(cell) && !_board.IsCrateStopCell(cell)) targets.Add(cell);
+                if (cell != CurrentCell && !body.Contains(cell) && !_board.IsCrateStopCell(cell) && !IceAt(cell, out _)) targets.Add(cell); // không đào lên mặt băng
             return targets;
         }
 

@@ -71,6 +71,8 @@ namespace SnackDash.LevelSystem
         public List<CurtainGroupDefinition> curtainGroups = new List<CurtainGroupDefinition>();
         [Tooltip("Số khay phải xong để khối nâng hạ lại (gốc: risingBlockDeliveriesToLower).")]
         public int risingBlockDeliveriesToLower = 3;
+        [Tooltip("Mặt băng (sáng tạo, chỉ màn sau 366): đoạn đường nối hai điểm dừng, nuốt 1-2 điểm dừng ở giữa; rắn nhẹ hơn độ nặng thì trượt qua.")]
+        public List<IceSegment> iceSegments = new List<IceSegment>();
         [Tooltip("Màn do Level Generator sinh: màn gốc, cách tạo, hạt ngẫu nhiên, số lượt người chơi thử cần (trống với màn gốc).")]
         [TextArea] public string origin;
     }
@@ -90,6 +92,15 @@ namespace SnackDash.LevelSystem
         public Vector2Int counterMin, counterMax;
         public PillKind kind;
         public int count;
+    }
+
+    [Serializable]
+    public class IceSegment
+    {
+        [Tooltip("Các ô của đoạn theo thứ tự, từ sau điểm dừng đầu tới trước điểm dừng cuối (gồm các điểm dừng ở giữa).")]
+        public List<Vector2Int> cells = new List<Vector2Int>();
+        [Tooltip("Số trái trên thân để phá băng.")]
+        public int weight;
     }
 
     [Serializable]
