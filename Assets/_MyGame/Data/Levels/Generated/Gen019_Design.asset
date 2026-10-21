@@ -125,7 +125,7 @@ MonoBehaviour:
     - {x: 1, y: 8}
     - {x: 1, y: 7}
     - {x: 1, y: 6}
-    weight: 13
+    weight: 30
   - cells:
     - {x: 7, y: 1}
     - {x: 8, y: 1}
@@ -142,7 +142,7 @@ MonoBehaviour:
     - {x: 13, y: 7}
     - {x: 13, y: 8}
     - {x: 13, y: 9}
-    weight: 14
+    weight: 29
   origin: "t\u1EF1 thi\u1EBFt k\u1EBF 15x24, 1 c\u1ED9t khay; \xFD \u0111\u1ED3:
     m\u1EB7t b\u0103ng; c\u01A1 ch\u1EBF: c\u1EA7u, m\u1EB7t b\u0103ng; h\u1EA1t
     581363630; th\u1EAFng kh\xF4ng booster: 279 l\u01B0\u1EE3t vu\u1ED1t, t\xECm

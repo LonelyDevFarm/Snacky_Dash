@@ -606,8 +606,8 @@ namespace SnackDash.Editor.LevelTools
         /// Mặt băng (sáng tạo, màn sau 366) [user 20-21/10]: một đoạn đường nối điểm dừng A với điểm dừng B, nuốt 1-2 điểm dừng ở giữa.
         /// Bản đơn giản: qua điểm dừng giữa (kể cả ngã ba, ngã tư) đoạn luôn đi thẳng; chỉ cua ở khúc cua thường (một lối), nơi rắn đằng
         /// nào cũng tự rẽ. Điểm dừng giữa không phải điểm giao khay / ô xuất phát / dưới rèm; đoạn không qua cầu, hầm, ngã rẽ không có điểm
-        /// dừng, vật lớp phủ, băng khác; A khác B. Độ nặng theo bậc [user 21/10: một khay đã 9 trái, combo tới 27]: thường 10-13, khó 12-16,
-        /// siêu khó 15-20 trái. Băng nằm trong dữ liệu màn (<c>iceSegments</c>), không đổi bản đồ; máy tự chơi kiểm thắng sau.
+        /// dừng, vật lớp phủ, băng khác; A khác B. Độ nặng theo độ dài rắn của màn (<see cref="IceWeight"/>). Băng nằm trong dữ liệu màn
+        /// (<c>iceSegments</c>), không đổi bản đồ; máy tự chơi kiểm thắng sau.
         /// </summary>
         private static bool Ice(string json, LevelDefinition level, TileDefinitionDatabase database, System.Random random, List<string> placed)
         {
@@ -624,14 +624,60 @@ namespace SnackDash.Editor.LevelTools
                 }
             if (options.Count == 0) { Reject("mặt băng", "không có chỗ hợp lệ"); return false; }
             var chosen = options[random.Next(options.Count)];
-            level.iceSegments.Add(new IceSegment { cells = chosen, weight = IceWeight(level.difficulty, random) });
+            level.iceSegments.Add(new IceSegment { cells = chosen, weight = IceWeight(json, level, database, random) });
             if (!placed.Contains("mặt băng")) placed.Add("mặt băng");
             return true;
         }
 
-        /// <summary>Độ nặng phá băng theo bậc: thường 10-13, khó 12-16, siêu khó 15-20 trái.</summary>
-        public static int IceWeight(int difficulty, System.Random random) =>
-            difficulty >= 4 ? random.Next(15, 21) : difficulty >= 2 ? random.Next(12, 17) : random.Next(10, 14);
+        /// <summary>
+        /// Độ nặng phá băng theo độ dài rắn của chính màn đó [user 21/10: độ nặng cố định 15-17 vô nghĩa khi hết một đợt trái thân đã
+        /// ~30; lấy theo phân vị độ dài lúc dừng vẫn thấp — người chơi thật tới đợt 1 thân đã 39]: máy tự chơi màn (chưa có băng) vài
+        /// ván, lấy độ dài lớn nhất của mỗi ván, trung vị các ván đó nhân hệ số theo bậc — thường 70%, khó 80%, siêu khó 90% — xê dịch ±1,
+        /// ít nhất <see cref="MinIceWeight"/>. Băng vì thế phải cố tình giữ trái cho thân dài mới phá được; chơi giao trái bình thường thì
+        /// rắn trượt qua [user 21/10].
+        /// </summary>
+        public static int IceWeight(string json, LevelDefinition level, TileDefinitionDatabase database, System.Random random)
+        {
+            var longest = LongestSnakes(json, level, database);
+            if (longest.Count == 0) return MinIceWeight;
+            float share = level.difficulty >= 4 ? 0.9f : level.difficulty >= 2 ? 0.8f : 0.7f;
+            int weight = Mathf.RoundToInt(longest[longest.Count / 2] * share);
+            return Mathf.Max(MinIceWeight, weight + random.Next(-1, 2));
+        }
+
+        private const int MinIceWeight = 10;
+        private const int IceProfileGames = 5;
+        private static readonly Dictionary<string, List<int>> IceProfiles = new Dictionary<string, List<int>>();
+
+        /// <summary>Độ dài rắn lớn nhất mỗi ván, qua vài ván máy tự chơi màn khi chưa có băng; đã sắp xếp, nhớ theo bản đồ.</summary>
+        private static List<int> LongestSnakes(string json, LevelDefinition level, TileDefinitionDatabase database)
+        {
+            if (IceProfiles.TryGetValue(json, out var cached)) return cached;
+            var longest = new List<int>();
+            var plain = UnityEngine.Object.Instantiate(level);
+            plain.iceSegments = new List<IceSegment>();
+            try
+            {
+                for (int seed = 1; seed <= IceProfileGames; seed++)
+                {
+                    var map = TiledMap.Parse(json);
+                    var session = new GameSession(new BoardGraph(map, database), map, plain);
+                    session.SetSeed(seed);
+                    session.Begin();
+                    if (session.ExtraColumn >= 0) session.UnlockExtraColumn();
+                    var player = new LevelAutoPlayer();
+                    int most = 0;
+                    player.Ticked += () => most = Mathf.Max(most, session.Segments.Count);
+                    try { player.Play(session, seed); }
+                    catch (Exception e) { Debug.LogWarning($"[LevelBuilder] Đo độ dài rắn {level.name}: {e.Message}"); }
+                    longest.Add(most);
+                }
+            }
+            finally { UnityEngine.Object.DestroyImmediate(plain); }
+            longest.Sort();
+            IceProfiles[json] = longest;
+            return longest;
+        }
 
         /// <summary>
         /// Đoạn băng đi từ điểm dừng <paramref name="start"/> theo <paramref name="heading"/>, nuốt đúng <paramref name="stops"/> điểm dừng
