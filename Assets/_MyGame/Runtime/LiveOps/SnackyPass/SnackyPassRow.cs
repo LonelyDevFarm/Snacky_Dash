@@ -30,16 +30,28 @@ namespace SnackDash.UI
             public RectTransform lockIcon;
             [Tooltip("Màu trên / dưới: đã mở, chặng kế, chưa tới.")]
             public Color[] open = new Color[2], next = new Color[2], locked = new Color[2];
+            [Tooltip("Dải sáng sát mép trên làn (gốc SP_Glow_Left_Top / Right_Top).")]
+            public Image topStrip;
+            [Tooltip("Bóng sát mép dưới làn (gốc SP_Glow_Shadow).")]
+            public Image bottomShade;
+            [Tooltip("Màu dải trên / bóng dưới theo trạng thái: đã mở, chặng kế, chưa tới (gốc BG_Unlocked / BG_In_Progress / BG_Locked).")]
+            public Color[] topStripColors = new Color[3], bottomShadeColors = new Color[3];
+            [Tooltip("Chặng kế có bóng dưới dày, mềm (ảnh SP_Shadow); chặng khác là vạch mỏng màu phẳng.")]
+            public Sprite softShade;
+            public float softShadeHeight = 36f, flatShadeHeight = 10.6f;
         }
 
         [SerializeField] private Lane free = new Lane();
         [SerializeField] private Lane premium = new Lane();
         [SerializeField] private TMP_Text stageNumber;
+        [Tooltip("Viền vàng trên / dưới: chỉ chặng đang làm (gốc Visual_Frame_Pass chỉ có trong BG_In_Progress).")]
+        [SerializeField] private GameObject frameTop, frameBottom;
         [SerializeField] private GameObject ticketBar;
         [SerializeField] private RectTransform ticketFill;
         [SerializeField] private TMP_Text ticketText;
-        [Tooltip("Hình chặng thường / chặng to (rương, gói 8 tim).")]
-        [SerializeField] private float iconSize = 150f, bigIconSize = 175f;
+        [Tooltip("Khung hình chặng thường (gốc BP_MainUI_View Reward_Container/Icon 156 x 146) / cạnh khung chặng to (rương, gói 8 tim).")]
+        [SerializeField] private Vector2 iconBox = new Vector2(156f, 146f);
+        [SerializeField] private float bigIconSize = 175f;
         [SerializeField] private float iconY = 12f, bigIconY = 2f;
 
         /// <summary>Chạm thẻ hoặc CLAIM của một làn (true = premium).</summary>
@@ -69,6 +81,8 @@ namespace SnackDash.UI
         public void ShowStage(int stage, bool next, int have, int need)
         {
             stageNumber.text = stage.ToString();
+            if (frameTop != null) frameTop.SetActive(next);
+            if (frameBottom != null) frameBottom.SetActive(next);
             ticketBar.SetActive(next);
             if (!next) return;
             ticketFill.anchorMax = new Vector2(1f, need > 0 ? Mathf.Clamp01((float)have / need) : 0f);
@@ -82,8 +96,17 @@ namespace SnackDash.UI
             var lane = LaneOf(isPremium);
             var colours = state == 0 ? lane.open : state == 1 ? lane.next : lane.locked;
             lane.gradient.Set(colours[0], colours[1]);
+            if (lane.topStrip != null) lane.topStrip.color = lane.topStripColors[state];
+            if (lane.bottomShade != null)
+            {
+                lane.bottomShade.color = lane.bottomShadeColors[state];
+                lane.bottomShade.sprite = state == 1 ? lane.softShade : null;
+                var shade = lane.bottomShade.rectTransform;
+                shade.sizeDelta = new Vector2(shade.sizeDelta.x, state == 1 ? lane.softShadeHeight : lane.flatShadeHeight);
+                shade.anchoredPosition = new Vector2(0f, state == 1 ? 6.92f : 5.21f); // tâm cách mép dưới (gốc)
+            }
             lane.icon.sprite = sprite;
-            lane.icon.rectTransform.sizeDelta = Vector2.one * (big ? bigIconSize : iconSize);
+            lane.icon.rectTransform.sizeDelta = big ? Vector2.one * bigIconSize : iconBox;
             lane.icon.rectTransform.anchoredPosition = new Vector2(0f, big ? bigIconY : iconY);
             lane.amount.text = label;
             lane.amount.gameObject.SetActive(label.Length > 0);

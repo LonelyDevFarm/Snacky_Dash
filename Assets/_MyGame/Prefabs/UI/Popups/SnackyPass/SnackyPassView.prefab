@@ -3417,8 +3417,8 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 643ac0da85fcd1341aa2d7fe8f22bcc6, type: 2}
   - {fileID: 21300000, guid: 6f854ca05b128c34ba5bfa22f94c10c5, type: 2}
   - {fileID: 21300000, guid: dc63544d6bd1ac549a13ef09443962c1, type: 2}
-  coinSprite: {fileID: 21300000, guid: fa6e40e4e8338d84e91c382d4da5e1c1, type: 2}
-  infiniteLivesSprite: {fileID: 21300000, guid: 0ab883afebfa4d1408fba3a8cce0fbad, type: 2}
+  coinSprite: {fileID: 21300000, guid: 51f4266b0220fc643844a332b235ccbc, type: 2}
+  infiniteLivesSprite: {fileID: 21300000, guid: 921e4f6c48d61bf4caf273a8c2be02d1, type: 2}
   boosterSprites:
   - {fileID: 21300000, guid: f84816de66bc9624e91576f3e6abc014, type: 2}
   - {fileID: 21300000, guid: 40a14c586be4bdf4898d982309ea518d, type: 2}

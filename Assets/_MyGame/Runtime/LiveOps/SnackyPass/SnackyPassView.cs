@@ -83,7 +83,10 @@ namespace SnackDash.UI
 
         private void OnDestroy() { if (_pass != null) _pass.Changed -= Refresh; }
 
-        /// <summary>Thiết kế 1080 co theo bề ngang màn hình, cao bằng màn hình.</summary>
+        /// <summary>
+        /// Đầu trang: thiết kế 1080 co theo bề ngang màn hình, cao bằng màn hình. Danh sách chặng thì giữ cỡ thật như gốc (video sk2:
+        /// một chặng cao đúng 285, ô 227) — bù lại phép co bằng <see cref="_listScale"/>, hàng giãn theo bề ngang, hai làn chia theo tỉ lệ.
+        /// </summary>
         private void FitWidth()
         {
             Canvas.ForceUpdateCanvases();
@@ -92,7 +95,10 @@ namespace SnackDash.UI
             float k = size.x / Width;
             fit.localScale = new Vector3(k, k, 1f);
             fit.sizeDelta = new Vector2(Width, size.y / k);
+            _listScale = 1f / k;
         }
+
+        private float _listScale = 1f;
 
         private void ShowBadge()
         {
@@ -112,14 +118,17 @@ namespace SnackDash.UI
         private void BuildRows()
         {
             var content = scroll.content;
-            content.sizeDelta = new Vector2(Width, firstRow + (SeasonPass.Stages - 1) * rowHeight);
+            content.localScale = new Vector3(_listScale, _listScale, 1f);
+            content.sizeDelta = new Vector2(Width / _listScale, firstRow + (SeasonPass.Stages - 1) * rowHeight);
             for (int stage = 1; stage <= SeasonPass.Stages; stage++)
             {
                 var row = Instantiate(rowPrefab, content);
                 row.name = "Stage " + stage;
                 var rect = (RectTransform)row.transform;
+                rect.anchorMin = new Vector2(0f, 1f);
+                rect.anchorMax = new Vector2(1f, 1f);
                 rect.anchoredPosition = new Vector2(0f, -RowTop(stage));
-                rect.sizeDelta = new Vector2(Width, stage == 1 ? firstRow : rowHeight);
+                rect.sizeDelta = new Vector2(0f, stage == 1 ? firstRow : rowHeight);
                 int s = stage;
                 row.CardClicked += premium => OnCard(s, premium);
                 ShowRow(row, stage);
@@ -176,9 +185,10 @@ namespace SnackDash.UI
             _busy = true;
             scroll.enabled = false;
             var content = scroll.content;
-            float bottom = Mathf.Max(0f, content.sizeDelta.y - scroll.viewport.rect.height);
+            // Vị trí danh sách tính trong khung cuộn: đơn vị chặng x _listScale.
+            float bottom = Mathf.Max(0f, content.sizeDelta.y * _listScale - scroll.viewport.rect.height);
             int focus = Mathf.Max(1, FirstClaimable());
-            float target = Mathf.Clamp(RowTop(focus) - (focus == 1 ? 0f : rowHeight * 0.3f), 0f, bottom);
+            float target = Mathf.Clamp((RowTop(focus) - (focus == 1 ? 0f : rowHeight * 0.3f)) * _listScale, 0f, bottom);
             Action<float> place = y => content.anchoredPosition = new Vector2(0f, y);
             place(bottom);
             group.alpha = 0f;

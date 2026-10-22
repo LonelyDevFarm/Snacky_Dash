@@ -50,6 +50,16 @@ namespace SnackDash.UI
         [SerializeField] private float backgroundFade = 0.3f;
         [SerializeField] private float titlePopDuration = 0.35f;
         [SerializeField] private float continueDelay = 0.9f;
+        [Header("Nhịp màn xu (gốc VictoryPopup: UIAnimation + WinScreenPopupView bản 1.15), giây tính từ lúc mở")]
+        [Tooltip("Mọi phần bật ra: cỡ 0 -> 1 trong bấy nhiêu giây, OutBack (DOTween Ease 27).")]
+        [SerializeField] private float popDuration = 0.3f;
+        [Tooltip("VICTORY! bật ra tới cỡ này (gốc Title Content: scaleEnd 1.1).")]
+        [SerializeField] private float titleScale = 1.1f;
+        [SerializeField] private float titleDelay = 0.1f, coinsDelay = 0.3f, buttonsDelay = 0.8f;
+        [SerializeField] private float comboAppear = 0.75f, comboScaleUp = 0.35f, comboHold = 0.45f, comboFly = 0.5f, comboMerge = 0.45f;
+        [Tooltip("Tia sáng sau đống xu nảy lên rồi về khi xu combo nhập vào (gốc _comboFxPulseSeconds).")]
+        [SerializeField] private float fxPulse = 0.4f;
+        [SerializeField] private float barDelay = 1.5f, barDuration = 0.75f;
         [Tooltip("Tâm CONTINUE / x2 cách đáy màn hình (đơn vị canvas), đo trên video.")]
         [SerializeField] private float continueHeight = 380f;
         [SerializeField] private float buttonsSpread = 232f;
@@ -101,14 +111,21 @@ namespace SnackDash.UI
             // chúng hiện ra một thoáng trong lúc VICTORY! bật lên [user].
             if (reward.HasValue) PrepareReward(buttonRect, reward.Value);
             StartCoroutine(Tween.Run(backgroundFade, Tween.Linear, t => background.color = new Color(color.r, color.g, color.b, t * color.a)));
-            yield return Tween.Run(titlePopDuration, Tween.OutBack(3f), t => title.localScale = Vector3.one * t);
-            if (reward.HasValue)
-            {
-                yield return RewardSequence(buttonRect, reward.Value);
-                yield break;
-            }
-            yield return new WaitForSeconds(Mathf.Max(0f, continueDelay - titlePopDuration));
-            yield return Tween.Run(titlePopDuration, Tween.OutBack(3f), t => buttonRect.localScale = Vector3.one * t);
+            if (reward.HasValue) StartCoroutine(RewardSequence(buttonRect, reward.Value)); // chạy song song với tiêu đề như gốc
+            yield return new WaitForSeconds(titleDelay);
+            yield return Tween.Run(popDuration, Pop, t => title.localScale = Vector3.one * (titleScale * t));
+            if (reward.HasValue) yield break;
+            yield return new WaitForSeconds(Mathf.Max(0f, buttonsDelay - titleDelay - popDuration));
+            yield return Tween.Run(popDuration, Pop, t => buttonRect.localScale = Vector3.one * t);
+        }
+
+        /// <summary>DOTween Ease.OutBack (độ vượt mặc định 1.70158) như UIAnimation gốc.</summary>
+        private static readonly Func<float, float> Pop = Tween.OutBack(1.70158f);
+
+        private IEnumerator PopAfter(float delay, RectTransform part, float duration)
+        {
+            yield return new WaitForSeconds(delay);
+            yield return Tween.Run(duration, Pop, t => part.localScale = Vector3.one * t);
         }
 
         private void OnContinue()
@@ -141,10 +158,10 @@ namespace SnackDash.UI
             _total = reward.baseCoins + reward.comboCoins;
             streakFlame.SetActive(reward.onFire);
             pile.sprite = reward.comboCoins > 0 ? smallPile : bigPile; // đống nhỏ tới khi xu combo nhập vào [video]
-            amount.text = "+" + reward.baseCoins;
+            amount.text = Plus(reward.baseCoins);
             coinItem.localScale = Vector3.zero;
             combo.gameObject.SetActive(reward.comboCoins > 0);
-            comboAmount.text = "+" + reward.comboCoins;
+            comboAmount.text = Plus(reward.comboCoins);
             combo.localScale = Vector3.zero;
             _hasBar = UnlockPopups.NewItemBar(reward.level, out _barFrom, out _barTo, out int icon);
             bar.gameObject.SetActive(_hasBar);
@@ -158,41 +175,52 @@ namespace SnackDash.UI
             continueRect.anchoredPosition = new Vector2(buttonsSpread, continueHeight);
         }
 
+        /// <summary>
+        /// Nhịp gốc (giây từ lúc mở): đống xu + pháo giấy 0.3, thanh NEW ITEM + 2 nút 0.8, thanh chạy từ 1.5; combo hiện 0.75, giữ, bay
+        /// vào đống lớn, nhập (đổi đống to, tia sáng nảy, số đếm lên tổng).
+        /// </summary>
         private IEnumerator RewardSequence(RectTransform continueRect, VictoryReward reward)
         {
-            bool hasBar = _hasBar;
             float from = _barFrom, to = _barTo;
             var doubleRect = (RectTransform)doubleButton.transform;
+            StartCoroutine(PopAfter(buttonsDelay, doubleRect, popDuration));
+            StartCoroutine(PopAfter(buttonsDelay, continueRect, popDuration));
+            if (_hasBar)
+            {
+                StartCoroutine(PopAfter(buttonsDelay, bar, popDuration));
+                StartCoroutine(Later(barDelay, Tween.Run(barDuration, Tween.OutQuad, t => barFill.anchorMax = new Vector2(Mathf.Lerp(from, to, t), 1f))));
+            }
 
-            yield return Tween.Run(0.3f, Tween.OutBack(2.5f), t => coinItem.localScale = Vector3.one * t);
+            yield return new WaitForSeconds(coinsDelay);
             StartCoroutine(Confetti(coinItem));
             StartCoroutine(Pulse(glow));
-            yield return new WaitForSeconds(0.45f);
-            if (combo.gameObject.activeSelf) yield return Tween.Run(0.25f, Tween.OutBack(3f), t => combo.localScale = Vector3.one * t);
-            yield return new WaitForSeconds(0.2f);
-            StartCoroutine(Tween.Run(0.25f, Tween.OutBack(3f), t => doubleRect.localScale = continueRect.localScale = Vector3.one * t));
-            if (hasBar)
-            {
-                yield return Tween.Run(0.25f, Tween.OutBack(3f), t => bar.localScale = Vector3.one * t);
-                StartCoroutine(Tween.Run(0.6f, Tween.OutQuad, t => barFill.anchorMax = new Vector2(Mathf.Lerp(from, to, t), 1f)));
-            }
-            yield return new WaitForSeconds(0.4f);
+            StartCoroutine(Tween.Run(appearFlashSeconds, Tween.OutQuad, t => _impact = appearFlash * (1f - t)));
+            StartCoroutine(Tween.Run(popDuration, Pop, t => coinItem.localScale = Vector3.one * t));
+            if (!combo.gameObject.activeSelf) yield break;
 
-            // Đống combo rơi vào đống lớn, rồi số đếm lên tổng.
-            if (combo.gameObject.activeSelf)
+            yield return new WaitForSeconds(comboAppear - coinsDelay);
+            yield return Tween.Run(comboScaleUp, Pop, t => combo.localScale = Vector3.one * t);
+            yield return new WaitForSeconds(comboHold);
+            var start = combo.anchoredPosition;
+            yield return Tween.Run(comboFly, Tween.InQuad, t =>
             {
-                var start = combo.anchoredPosition;
-                yield return Tween.Run(0.35f, Tween.InQuad, t =>
-                {
-                    combo.anchoredPosition = Vector2.Lerp(start, coinItem.anchoredPosition, t);
-                    combo.localScale = Vector3.one * Mathf.Lerp(1f, 0.4f, t);
-                });
-                combo.gameObject.SetActive(false);
-                pile.sprite = bigPile;
-                SoundPlayer.Play("CollectCoin");
-                yield return CountUp(reward.baseCoins, _total);
-            }
+                combo.anchoredPosition = Vector2.Lerp(start, coinItem.anchoredPosition, t);
+                combo.localScale = Vector3.one * Mathf.Lerp(1f, 0.4f, t);
+            });
+            combo.gameObject.SetActive(false);
+            pile.sprite = bigPile;
+            SoundPlayer.Play("CollectCoin");
+            StartCoroutine(Tween.Run(fxPulse, Tween.Linear, t => _impact = 0.25f * Mathf.Sin(Mathf.PI * t)));
+            yield return CountUp(reward.baseCoins, _total, comboMerge);
         }
+
+        private static IEnumerator Later(float delay, IEnumerator then)
+        {
+            yield return new WaitForSeconds(delay);
+            yield return then;
+        }
+
+        private static string Plus(int value) => "+ " + value; // gốc WinScreenPopupView.RewardFormat "+ {0}"
 
         /// <summary>x2 (nút quảng cáo, ở đây miễn phí): trả tổng thêm lần nữa, số đếm lên lại, x2 biến mất và CONTINUE vào giữa.</summary>
         private void OnDouble()
@@ -211,66 +239,85 @@ namespace SnackDash.UI
             var start = continueRect.anchoredPosition;
             StartCoroutine(Tween.Run(0.3f, Tween.OutQuad, t => continueRect.anchoredPosition = Vector2.Lerp(start, new Vector2(0f, continueHeight), t)));
             SoundPlayer.Play("Coins");
-            yield return CountUp(_total, _total * 2);
+            yield return CountUp(_total, _total * 2, 0.5f);
             doubleButton.gameObject.SetActive(false);
         }
 
         /// <summary>Số chạy từ <paramref name="from"/> tới <paramref name="to"/>, đống xu nảy lên.</summary>
-        private IEnumerator CountUp(int from, int to)
+        private IEnumerator CountUp(int from, int to, float duration)
         {
-            yield return Tween.Run(0.5f, Tween.OutQuad, t =>
+            yield return Tween.Run(duration, Tween.OutQuad, t =>
             {
-                amount.text = "+" + Mathf.RoundToInt(Mathf.Lerp(from, to, t));
+                amount.text = Plus(Mathf.RoundToInt(Mathf.Lerp(from, to, t)));
                 coinItem.localScale = Vector3.one * (1f + 0.12f * Mathf.Sin(Mathf.PI * t));
             });
-            amount.text = "+" + to;
+            amount.text = Plus(to);
         }
 
-        private static IEnumerator Pulse(RectTransform target)
+        private float _impact; // tia sáng nảy thêm khi combo nhập vào
+
+        /// <summary>Tia sáng sau đống xu (FX_UI_Highlight_Rays_Golden gốc, tia tự quay trong <see cref="UnlockFx"/>): chỉ nảy khi combo nhập.</summary>
+        private IEnumerator Pulse(RectTransform target)
         {
-            float time = 0f;
-            while (target != null)
+            _impact = 0f;
+            var size = target.localScale;
+            while (target != null && target.gameObject.activeInHierarchy)
             {
-                time += Time.deltaTime;
-                target.localScale = Vector3.one * (1f + 0.06f * Mathf.Sin(time * 3f));
-                target.Rotate(0f, 0f, 20f * Time.deltaTime);
+                target.localScale = size * (1f + _impact);
                 yield return null;
             }
         }
 
-        /// <summary>Pháo giấy (hệ hạt UI trong gốc): các mảnh màu bay ra thành vòng rồi rơi.</summary>
+        [Header("Pháo giấy (gốc FX_UI_Reward_Appear_2/FX_Confetti bản 1.15)")]
+        [Tooltip("Nơi chứa mảnh pháo giấy: nằm cạnh đống xu, sau nó (không đè số +N) và không co theo đống xu lúc bật ra [user 22/10: pháo giấy lỗi].")]
+        [SerializeField] private RectTransform confettiRoot;
+        [Tooltip("Số mảnh bung một lần (gốc: burst 60).")]
+        [SerializeField] private int confettiCount = 60;
+        [Tooltip("Cỡ mảnh: ngang x dọc ngẫu nhiên (video lv61: sợi mảnh ~9 x 30 đơn vị).")]
+        [SerializeField] private Vector2 confettiWidth = new Vector2(8f, 11f), confettiLength = new Vector2(22f, 32f);
+        [Tooltip("Tốc độ đầu (đơn vị canvas / s) và lực cản: mảnh dừng ở bán kính ~ tốc độ / cản (video lv61: vòng ~220 khung đầu, ~300 lúc dừng).")]
+        [SerializeField] private Vector2 confettiSpeed = new Vector2(1900f, 2300f);
+        [SerializeField] private float confettiDrag = 7f, confettiGravity = 150f;
+        [Tooltip("Mỗi mảnh sống ngẫu nhiên trong khoảng này rồi mờ đi (gốc startLifetime 0.5-1).")]
+        [SerializeField] private Vector2 confettiLife = new Vector2(0.5f, 1f);
+        [Tooltip("Quầng sáng chớp khi đống xu bật ra (gốc FX_Glow_Large 0.7 s): tia sáng phóng thêm rồi về.")]
+        [SerializeField] private float appearFlash = 0.6f, appearFlashSeconds = 0.7f;
+
+        /// <summary>Pháo giấy (hệ hạt UI trong gốc): các mảnh màu bung thành vòng rộng quanh đống xu rồi tắt dần.</summary>
         private IEnumerator Confetti(RectTransform around)
         {
             if (confettiPrefab == null || confettiColours.Length == 0) yield break;
-            if (_confetti == null) _confetti = new UiPool(confettiPrefab, around);
+            if (_confetti == null) _confetti = new UiPool(confettiPrefab, confettiRoot != null ? confettiRoot : around);
             var colours = confettiColours;
-            const int Count = 46;
-            var pieces = new Image[Count];
-            var velocity = new Vector2[Count];
-            var spin = new float[Count];
-            for (int i = 0; i < Count; i++)
+            int count = confettiCount;
+            var pieces = new Image[count];
+            var velocity = new Vector2[count];
+            var spin = new float[count];
+            var life = new float[count];
+            for (int i = 0; i < count; i++)
             {
                 pieces[i] = _confetti.Get();
                 var rect = pieces[i].rectTransform;
-                rect.sizeDelta = new Vector2(Random.Range(14f, 22f), Random.Range(30f, 44f));
+                rect.sizeDelta = new Vector2(Random.Range(confettiWidth.x, confettiWidth.y), Random.Range(confettiLength.x, confettiLength.y));
                 pieces[i].sprite = null;
                 pieces[i].color = colours[i % colours.Length];
-                float angle = i * Mathf.PI * 2f / Count + Random.Range(-0.1f, 0.1f);
-                velocity[i] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * Random.Range(700f, 1050f);
+                float angle = i * Mathf.PI * 2f / count + Random.Range(-0.1f, 0.1f);
+                velocity[i] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * Random.Range(confettiSpeed.x, confettiSpeed.y);
                 spin[i] = Random.Range(-540f, 540f);
+                life[i] = Random.Range(confettiLife.x, confettiLife.y);
                 rect.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
             }
-            for (float t = 0f; t < 1.6f; t += Time.deltaTime)
+            for (float t = 0f; t < confettiLife.y; t += Time.deltaTime)
             {
-                for (int i = 0; i < Count; i++)
+                for (int i = 0; i < count; i++)
                 {
                     if (pieces[i] == null) continue;
-                    velocity[i] *= 1f - 3.2f * Time.deltaTime;
-                    velocity[i].y -= 600f * Time.deltaTime;
+                    velocity[i] *= Mathf.Exp(-confettiDrag * Time.deltaTime); // không về 0 khi một khung dài
+                    velocity[i].y -= confettiGravity * Time.deltaTime;
                     pieces[i].rectTransform.anchoredPosition += velocity[i] * Time.deltaTime;
                     pieces[i].rectTransform.Rotate(0f, 0f, spin[i] * Time.deltaTime);
                     var c = colours[i % colours.Length];
-                    pieces[i].color = new Color(c.r, c.g, c.b, Mathf.Clamp01(2f - t * 1.3f));
+                    pieces[i].color = new Color(c.r, c.g, c.b, Mathf.Clamp01((life[i] - t) / 0.25f)); // mờ trong 0.25 s cuối đời
                 }
                 yield return null;
             }

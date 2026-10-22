@@ -1111,6 +1111,14 @@ PrefabInstance:
       value: Popup_Container
       objectReference: {fileID: 0}
     - target: {fileID: 4060985874398180545, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 4060985874398180545, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4060985874398180545, guid: 787491de477201144ba57340501eef81, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
       objectReference: {fileID: 0}
@@ -1205,6 +1213,14 @@ PrefabInstance:
     - target: {fileID: 6312263143091152847, guid: 787491de477201144ba57340501eef81, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7909728981537834592, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 7909728981537834592, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 7909728981537834592, guid: 787491de477201144ba57340501eef81, type: 3}
       propertyPath: m_fontColor32.rgba

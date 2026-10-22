@@ -141,6 +141,55 @@ namespace SnackDash.Editor.Audit
         }
 
         /// <summary>
+        /// Chụp prefab gốc (trái) và prefab mình (phải) cạnh nhau vào <paramref name="outPng"/>, cùng khung <paramref name="width"/> x
+        /// <paramref name="height"/>: so bằng mắt cả những màn không có video gốc (Jungle Heist). Hình gốc vắng trong dự án hiện ô trắng.
+        /// </summary>
+        public static string Render(string originalPath, string ourPath, string outPng, string originalRoot = "", string ourRoot = "", float width = 1080f, float height = 2340f)
+        {
+            Directory.CreateDirectory(TempFolder);
+            string temp = TempFolder + "/O_" + Path.GetFileName(originalPath);
+            var yaml = File.ReadAllText(originalPath);
+            foreach (var (from, to) in ScriptMap) yaml = yaml.Replace(from, to);
+            File.WriteAllText(temp, Remap(UiOnly(yaml), originalPath, out var missing));
+            AssetDatabase.ImportAsset(temp, ImportAssetOptions.ForceSynchronousImport);
+            int w = Mathf.RoundToInt(width), h = Mathf.RoundToInt(height);
+            var sheet = new Texture2D(w * 2, h, TextureFormat.RGB24, false);
+            try
+            {
+                var sources = new[] { (AssetDatabase.LoadAssetAtPath<GameObject>(temp), originalRoot), (AssetDatabase.LoadAssetAtPath<GameObject>(ourPath), ourRoot) };
+                for (int i = 0; i < 2; i++)
+                {
+                    var scene = EditorSceneManager.NewPreviewScene();
+                    var rt = RenderTexture.GetTemporary(w, h, 24, RenderTextureFormat.ARGB32);
+                    try
+                    {
+                        Build(scene, sources[i].Item1, new Vector2(width, height), sources[i].Item2);
+                        var cam = new GameObject("CompareCamera", typeof(Camera)).GetComponent<Camera>();
+                        UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(cam.gameObject, scene);
+                        cam.scene = scene; cam.orthographic = true; cam.orthographicSize = height / 2f;
+                        cam.transform.position = new Vector3(0f, 0f, -100f); cam.clearFlags = CameraClearFlags.SolidColor;
+                        cam.backgroundColor = new Color(0.2f, 0.2f, 0.2f); cam.targetTexture = rt; cam.Render();
+                        var prev = RenderTexture.active; RenderTexture.active = rt;
+                        sheet.ReadPixels(new Rect(0, 0, w, h), i * w, 0); RenderTexture.active = prev;
+                    }
+                    finally
+                    {
+                        RenderTexture.ReleaseTemporary(rt);
+                        EditorSceneManager.ClosePreviewScene(scene);
+                    }
+                }
+                sheet.Apply();
+                File.WriteAllBytes(outPng, sheet.EncodeToPNG());
+                return outPng + (missing.Count > 0 ? " (gốc thiếu: " + string.Join(", ", missing) + ")" : "");
+            }
+            finally
+            {
+                Object.DestroyImmediate(sheet);
+                AssetDatabase.DeleteAsset(temp);
+            }
+        }
+
+        /// <summary>
         /// Chỉ giữ GameObject, Transform / RectTransform, CanvasRenderer và các script đã đổi sang của dự án (Image, chữ). Hệ hạt Unity 6
         /// trong prefab gốc làm Unity 2022 sập khi dựng (22/10 sập thật với VictoryPopup) nên bỏ hết phần còn lại, kể cả tham chiếu tới
         /// chúng trong danh sách component của GameObject.
@@ -245,6 +294,10 @@ namespace SnackDash.Editor.Audit
                     var targetFont = o.font != null && o.font.glyphTable.Count > 0 ? o.font : mine.font;
                     var mat = OurMaterial(o.fontSharedMaterial, targetFont);
                     if (mat != null && mat != mine.fontSharedMaterial) { d.Append($" vật liệu {Name(mine.fontSharedMaterial)}→{mat.name}"); if (apply) mine.fontSharedMaterial = mat; }
+                    // Kiểu đậm / nghiêng / gạch (bỏ UpperCase / LowerCase: chữ mình đã viết sẵn hoa).
+                    var styleMask = FontStyles.Bold | FontStyles.Italic | FontStyles.Underline | FontStyles.Strikethrough;
+                    var want = (mine.fontStyle & ~styleMask) | (o.fontStyle & styleMask);
+                    if (want != mine.fontStyle) { d.Append($" kiểu {mine.fontStyle}→{want}"); if (apply) mine.fontStyle = want; }
                     if (Mathf.Abs(o.characterSpacing - mine.characterSpacing) > 0.01f) { d.Append($" giãn chữ {mine.characterSpacing}→{o.characterSpacing}"); if (apply) mine.characterSpacing = o.characterSpacing; }
                     if (Mathf.Abs(o.wordSpacing - mine.wordSpacing) > 0.01f) { d.Append($" giãn từ {mine.wordSpacing}→{o.wordSpacing}"); if (apply) mine.wordSpacing = o.wordSpacing; }
                     if (Mathf.Abs(o.lineSpacing - mine.lineSpacing) > 0.01f) { d.Append($" giãn dòng {mine.lineSpacing}→{o.lineSpacing}"); if (apply) mine.lineSpacing = o.lineSpacing; }
@@ -439,8 +492,10 @@ namespace SnackDash.Editor.Audit
                 if (Name(ia.sprite) != Name(ib.sprite)) d.Append($"\n      sprite {Name(ia.sprite)} -> {Name(ib.sprite)}");
                 if (!Same(ia.color, ib.color)) d.Append($"\n      màu {Hex(ia.color)} -> {Hex(ib.color)}");
                 if (ia.type != ib.type) d.Append($"\n      kiểu {ia.type} -> {ib.type}");
-                if (ia.type != Image.Type.Simple && Mathf.Abs(ia.pixelsPerUnitMultiplier - ib.pixelsPerUnitMultiplier) > 0.01f)
-                    d.Append($"\n      ppu x{ia.pixelsPerUnitMultiplier} -> x{ib.pixelsPerUnitMultiplier}");
+                // Hệ số 9-slice thật = ppu / tỉ lệ thu của chính nó (gốc hay đặt ảnh to x0.3 với ppu 1 = ảnh thường ppu 3.33).
+                float ea = ia.pixelsPerUnitMultiplier / Mathf.Max(0.0001f, o.T.lossyScale.x), eb = ib.pixelsPerUnitMultiplier / Mathf.Max(0.0001f, m.T.lossyScale.x);
+                if (ia.type != Image.Type.Simple && Mathf.Abs(ea - eb) > 0.02f * Mathf.Max(ea, eb))
+                    d.Append($"\n      ppu thật x{ea:0.##} -> x{eb:0.##} (đặt x{ia.pixelsPerUnitMultiplier:0.##}, thu {o.T.lossyScale.x:0.##} / mình x{ib.pixelsPerUnitMultiplier:0.##}, thu {m.T.lossyScale.x:0.##})");
                 if (ia.preserveAspect != ib.preserveAspect) d.Append($"\n      giữ tỉ lệ {ia.preserveAspect} -> {ib.preserveAspect}");
                 if (Name(ia.material) != Name(ib.material) && !(ia.material == ia.defaultMaterial && ib.material == ib.defaultMaterial))
                     d.Append($"\n      vật liệu {Name(ia.material)} -> {Name(ib.material)}");

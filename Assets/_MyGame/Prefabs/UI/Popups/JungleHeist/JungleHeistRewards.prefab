@@ -1654,11 +1654,27 @@ PrefabInstance:
       propertyPath: m_characterSpacing
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 1524046015335134923, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 1524046015335134923, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3869791813058979794, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
       propertyPath: m_lineSpacing
       value: -15
       objectReference: {fileID: 0}
     - target: {fileID: 3869791813058979794, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4663752826003604586, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 4663752826003604586, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
       propertyPath: m_characterSpacing
       value: 2
       objectReference: {fileID: 0}

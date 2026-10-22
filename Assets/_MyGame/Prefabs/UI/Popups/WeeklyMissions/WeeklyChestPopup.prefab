@@ -619,7 +619,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.6}
+  m_Color: {r: 0.4509804, g: 0.4509804, b: 0.4509804, a: 0.34509805}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1123,6 +1123,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1827500199127416847}
     m_Modifications:
+    - target: {fileID: 111836208952509958, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_fontStyle
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 111836208952509958, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 111836208952509958, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2251584972033118885, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -1242,6 +1254,18 @@ PrefabInstance:
     - target: {fileID: 5833607043240184974, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
       propertyPath: m_characterSpacing
       value: -12
+      objectReference: {fileID: 0}
+    - target: {fileID: 8397943301607846399, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_fontStyle
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8397943301607846399, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 8397943301607846399, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
