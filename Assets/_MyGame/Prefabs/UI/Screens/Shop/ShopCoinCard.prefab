@@ -65,10 +65,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "0 \u20AB"
+  m_text: "0 \u0111"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 525ef61c40bd78146aa7300ba0ef9fdc, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: f63825d4dffb11f42bbbc3dcec74f9e5, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -216,7 +216,7 @@ RectTransform:
   m_GameObject: {fileID: 5058750144029970782}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.93, y: 0.93, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4060893472802704866}

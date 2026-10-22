@@ -65,10 +65,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "0 \u20AB"
+  m_text: "0 \u0111"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: df4d3b022ede8c6489eeaffc6a640799, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 08028325856d4a247a937c215e782cb8, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 525ef61c40bd78146aa7300ba0ef9fdc, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: f63825d4dffb11f42bbbc3dcec74f9e5, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
