@@ -32,7 +32,7 @@ namespace SnackDash.UI
                 {
                     shown++;
                     var entry = fruits != null ? fruits.Get(counter.Kind) : null;
-                    if (entry != null) counter.SetIcon(entry.fieldSprite != null ? entry.fieldSprite : entry.sprite);
+                    if (entry != null) counter.SetIcon(entry.fieldSpriteNoOutline != null ? entry.fieldSpriteNoOutline : entry.fieldSprite != null ? entry.fieldSprite : entry.sprite); // gốc: trái không viền
                     counter.SetCount(session.RemainingFruit(counter.Kind));
                 }
                 counter.gameObject.SetActive(inLevel);

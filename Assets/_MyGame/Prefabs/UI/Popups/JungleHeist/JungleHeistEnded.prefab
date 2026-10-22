@@ -34,7 +34,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -0.000011444, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6379680553711476749
@@ -1115,6 +1115,14 @@ PrefabInstance:
       value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 5572989558432388985, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 5572989558432388985, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5572989558432388985, guid: 787491de477201144ba57340501eef81, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
       objectReference: {fileID: 0}
@@ -1205,6 +1213,14 @@ PrefabInstance:
     - target: {fileID: 7909728981537834592, guid: 787491de477201144ba57340501eef81, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 8871240293915523836, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 8871240293915523836, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 8871240293915523836, guid: 787491de477201144ba57340501eef81, type: 3}
       propertyPath: m_fontColor32.rgba

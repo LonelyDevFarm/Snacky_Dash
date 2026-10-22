@@ -17,6 +17,7 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: ce6799888eeeb1c46b5b997fd9766672, type: 2}
     spriteNoOutline: {fileID: 21300000, guid: 7e5e41313f250fb47bcaaeb80b6b741e, type: 2}
     fieldSprite: {fileID: 21300000, guid: 8c2b443386700c845afa6565ecb7e976, type: 2}
+    fieldSpriteNoOutline: {fileID: 21300000, guid: 348b94b1bc309e84c8f3b190b7ff884e, type: 2}
     crateMaterial: {fileID: 2100000, guid: e8de052dde332e747a1d8100dd9ef9c7, type: 2}
     outlineColor: {r: 0.46274513, g: 0.08235294, b: 0.14901961, a: 1}
     shutterMaterial: {fileID: 2100000, guid: 0dfbcd10835c8be4bb7171253ca2f17e, type: 2}
@@ -25,6 +26,7 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 08cdc730125a96845b714b5ae1360193, type: 2}
     spriteNoOutline: {fileID: 21300000, guid: d1712ee03cd5d194a9f8263ab98d19aa, type: 2}
     fieldSprite: {fileID: 21300000, guid: 98684553e5a44c942ad2486f0bf5b43c, type: 2}
+    fieldSpriteNoOutline: {fileID: 21300000, guid: 25735a5f02b751948adf527f1118caf1, type: 2}
     crateMaterial: {fileID: 2100000, guid: 68c0e0582806fe54da08bb3d685d00bc, type: 2}
     outlineColor: {r: 0.121568635, g: 0.1764706, b: 0.5176471, a: 1}
     shutterMaterial: {fileID: 2100000, guid: c447991734851b84c902129b9156d06f, type: 2}
@@ -33,6 +35,7 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: a7ee0366706ae8f44913d38215982e35, type: 2}
     spriteNoOutline: {fileID: 21300000, guid: 86e9b5d9d4dfd46429a58deec624f3a9, type: 2}
     fieldSprite: {fileID: 21300000, guid: d774287125a29dd4da6ceab68ce441ca, type: 2}
+    fieldSpriteNoOutline: {fileID: 21300000, guid: a554dced46d899c4f8c47e48fd8eabe0, type: 2}
     crateMaterial: {fileID: 2100000, guid: a9b8aff9fb7baee48bd33dca6b6cf931, type: 2}
     outlineColor: {r: 0.6431373, g: 0.3254902, b: 0, a: 1}
     shutterMaterial: {fileID: 2100000, guid: 15aa197fdca056542ad9366d70beea7b, type: 2}
@@ -41,6 +44,7 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: ccb4ecd32ccdb194d97d7fe4beca06b6, type: 2}
     spriteNoOutline: {fileID: 21300000, guid: b0b1bffba0585074b8bd36763e1f027f, type: 2}
     fieldSprite: {fileID: 21300000, guid: 7552bcae81c01854a9e880dd7271fe4c, type: 2}
+    fieldSpriteNoOutline: {fileID: 21300000, guid: e55ff7c2d732ed8468bc7383270e86a4, type: 2}
     crateMaterial: {fileID: 2100000, guid: 33cbd2db83f561b458d70f80837b81bc, type: 2}
     outlineColor: {r: 0.5764706, g: 0.20392157, b: 0.5137255, a: 1}
     shutterMaterial: {fileID: 2100000, guid: 53a1aac31a68e684cb5705e4109be59b, type: 2}
@@ -49,6 +53,7 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 3e54492785f418c478ad62a947f8e5fc, type: 2}
     spriteNoOutline: {fileID: 21300000, guid: 31849597db4b3a34ca9722505b466ec8, type: 2}
     fieldSprite: {fileID: 21300000, guid: 47d3b089013073e4992f94fd8a9417bb, type: 2}
+    fieldSpriteNoOutline: {fileID: 21300000, guid: 58551fe1baf9b7a4caf8bb9a793c0a61, type: 2}
     crateMaterial: {fileID: 2100000, guid: 418e26f6c7922f34d9b888c64c870b65, type: 2}
     outlineColor: {r: 0.12941177, g: 0.39607847, b: 0.07450981, a: 1}
     shutterMaterial: {fileID: 2100000, guid: f2756db3182d4bd44b356be497192073, type: 2}
@@ -57,6 +62,7 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 7b3fd84b584c53a4182437e00ea33d63, type: 2}
     spriteNoOutline: {fileID: 21300000, guid: 5071d20ef67064e4a9007c37df1e5279, type: 2}
     fieldSprite: {fileID: 21300000, guid: 18bc99d9703b0db47ba017db6cfa41f5, type: 2}
+    fieldSpriteNoOutline: {fileID: 21300000, guid: 010a44c567d2ead498c8185f384411fd, type: 2}
     crateMaterial: {fileID: 2100000, guid: 914a9cf3e00d8e648b4609679bfe81aa, type: 2}
     outlineColor: {r: 0.7254902, g: 0.21960786, b: 0.078431375, a: 1}
     shutterMaterial: {fileID: 2100000, guid: 500e9fa42ef050c4db8376cce2431557, type: 2}
@@ -65,6 +71,7 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 2da9237cf408d0f45bfefb48d0c5e13c, type: 2}
     spriteNoOutline: {fileID: 21300000, guid: f10f7cace16c56d4fb66250c35559140, type: 2}
     fieldSprite: {fileID: 0}
+    fieldSpriteNoOutline: {fileID: 0}
     crateMaterial: {fileID: 2100000, guid: 8d195375b05af4d4a8cc1435beb52048, type: 2}
     outlineColor: {r: 0.33619526, g: 0.043137256, b: 0.37254903, a: 1}
     shutterMaterial: {fileID: 2100000, guid: c82f50f6ed2b7394a9e16b6fa369a907, type: 2}

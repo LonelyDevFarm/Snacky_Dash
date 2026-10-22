@@ -1215,9 +1215,33 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4092606041450080505, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 4092606041450080505, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 078b74e7b416aac419f2be85dcfd7b47, type: 2}
+    - target: {fileID: 4092606041450080505, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_characterSpacing
+      value: -12
+      objectReference: {fileID: 0}
     - target: {fileID: 4949293010787173787, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
       propertyPath: m_Name
       value: Header
+      objectReference: {fileID: 0}
+    - target: {fileID: 5833607043240184974, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 5833607043240184974, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 078b74e7b416aac419f2be85dcfd7b47, type: 2}
+    - target: {fileID: 5833607043240184974, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_characterSpacing
+      value: -12
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

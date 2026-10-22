@@ -49,9 +49,9 @@ namespace SnackDash.Presentation
             if (_camera == null) _camera = GetComponent<Camera>();
 
             // HUD và thanh booster nằm trong safe area; giữ bàn trong đó luôn, không thì máy tai thỏ bị thanh che bàn.
-            var safe = Screen.safeArea;
-            float insetTop = Screen.height > 0 ? (Screen.height - safe.yMax) / Screen.height * referenceHeight : 0f;
-            float insetBottom = Screen.height > 0 ? safe.yMin / Screen.height * referenceHeight : 0f;
+            var safe = SnackDash.UI.SafeAreaFitter.Normalized();
+            float insetTop = (1f - safe.yMax) * referenceHeight;
+            float insetBottom = safe.yMin * referenceHeight;
             areaHeight -= insetTop + insetBottom;
             areaOffsetY += (insetBottom - insetTop) * 0.5f;
             var bounds = _board;

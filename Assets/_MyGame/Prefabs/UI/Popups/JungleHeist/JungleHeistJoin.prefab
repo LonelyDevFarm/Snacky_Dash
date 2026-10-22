@@ -960,6 +960,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Popup_Container
       objectReference: {fileID: 0}
+    - target: {fileID: 5572989558432388985, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 5572989558432388985, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 6312263143091152847, guid: 787491de477201144ba57340501eef81, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -1039,6 +1047,14 @@ PrefabInstance:
     - target: {fileID: 6312263143091152847, guid: 787491de477201144ba57340501eef81, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8871240293915523836, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 8871240293915523836, guid: 787491de477201144ba57340501eef81, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -1168,7 +1168,7 @@ MonoBehaviour:
   m_text: TERMS & PRIVACY
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 525ef61c40bd78146aa7300ba0ef9fdc, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 6bd441ca2ce3c914b894fbce59b8ec40, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 66a362c0eaafa7549990cdc2a70a325c, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1452,7 +1452,7 @@ MonoBehaviour:
   m_text: HAPTICS
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 525ef61c40bd78146aa7300ba0ef9fdc, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 6bd441ca2ce3c914b894fbce59b8ec40, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: b3c3f97dd60c36c40b97598072659f5a, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1870,7 +1870,7 @@ MonoBehaviour:
   m_text: SOUND
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 525ef61c40bd78146aa7300ba0ef9fdc, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 6bd441ca2ce3c914b894fbce59b8ec40, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: b3c3f97dd60c36c40b97598072659f5a, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2927,7 +2927,7 @@ MonoBehaviour:
   m_text: ENGLISH
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 525ef61c40bd78146aa7300ba0ef9fdc, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 6bd441ca2ce3c914b894fbce59b8ec40, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 4fbf2872c5cda5f45ab3caede785ba8f, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3232,7 +3232,7 @@ MonoBehaviour:
   m_text: MUSIC
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 525ef61c40bd78146aa7300ba0ef9fdc, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 6bd441ca2ce3c914b894fbce59b8ec40, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: b3c3f97dd60c36c40b97598072659f5a, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3692,7 +3692,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0

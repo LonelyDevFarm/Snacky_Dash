@@ -53,3 +53,7 @@ Thumbs.db
 # Tài nguyên trích từ game gốc không dùng (chỉ để tra cứu trên máy)
 /Assets/Reference/
 /Assets/Reference.meta
+
+# Thư mục tạm của Editor/Audit/OriginalCompare (prefab gốc chép tạm)
+/Assets/_RefTmp/
+/Assets/_RefTmp.meta

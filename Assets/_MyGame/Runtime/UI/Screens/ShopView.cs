@@ -51,9 +51,9 @@ namespace SnackDash.UI
 
         protected override void OnShow()
         {
-            var area = Screen.safeArea;
-            safeArea.anchorMin = new Vector2(area.xMin / Screen.width, 0f);
-            safeArea.anchorMax = new Vector2(area.xMax / Screen.width, area.yMax / Screen.height);
+            var area = SafeAreaFitter.Normalized();
+            safeArea.anchorMin = new Vector2(area.xMin, 0f);
+            safeArea.anchorMax = area.max;
         }
 
         /// <summary>Tab Shop ở Home: không có X, chừa <paramref name="bottomInset"/> cho thanh tab.</summary>

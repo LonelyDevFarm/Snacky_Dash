@@ -65,6 +65,7 @@ MonoBehaviour:
   reveal: {fileID: 3779634902361556825}
   header: {fileID: 5113855619345753677}
   glow: {fileID: 6777883196675901064}
+  glowAmount: 0.05
   arrows:
   - {fileID: 574811729507484683}
   - {fileID: 8898028202770188438}
@@ -98,6 +99,9 @@ MonoBehaviour:
   panel: {fileID: 0}
   openTime: 0
   openBack: 1.6
+  openFrom: 0
+  overlayShare: 0.5
+  panelFade: {fileID: 0}
   closeTime: 0.2
   closeBack: 1.5
   fadeGroup: {fileID: 3566940204271935925}
@@ -1736,9 +1740,25 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4092606041450080505, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 4092606041450080505, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_characterSpacing
+      value: -12
+      objectReference: {fileID: 0}
     - target: {fileID: 4949293010787173787, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
       propertyPath: m_Name
       value: Header
+      objectReference: {fileID: 0}
+    - target: {fileID: 5833607043240184974, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 5833607043240184974, guid: 1767a3cb9a4d65142baee453e8478370, type: 3}
+      propertyPath: m_characterSpacing
+      value: -12
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

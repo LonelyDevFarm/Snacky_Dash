@@ -19,6 +19,8 @@ namespace SnackDash.LevelSystem
             public Sprite spriteNoOutline;
             [Tooltip("Icon theo hình trái trên sân (bản 1.15): bộ đếm trên rèm. Trống thì dùng Sprite.")]
             public Sprite fieldSprite;
+            [Tooltip("Icon hình trái trên sân không viền trắng (gốc 1.15 GraphicSet_VO SpriteNoOutline): thanh đếm trái HUD. Trống thì dùng Field Sprite.")]
+            public Sprite fieldSpriteNoOutline;
             public Material crateMaterial;
             public Color outlineColor = Color.black;
             [Tooltip("Cửa khay đóng (TOGGLE CRATE) và tấm phẳng dưới cửa theo màu trái (gốc GraphicSet_VO 1.15 MaterialShutterCrate / Plane).")]

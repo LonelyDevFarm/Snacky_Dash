@@ -104,9 +104,9 @@ namespace SnackDash.UI
 
             var layout = Instantiate(barPrefab, transform);
             _root = (RectTransform)layout.transform;
-            var area = Screen.safeArea;
-            layout.safeArea.anchorMin = new Vector2(area.xMin / Screen.width, area.yMin / Screen.height);
-            layout.safeArea.anchorMax = new Vector2(area.xMax / Screen.width, area.yMax / Screen.height);
+            var area = SafeAreaFitter.Normalized();
+            layout.safeArea.anchorMin = area.min;
+            layout.safeArea.anchorMax = area.max;
             _bar = layout.bar;
             _aimPanel = layout.aimPanel;
             _tutorialPanel = layout.tutorialPanel;

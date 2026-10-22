@@ -107,7 +107,7 @@ MonoBehaviour:
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0
-  m_lineSpacing: 0
+  m_lineSpacing: 1.01
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
@@ -899,8 +899,8 @@ MonoBehaviour:
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
   m_characterSpacing: 0
-  m_wordSpacing: 0
-  m_lineSpacing: 0
+  m_wordSpacing: 17.67
+  m_lineSpacing: 4
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
@@ -1646,6 +1646,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7206970964433524914}
     m_Modifications:
+    - target: {fileID: 288095501037718103, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 288095501037718103, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3869791813058979794, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
+      propertyPath: m_lineSpacing
+      value: -15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3869791813058979794, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
+      propertyPath: m_characterSpacing
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 6800173288462007955, guid: c792b0d34f6052048a5167ca2ff0a905, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
