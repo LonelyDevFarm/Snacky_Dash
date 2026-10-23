@@ -2787,7 +2787,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 34, y: 0}
+  m_AnchoredPosition: {x: 27.9, y: 2.5}
   m_SizeDelta: {x: 46, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4314041198408443535
@@ -3145,7 +3145,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: 45, y: 16}
+  m_AnchoredPosition: {x: -29.85, y: 16}
   m_SizeDelta: {x: 150, y: 150}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &5069087409883462034
@@ -3755,7 +3755,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 0.01
+  m_PixelsPerUnitMultiplier: 1.168421
 --- !u!114 &2168961749082792168
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4051,7 +4051,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 0.01
+  m_PixelsPerUnitMultiplier: 1.168421
 --- !u!114 &2568767082327879683
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4365,7 +4365,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 202, y: 0}
+  m_AnchoredPosition: {x: 177.3, y: 2.5}
   m_SizeDelta: {x: 46, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3419900537569074070
@@ -4442,7 +4442,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 258, y: 0}
+  m_AnchoredPosition: {x: 227.09999, y: 2.5}
   m_SizeDelta: {x: 46, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3136003964372445103
@@ -4879,7 +4879,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 146, y: 0}
+  m_AnchoredPosition: {x: 127.5, y: 2.5}
   m_SizeDelta: {x: 46, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2507011676147284729
@@ -5134,6 +5134,7 @@ GameObject:
   - component: {fileID: 2675202813594484529}
   - component: {fileID: 299257703430600553}
   - component: {fileID: 1266968842297122119}
+  - component: {fileID: 4337563706146324183}
   m_Layer: 0
   m_Name: Progress_Container
   m_TagString: Untagged
@@ -5203,7 +5204,22 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 3.8
+--- !u!114 &4337563706146324183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8435774314561287037}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfabb0440166ab443bba8876756fdfa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EffectColor: {r: 0, g: 0, b: 0, a: 0.2509804}
+  m_EffectDistance: {x: 0, y: -4.5}
+  m_UseGraphicAlpha: 1
 --- !u!1 &8445081156085645016
 GameObject:
   m_ObjectHideFlags: 0
@@ -5612,7 +5628,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 90, y: 0}
+  m_AnchoredPosition: {x: 77.7, y: 2.5}
   m_SizeDelta: {x: 46, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6167044078223793448
