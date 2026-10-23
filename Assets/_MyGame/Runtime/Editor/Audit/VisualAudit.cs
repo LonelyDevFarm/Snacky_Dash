@@ -319,6 +319,80 @@ namespace SnackDash.Editor.Audit
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Cân đối (khi Play) [user 23/10: cụm "xu + 900", "icon + GET 1" lệch mà quét vị trí node không thấy]: mỗi khung có ảnh và có chữ bên
+        /// trong (nút, thẻ, băng tên) — lấy khung bao phần thật sự nhìn thấy của nội dung (nét chữ, ảnh nhỏ vẽ theo tỉ lệ) và so tâm với tâm
+        /// khung. Báo LỆCH-NGANG khi lệch quá max(6 px, 3 % bề ngang); lệch dọc chỉ ghi kèm (mặt nút có gờ dưới nên tâm mặt cao hơn tâm khung).
+        /// </summary>
+        public static string ScanBalance()
+        {
+            var sb = new StringBuilder();
+            var corners = new Vector3[4];
+            foreach (var box in Object.FindObjectsOfType<Image>())
+            {
+                if (!box.isActiveAndEnabled || box.sprite == null || box.canvas == null || !Shown(box) || Masked(box.transform)) continue;
+                var frame = WorldRect(box.rectTransform, corners);
+                if (frame.width < 40 || frame.width > Screen.width * 0.7f || frame.height < 30) continue;
+                var texts = box.GetComponentsInChildren<TMP_Text>(false);
+                if (texts.Length == 0) continue;
+                bool any = false;
+                var content = new Rect();
+                foreach (var t in texts)
+                {
+                    if (!t.isActiveAndEnabled || string.IsNullOrWhiteSpace(t.text) || t.color.a < 0.05f || !Shown(t)) continue;
+                    if (NearestBox(t.transform) != box) continue; // chữ thuộc khung con khác
+                    t.ForceMeshUpdate();
+                    var info = t.textInfo;
+                    for (int i = 0; i < info.characterCount; i++)
+                    {
+                        var c = info.characterInfo[i];
+                        if (!c.isVisible) continue;
+                        var a = t.transform.TransformPoint(c.bottomLeft); var b = t.transform.TransformPoint(c.topRight);
+                        Grow(ref content, ref any, Rect.MinMaxRect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y)));
+                    }
+                }
+                if (!any) continue;
+                foreach (var img in box.GetComponentsInChildren<Image>(false))
+                {
+                    if (img == box || !img.isActiveAndEnabled || img.sprite == null || img.color.a < 0.05f || !Shown(img)) continue;
+                    if (NearestBox(img.transform.parent) != box) continue;
+                    var r = WorldRect(img.rectTransform, corners);
+                    if (r.width > frame.width * 0.85f || r.height > frame.height * 0.85f) continue; // nền / lớp phủ, không phải nội dung
+                    if (img.preserveAspect)
+                    {
+                        float aspect = img.sprite.rect.width / img.sprite.rect.height;
+                        float w = Mathf.Min(r.width, r.height * aspect), h = w / aspect;
+                        r = new Rect(r.center.x - w / 2, r.center.y - h / 2, w, h);
+                    }
+                    Grow(ref content, ref any, r);
+                }
+                float dx = content.center.x - frame.center.x, dy = content.center.y - frame.center.y;
+                float left = content.xMin - frame.xMin, right = frame.xMax - content.xMax;
+                if (Mathf.Abs(dx) > Mathf.Max(6f, frame.width * 0.03f))
+                    sb.AppendLine($"LỆCH-NGANG {Path4(box.transform)} {dx:+0;-0} px (lề trong trái {left:0} / phải {right:0}, khung {frame.width:0}x{frame.height:0}; dọc {dy:+0;-0})");
+            }
+            return sb.Length == 0 ? "cân đối: không thấy lệch ngang\n" : sb.ToString();
+        }
+
+        private static Image NearestBox(Transform t)
+        {
+            for (var p = t; p != null; p = p.parent)
+                if (p.TryGetComponent<Image>(out var i) && i.isActiveAndEnabled && i.sprite != null) return i;
+            return null;
+        }
+
+        private static Rect WorldRect(RectTransform rt, Vector3[] corners)
+        {
+            rt.GetWorldCorners(corners);
+            return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
+        }
+
+        private static void Grow(ref Rect r, ref bool any, Rect add)
+        {
+            if (!any) { r = add; any = true; return; }
+            r = Rect.MinMaxRect(Mathf.Min(r.xMin, add.xMin), Mathf.Min(r.yMin, add.yMin), Mathf.Max(r.xMax, add.xMax), Mathf.Max(r.yMax, add.yMax));
+        }
+
         private static bool Masked(Transform t)
         {
             for (var p = t.parent; p != null; p = p.parent)

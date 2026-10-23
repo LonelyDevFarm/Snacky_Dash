@@ -173,7 +173,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 0
+  m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -552,6 +552,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   paper: {fileID: 6057198948679284705}
+  separator: {fileID: 1972794053405439965}
   claimBackground: {fileID: 6367345356418095341}
   claimLabel: {fileID: 7063285661729157505}
   claimMission: {fileID: 6449412217142513452}
@@ -575,6 +576,52 @@ MonoBehaviour:
   lockIcon: {fileID: 7376824764001779514}
   button: {fileID: 9100920460678950019}
   press: {fileID: 7731300686145776442}
+  iconDefault: {x: 71, y: -8}
+  iconReady: {x: 90, y: 9}
+  rewardsDefaultX: 281
+  rewardsReadyX: 265
+  readyScale:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.16666667
+      value: 1.1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.25
+      value: 1.06
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.41666666
+      value: 1.08
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   premiumPaper: {fileID: 21300000, guid: 8d5f4a38e5c7b8f49b7b3d33d95f7050, type: 2}
   premiumClaim: {fileID: 21300000, guid: 47d7c4c06e4998541a9c05ccf6aa1068, type: 2}
   premiumClaimMaterial: {fileID: 2100000, guid: 1623356d0eaa2c6429b09b710b352563, type: 2}

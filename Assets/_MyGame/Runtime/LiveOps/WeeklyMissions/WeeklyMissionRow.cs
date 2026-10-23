@@ -21,6 +21,8 @@ namespace SnackDash.UI
         }
 
         [SerializeField] private Image paper;
+        [Tooltip("Vạch ngăn dưới hàng: tắt ở hàng nhận được như nền giấy (gốc MissionReadyToClaimState).")]
+        [SerializeField] private GameObject separator;
         [SerializeField] private Image claimBackground;
         [SerializeField] private TMP_Text claimLabel;
         [SerializeField] private TMP_Text claimMission;
@@ -40,6 +42,13 @@ namespace SnackDash.UI
         [Tooltip("Nút và hiệu ứng nhấn: chỉ bật ở hàng nhận được.")]
         [SerializeField] private Button button;
         [SerializeField] private PressFeedback press;
+
+        [Header("Dáng theo trạng thái (gốc: clip MissionDefaultState / MissionReadyToClaimState)")]
+        [SerializeField] private Vector2 iconDefault = new Vector2(71f, -8f), iconReady = new Vector2(90f, 9f);
+        [SerializeField] private float rewardsDefaultX = 281f, rewardsReadyX = 265f;
+        [Tooltip("Hàng nhận được phóng to dần theo các mốc (giây, cỡ): gốc 0 -> 1, 0.17 -> 1.1, 0.25 -> 1.06, 0.42 -> 1.08.")]
+        [SerializeField] private AnimationCurve readyScale = new AnimationCurve(
+            new Keyframe(0f, 1f), new Keyframe(0.16666667f, 1.1f), new Keyframe(0.25f, 1.06f), new Keyframe(0.41666666f, 1.08f));
 
         [Header("Hàng mua hàng (MissionPremium)")]
         [SerializeField] private Sprite premiumPaper;
@@ -74,12 +83,26 @@ namespace SnackDash.UI
             }
 
             claimBackground.gameObject.SetActive(claimable);
+            // Hàng nhận được chỉ còn nền xanh: nền giấy và vạch ngăn tắt, nếu không phóng 1.08 sẽ kéo cả nền giấy to ra [user 23/10].
+            paper.gameObject.SetActive(!claimable);
+            if (separator != null) separator.SetActive(!claimable);
             if (claimable) UiShiny.Row(claimBackground); // ánh sáng quét qua (UIShiny của prefab Mission)
             claimLabel.gameObject.SetActive(claimable);
             claimMission.gameObject.SetActive(claimable);
             claimMission.text = text;
             icon.gameObject.SetActive(!claimed);
             icon.sprite = missionIcon;
+            if (!claimed)
+            {
+                icon.rectTransform.anchoredPosition = claimable ? iconReady : iconDefault;
+                rewards.anchoredPosition = new Vector2(claimable ? rewardsReadyX : rewardsDefaultX, rewards.anchoredPosition.y);
+            }
+            transform.localScale = Vector3.one;
+            if (claimable)
+            {
+                if (isActiveAndEnabled) StartCoroutine(Grow());
+                else transform.localScale = Vector3.one * readyScale.Evaluate(readyScale.keys[readyScale.length - 1].time);
+            }
             defaultLayout.SetActive(!claimable && !claimed);
             title.text = text;
             fill.anchorMax = new Vector2(amount > 0 ? Mathf.Clamp01(progress / (float)amount) : 0f, 1f);
@@ -97,10 +120,35 @@ namespace SnackDash.UI
                 if (i >= rewardList.Count) continue;
                 items[i].icon.sprite = rewardList[i].icon;
                 items[i].amount.text = rewardList[i].amount;
+                FillCellHeight(items[i]);
             }
             if (claimed) rewards.gameObject.AddComponent<CanvasGroup>().alpha = 0.5f;
             button.enabled = claimable;
             press.enabled = claimable;
+        }
+
+        /// <summary>
+        /// Hình thưởng ngang (mũ, xu) cao đầy ô thay vì bị bề ngang ô bóp lại (gốc RewardView.WidenIconToFillCellHeight; video sk1.3: mũ gốc
+        /// rộng gấp ~1.31 mũ mình = tỉ lệ ảnh mũ 1.33).
+        /// </summary>
+        private static void FillCellHeight(RewardItem item)
+        {
+            var rect = item.icon.rectTransform;
+            float cellW = item.root.rect.width, cellH = item.root.rect.height;
+            var sprite = item.icon.sprite;
+            float aspect = sprite != null ? sprite.rect.width / sprite.rect.height : 1f;
+            rect.sizeDelta = new Vector2(Mathf.Max(0f, cellH * aspect - cellW), rect.sizeDelta.y); // ô neo giãn cả ô: sizeDelta là phần nới thêm
+        }
+
+        private System.Collections.IEnumerator Grow()
+        {
+            float end = readyScale.keys[readyScale.length - 1].time;
+            for (float t = 0f; t < end; t += Time.unscaledDeltaTime)
+            {
+                transform.localScale = Vector3.one * readyScale.Evaluate(t);
+                yield return null;
+            }
+            transform.localScale = Vector3.one * readyScale.Evaluate(end);
         }
     }
 }

@@ -85,15 +85,15 @@ MonoBehaviour:
   lockedNotice: UNLOCK AT DAY {0}!
   noticeTemplate: {fileID: 3323980324753228284}
   hatSprite: {fileID: 21300000, guid: 7c43467438bd9964a86695e8c676901d, type: 2}
-  coinSprite: {fileID: 21300000, guid: fa6e40e4e8338d84e91c382d4da5e1c1, type: 2}
-  singleCoinSprite: {fileID: 21300000, guid: de0b7c5b49626f746b2f54b48d95eb77, type: 2}
+  coinSprite: {fileID: 21300000, guid: 51f4266b0220fc643844a332b235ccbc, type: 2}
+  singleCoinSprite: {fileID: 21300000, guid: 51f4266b0220fc643844a332b235ccbc, type: 2}
   flyingCoinPrefab: {fileID: 4274157076814064358, guid: 428edafc1e5b8194dbb6ff3579f1aee4, type: 3}
   boosterSprites:
   - {fileID: 21300000, guid: f84816de66bc9624e91576f3e6abc014, type: 2}
   - {fileID: 21300000, guid: 40a14c586be4bdf4898d982309ea518d, type: 2}
   - {fileID: 21300000, guid: 40df21adb1651094caec61a9e8c6969e, type: 2}
   - {fileID: 21300000, guid: c62289c7cc727834ea02019132a17d4a, type: 2}
-  infiniteLivesSprite: {fileID: 21300000, guid: 0ab883afebfa4d1408fba3a8cce0fbad, type: 2}
+  infiniteLivesSprite: {fileID: 21300000, guid: 921e4f6c48d61bf4caf273a8c2be02d1, type: 2}
   chestSprites:
   - {fileID: 21300000, guid: ab40b6295e2115d4ba013f808ecd279b, type: 2}
   - {fileID: 21300000, guid: f9756657a46e7934c904d749b38a7dc2, type: 2}

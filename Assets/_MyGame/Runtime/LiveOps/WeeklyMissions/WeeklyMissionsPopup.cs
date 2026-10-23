@@ -90,6 +90,10 @@ namespace SnackDash.UI
         private int _day;
         private float _coverAlpha;
         private bool _busy;
+        private int _queuedClaim = -1; // hàng chạm lúc popup đang mở ra: nhận ngay khi mở xong, không bỏ qua cú chạm
+        private int _flows;            // số đợt nhận đang bay: các hàng chạy cùng nhau [user 23/10: "cho nó chạy cùng"]
+        private int _shownPoints;      // số mũ đang hiện (bộ đếm chỉ đếm lên)
+        private bool _chestOpen;       // rương mốc mở lần lượt
         private float _tick;
         private readonly Dictionary<int, WeeklyMissionRow> _rowOf = new Dictionary<int, WeeklyMissionRow>();
         private readonly List<WeeklyMilestone> _markers = new List<WeeklyMilestone>();
@@ -101,7 +105,7 @@ namespace SnackDash.UI
             _missions = WeeklyMissions.Shared;
             _day = _missions.Day;
             _coverAlpha = cover.color.a;
-            cancelButton.Clicked += () => { if (!_busy) Close(); };
+            cancelButton.Clicked += () => { if (!_busy && _flows == 0) Close(); };
             infoButton.Clicked += () => Services.Get<UIManager>().Show<WeeklyMissionsRules>();
             _missions.Changed += Refresh;
         }
@@ -153,6 +157,7 @@ namespace SnackDash.UI
             step(0f); // ẩn ngay khung đầu (tween lồng chỉ chạy từ khung sau)
             yield return Tween.Run(0.8333f, Tween.Linear, step, true);
             _busy = false;
+            ClaimQueued();
         }
 
         /// <summary>Kim đồng hồ quay một phần tư vòng mỗi giây, mỗi nấc khoảng 0.2 s (video đo 0.7 s, trên máy thấy nhanh quá [user]).</summary>
@@ -183,13 +188,14 @@ namespace SnackDash.UI
 
         private void ShowPoints(int points)
         {
+            _shownPoints = points;
             hats.text = points.ToString();
             fill.anchorMax = new Vector2(FillAt(points), 1f);
         }
 
         private void Refresh()
         {
-            if (_busy) return;
+            if (_busy || _flows > 0) return;
             if (_tip != null) Destroy(_tip.gameObject);
             ShowPoints(_missions.Points);
             BuildMarkers();
@@ -267,7 +273,7 @@ namespace SnackDash.UI
                 int chosen = day;
                 tab.Clicked += () =>
                 {
-                    if (_busy || chosen == _day) return;
+                    if (_busy || _flows > 0 || chosen == _day) return;
                     _day = chosen;
                     BuildTabs(true);
                     BuildRows(null, 0f);
@@ -384,9 +390,10 @@ namespace SnackDash.UI
 
         private void OnClaim(int index, WeeklyMissionRow row)
         {
-            if (_busy) return;
+            if (_busy) { _queuedClaim = index; return; } // đang mở popup [user 23/10: "bấm mấy lần mới nhận"]
+            _queuedClaim = -1;
             if (!_missions.DayOpen(_day)) { StartCoroutine(Notice((RectTransform)row.transform, string.Format(lockedNotice, _day))); return; }
-            _busy = true;
+            _flows++; // trước Claim: Changed -> Refresh không dựng lại hàng giữa chừng
             int before = _missions.Points;
             var reward = WeeklyMissions.MissionAt(_day, index).reward;
 
@@ -413,7 +420,7 @@ namespace SnackDash.UI
             SnackDash.Audio.Haptics.Light();
             BuildRows(oldY, 0f); // các hàng trượt về thứ tự mới ngay (sk1.1 22.7 s)
             BuildTabs();
-            StartCoroutine(ClaimFlow(flying, before, before + reward.points, reached));
+            StartCoroutine(ClaimFlow(flying, before + reward.points, reached));
         }
 
         /// <summary>
@@ -444,7 +451,7 @@ namespace SnackDash.UI
         /// sk1.1 22.7-24.0 s: phần thưởng phóng to tại chỗ kèm "+N" (1.5 lần trong 0.12 s) và nhích lên nửa giây; rồi mũ bay về thanh
         /// (đếm lên và đầy dần), đống xu vỡ thành từng đồng bay về ô xu Home, tim về ô tim; booster bay lên và mờ. Sau đó tới rương.
         /// </summary>
-        private IEnumerator ClaimFlow(List<(RectTransform item, string kind)> flying, int from, int to, List<int> reached)
+        private IEnumerator ClaimFlow(List<(RectTransform item, string kind)> flying, int to, List<int> reached)
         {
             var starts = new Vector3[flying.Count];
             var scales = new Vector3[flying.Count];
@@ -465,7 +472,7 @@ namespace SnackDash.UI
                 pending++;
                 switch (kind)
                 {
-                    case "hat": StartCoroutine(FlyTo(item, hatCounter, () => { pending--; StartCoroutine(CountHats(from, to)); })); break;
+                    case "hat": StartCoroutine(FlyTo(item, hatCounter, () => { pending--; StartCoroutine(CountHats(to)); })); break;
                     case "coins": StartCoroutine(CoinBurst(item, home != null ? home.CoinIcon : null, () => pending--)); break;
                     case "lives": StartCoroutine(FlyTo(item, home != null ? home.LivesIcon : null, () => pending--)); break;
                     default: StartCoroutine(FlyTo(item, null, () => pending--)); break;
@@ -476,15 +483,25 @@ namespace SnackDash.UI
 
             foreach (int milestone in reached)
             {
+                while (_chestOpen) yield return null;
+                _chestOpen = true;
                 bool done = false;
                 var marker = _markers.Count > milestone ? (RectTransform)_markers[milestone].transform : hatCounter;
                 var chestPopup = Services.Get<UIManager>().Show<WeeklyChestPopup>();
                 if (chestPopup != null) chestPopup.Play(ChestSprite(milestone), Extras(WeeklyMissionsData.Milestones[milestone].reward, "x"), marker.position, () => done = true);
                 else done = true;
                 while (!done) yield return null;
+                _chestOpen = false;
             }
-            _busy = false;
-            Refresh();
+            if (--_flows == 0) Refresh(); // đợt cuối xong mới dựng lại hàng, mốc, số mũ
+        }
+
+        /// <summary>Nhận hàng đã chạm khi popup còn đang mở ra, nếu nó vẫn nhận được.</summary>
+        private void ClaimQueued()
+        {
+            int index = _queuedClaim;
+            _queuedClaim = -1;
+            if (index >= 0 && _missions.Claimable(_day, index) && _rowOf.TryGetValue(index, out var row)) OnClaim(index, row);
         }
 
         /// <summary>Bay vòng cung tới <paramref name="target"/> và thu nhỏ vào (hoặc bay lên và biến mất khi không có đích).</summary>
@@ -517,7 +534,9 @@ namespace SnackDash.UI
             for (int i = 0; i < count; i++)
             {
                 if (_coins == null) _coins = new UiPool(flyingCoinPrefab, transform);
-                var coin = _coins.Get().rectTransform;
+                var image = _coins.Get();
+                image.sprite = singleCoinSprite; // prefab FlyingCoin để trống ảnh: không gán thì xu bay là ô trắng
+                var coin = image.rectTransform;
                 coin.position = centre;
                 var spread = centre + (Vector3)(UnityEngine.Random.insideUnitCircle * 70f * unit);
                 StartCoroutine(Coin(coin, spread, target, i * 0.05f, () => left--));
@@ -543,10 +562,12 @@ namespace SnackDash.UI
             done();
         }
 
-        private IEnumerator CountHats(int from, int to)
+        /// <summary>Số mũ đếm lên từ số đang hiện tới <paramref name="to"/>; nhiều đợt nhận chồng nhau thì chỉ tăng, không lùi.</summary>
+        private IEnumerator CountHats(int to)
         {
             SnackDash.Audio.Haptics.Light();
-            yield return Tween.Run(0.4f, Tween.OutQuad, t => ShowPoints(Mathf.RoundToInt(Mathf.Lerp(from, to, t))), true);
+            int from = _shownPoints;
+            yield return Tween.Run(0.4f, Tween.OutQuad, t => ShowPoints(Mathf.Max(_shownPoints, Mathf.RoundToInt(Mathf.Lerp(from, to, t)))), true);
         }
     }
 }
