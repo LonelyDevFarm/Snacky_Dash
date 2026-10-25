@@ -37,7 +37,8 @@ namespace SnackDash.Editor.LevelTools
             _options.seed = EditorGUILayout.IntField(new GUIContent("Hạt ngẫu nhiên", "Cùng hạt + cùng lựa chọn = cùng kết quả."), _options.seed);
             _options.difficulty = EditorGUILayout.IntPopup("Độ khó", _options.difficulty, new[] { "Thường", "Khó", "Siêu khó" }, new[] { 0, 2, 4 });
             _options.mechanics = EditorGUILayout.Toggle(new GUIContent("Đặt cơ chế", "Tắt: chỉ dựng bàn đường để xem hình."), _options.mechanics);
-            _options.games = EditorGUILayout.IntSlider("Số ván chơi thử", _options.games, 1, 5);
+            _options.pairedCrates = EditorGUILayout.Toggle(new GUIContent("Khay đôi", "Màn sau 366: một cặp khay chung điểm giao, nối xích; không đi cùng khay đóng / mở."), _options.pairedCrates);
+            _options.games =EditorGUILayout.IntSlider("Số ván chơi thử", _options.games, 1, 5);
 
             if (GUILayout.Button("Sinh màn", GUILayout.Height(28)))
             {

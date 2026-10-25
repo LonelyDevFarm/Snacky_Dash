@@ -458,7 +458,7 @@ namespace SnackDash.Editor.LevelTools
             {
                 var choices = new List<(string name, int cost)> { ("cổng một chiều", GateCost), ("tường", WallCost), ("mặt băng", GateCost) };
                 if (!placed.Contains("khối nâng")) choices.Add(("khối nâng", RisingCost));
-                if (!placed.Contains("khay đóng / mở") && normal.Count >= 2) choices.Add(("khay đóng / mở", ToggleCrateCost));
+                if (!placed.Contains("khay đóng / mở") && normal.Count >= 2 && !normal.Any(c => c.pairedWithPrevious)) choices.Add(("khay đóng / mở", ToggleCrateCost));
                 choices.RemoveAll(c => c.cost > budget || exhausted.Contains(c.name));
                 if (choices.Count == 0) break;
                 // Lượt đầu: ý đồ chính; không đặt được thì màn không có ý đồ (bên gọi bỏ bàn).
@@ -501,7 +501,7 @@ namespace SnackDash.Editor.LevelTools
                 case "mặt băng": return Ice(json, level, database, random, placed);
                 case "khay đóng / mở":
                     var normal = level.columns.Where(c => !c.isExtra).ToList();
-                    if (normal.Count < 2 || normal.Any(c => c.closedAtStart)) return false;
+                    if (normal.Count < 2 || normal.Any(c => c.closedAtStart || c.pairedWithPrevious)) return false; // khay đôi không đi cùng khay đóng / mở
                     normal[random.Next(normal.Count)].closedAtStart = true;
                     if (!placed.Contains(name)) placed.Add(name);
                     return true;

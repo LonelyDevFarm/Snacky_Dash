@@ -27,6 +27,7 @@ namespace SnackDash.Editor.LevelTools
             { 7, 353 }, { 11, 354 }, { 13, 356 }, { 14, 355 }, { 15, 347 },
         };
         private const int EndPointTile = 387; // ô khay đứng (ngay trên ô giao)
+        private const int NonPillSpawnTile = 276; // lớp spawn: ô không rải trái (như màn gốc đánh dấu)
         private const string TemplateLevel = "Assets/_MyGame/Data/Levels/Definitions"; // lấy tileset từ một màn gốc
 
         /// <summary>Số ô đường theo bậc. Gọn hơn màn gốc (thường đa số 80-160) [user 19/10: màn nào cũng rộng]: khó nhờ cơ chế, không
@@ -97,7 +98,8 @@ namespace SnackDash.Editor.LevelTools
         }
 
         /// <summary>Màn tự thiết kế (chưa lưu, chưa có cơ chế) và bản đồ JSON; null kèm lý do khi không dựng được.</summary>
-        public static LevelDefinition Design(int difficulty, TileDefinitionDatabase database, System.Random random, int mixWindow, out string json, out string why)
+        /// <param name="paired">Khay đôi (sáng tạo, màn sau 366): điểm giao cuối là một cặp khay trên mép trên, chừa đủ ngang cho hai chồng.</param>
+        public static LevelDefinition Design(int difficulty, TileDefinitionDatabase database, System.Random random, int mixWindow, out string json, out string why, bool paired = false)
         {
             json = null;
             var lattice = new Lattice();
@@ -118,11 +120,18 @@ namespace SnackDash.Editor.LevelTools
             bool top = random.Next(2) == 0;
             var stops = new List<Vector2Int>();
             var blocks = new List<RectInt>(); // ô lưới đã gộp cho khay
-            for (int c = 0; c < columns; c++)
+            if (paired)
             {
-                bool placed = top ? TopCrate(lattice, stops, random) : BlockCrate(lattice, stops, blocks, random);
-                if (!placed && !(top ? BlockCrate(lattice, stops, blocks, random) : TopCrate(lattice, stops, random))) break;
+                // Khay đôi: 0-1 khay thường trong khối cỏ, rồi cặp trên mép trên (điểm giao cuối, nên cột bạn là cột cuối, không có điểm giao).
+                if (random.Next(2) == 0) BlockCrate(lattice, stops, blocks, random);
+                if (!PairTopCrate(lattice, stops, random)) { why = "không có chỗ đặt khay đôi"; return null; }
             }
+            else
+                for (int c = 0; c < columns; c++)
+                {
+                    bool placed = top ? TopCrate(lattice, stops, random) : BlockCrate(lattice, stops, blocks, random);
+                    if (!placed && !(top ? BlockCrate(lattice, stops, blocks, random) : TopCrate(lattice, stops, random))) break;
+                }
             if (stops.Count == 0) { why = "không có chỗ đặt khay"; return null; }
 
             // 3. Gộp khối tới số ô đường theo bậc.
@@ -172,7 +181,9 @@ namespace SnackDash.Editor.LevelTools
             var map = new long[width * height];
             var spawn = new long[width * height];
             var ldf = new long[width * height];
-            var anchors = new HashSet<Vector2Int>(stops.Select(s => s + Vector2Int.up));
+            // Khay đôi: không ô end point, không lối vào; cỏ bao quanh nền hai khay (Hole_Pair_VO kín miệng) [user 25/10: lối vào giữa xấu hơn].
+            // BoardGraph đặt cặp ngay trên ô giao khi ô giao không có end point kề bên.
+            var anchors = new HashSet<Vector2Int>(stops.Where((s, i) => !paired || i < stops.Count - 1).Select(s => s + Vector2Int.up));
             foreach (var pair in roads)
             {
                 int stopIndex = stops.IndexOf(pair.Key);
@@ -192,6 +203,16 @@ namespace SnackDash.Editor.LevelTools
                     map[Index(cell)] = grass.TryGetValue(mask, out int best) && best >= 0 ? best + firstGid : 0;
                 }
             spawn[Index(start)] = LevelParts.StartTile + firstGid;
+            // Khay đôi: đường ngay dưới cặp khay không rải trái (trái cao, đè lên chân khay).
+            if (paired)
+            {
+                var pairStop = stops[stops.Count - 1];
+                for (int dx = -PairHalfWidth; dx <= PairHalfWidth; dx++)
+                {
+                    var cell = pairStop + new Vector2Int(dx, 0);
+                    if (roads.ContainsKey(cell) && cell != start) spawn[Index(cell)] = NonPillSpawnTile + firstGid;
+                }
+            }
 
             var output = new LevelParts.TiledJson.Map
             {
@@ -211,11 +232,60 @@ namespace SnackDash.Editor.LevelTools
             level.wallHealth = 3;
             level.risingBlockDeliveriesToLower = 3;
             for (int c = 0; c < stops.Count; c++) level.columns.Add(new CrateColumnDefinition());
+            if (paired) level.columns.Add(new CrateColumnDefinition { pairedWithPrevious = true });
             var list = UnityEditor.AssetDatabase.LoadAssetAtPath<LevelList>(LevelGenerator.LevelListPath);
             var sameTier = list.levels.Take(350).Where(l => l != null && (l.difficulty >= 4) == (difficulty >= 4) && (l.difficulty >= 2) == (difficulty >= 2)).ToList();
             LevelParts.FillFruit(level, sameTier.OrderBy(_ => random.Next()).Take(2).ToList(), random, mixWindow);
+            if (paired) EvenPair(level, random, mixWindow);
             why = null;
             return level;
+        }
+
+        /// <summary>Nửa bề ngang cặp khay tính từ ô giao (khay 2.8 lệch 2 ô, cộng mép hố), ô.</summary>
+        private const int PairHalfWidth = 4;
+
+        /// <summary>
+        /// Khay đôi trên mép trên: ô giao giữa một đoạn đường ngang trên cùng; đường ngang dưới cả cặp giữ liền, thẳng (khay đứng trên chỗ
+        /// đường đứt / rẽ xuống thì nền khay lòi ra mép cỏ) [user 25/10], hai đầu đường còn cách mép cặp ít nhất một ô.
+        /// </summary>
+        private static bool PairTopCrate(Lattice lattice, List<Vector2Int> stops, System.Random random)
+        {
+            int j = lattice.Y.Length - 1, last = lattice.X.Length - 1;
+            var options = Enumerable.Range(0, last)
+                .Where(i => lattice.X[i + 1] - lattice.X[i] >= 4)
+                .Where(i => { int x = (lattice.X[i] + lattice.X[i + 1]) / 2; return x - PairHalfWidth - 1 >= lattice.X[0] && x + PairHalfWidth + 1 <= lattice.X[last]; })
+                .ToList();
+            if (options.Count == 0) return false;
+            int pick = options[random.Next(options.Count)];
+            int stop = (lattice.X[pick] + lattice.X[pick + 1]) / 2;
+            stops.Add(new Vector2Int(stop, lattice.Y[j]));
+            for (int i = 0; i < last; i++)
+                if (lattice.X[i + 1] > stop - PairHalfWidth - 1 && lattice.X[i] < stop + PairHalfWidth + 1) lattice.Fixed.Add((i, j, true));
+            return true;
+        }
+
+        /// <summary>Hai cột của cặp cùng số tầng, mỗi tầng 9 trái và hai khay khác màu (GameSession.BuildPairs); chia lại đợt trái.</summary>
+        private static void EvenPair(LevelDefinition level, System.Random random, int mixWindow)
+        {
+            var lead = level.columns[level.columns.Count - 2];
+            var partner = level.columns[level.columns.Count - 1];
+            var crates = lead.crates.Concat(partner.crates).Select(c => new CrateDefinition { kind = c.kind, requiredCount = 9 }).ToList();
+            var kinds = crates.Select(c => c.kind).Distinct().ToList();
+            if (crates.Count % 2 == 1) crates.Add(new CrateDefinition { kind = kinds[random.Next(kinds.Count)], requiredCount = 9 });
+            lead.crates.Clear();
+            partner.crates.Clear();
+            // Mỗi tầng lấy hai khay khác màu khi còn được.
+            while (crates.Count > 0)
+            {
+                var a = crates[0];
+                crates.RemoveAt(0);
+                int other = crates.FindIndex(c => c.kind != a.kind);
+                var b = crates[other < 0 ? 0 : other];
+                crates.RemoveAt(other < 0 ? 0 : other);
+                lead.crates.Add(a);
+                partner.crates.Add(b);
+            }
+            LevelParts.Regroup(level, Mathf.Clamp(level.batches.Count, LevelParts.MinWaves, LevelParts.MaxWaves), random, mixWindow);
         }
 
         /// <summary>Vị trí các đường song song từ 1, cách nhau 3-5 ô (khối cỏ 2-4 ô, hay gặp 3-4), đường cuối trong [min, max].</summary>

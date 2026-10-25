@@ -384,4 +384,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ee09867a0b8f4f8468e11fba47a5a042, type: 2}
   - {fileID: 11400000, guid: b00acbee830675b44aa798b093d99b5a, type: 2}
   - {fileID: 11400000, guid: 822e9ad766783694399d2d949564fca6, type: 2}
+  - {fileID: 11400000, guid: 6003a56d9a5e3b44aa90ef91347868b5, type: 2}
+  - {fileID: 11400000, guid: cfc08eaeff8a7ca439b9638924304641, type: 2}
+  - {fileID: 11400000, guid: 7d78adb9fdeec7a49ae3d2d76cbb479f, type: 2}
+  - {fileID: 11400000, guid: 6a35d7fbb0aedde4eaf87325a807e6e2, type: 2}
+  - {fileID: 11400000, guid: bde0c732b34b0004a9952355fb44709d, type: 2}
   skipped: []

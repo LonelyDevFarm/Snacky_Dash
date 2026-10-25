@@ -96,6 +96,34 @@ namespace SnackDash.Tests
             Assert.IsFalse(session.IsMoving, "the ignored swipe must not fire after the delivery");
             Assert.IsTrue(session.RequestMove(Direction.Left), "head-only snake may turn back");
 
+            // Paired crates (creative, levels after 366) [user 23/10]: two stacks with the same number of tiers share one delivery stop and are
+            // tied tier by tier. A crate that fills first waits (takes nothing more) until its partner fills; then both finish together, which
+            // counts as two crates for walls / bollards. Strawberry x1 paired with strawberry x1, two strawberries on the road.
+            var pairLevel = Level((PillKind.Strawberry, 2), (PillKind.Strawberry, 1));
+            var partnerColumn = new CrateColumnDefinition { pairedWithPrevious = true };
+            partnerColumn.crates.Add(new CrateDefinition { kind = PillKind.Strawberry, requiredCount = 1 });
+            pairLevel.columns.Add(partnerColumn);
+            var pair = new GameSession(new BoardGraph(map, _database), map, pairLevel);
+            pair.Begin();
+            Assert.AreEqual(1, pair.PartnerOf(0));
+            Assert.AreEqual(0, pair.PairLead(1));
+            var finished = new List<int>();
+            pair.CrateCompleted += (column, crate) => finished.Add(column);
+            Assert.IsTrue(pair.RequestMove(Direction.Right));
+            pair.Tick(0.3f);
+            Assert.AreEqual(new Vector2Int(4, 0), pair.CurrentCell);
+            Assert.AreEqual(2, pair.Segments.Count);
+            Assert.IsTrue(pair.IsDelivering, "the shared stop delivers into the pair");
+            pair.Tick(0f);
+            Assert.AreEqual(1, pair.Columns[0].FilledIn(0), "the first fruit fills the first crate");
+            Assert.AreEqual(0, pair.Columns[0].CurrentIndex, "a full crate waits for its partner");
+            Assert.IsEmpty(finished);
+            for (int i = 0; i < 40 && pair.IsDelivering; i++) pair.Tick(GameSession.DeliveryInterval);
+            Assert.AreEqual(0, pair.Segments.Count);
+            Assert.AreEqual(1, pair.Columns[1].FilledIn(0), "the next fruit goes to the partner");
+            CollectionAssert.AreEqual(new[] { 0, 1 }, finished, "both crates finish together: two completions");
+            Assert.IsTrue(pair.IsWon);
+
             // Ice (creative mechanic, levels after 366) [user 20-21/10]: a stretch of road from stop A to stop B swallowing the stops between,
             // with a weight. A lighter snake slides over the swallowed stops to B; one carrying at least that many fruit breaks the whole stretch
             // at the stop it reaches and stops there. Undo brings the ice back; previewing the path never breaks it. The Level Generator finds

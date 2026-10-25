@@ -29,6 +29,8 @@ namespace SnackDash.LevelSystem
         public List<CrateDefinition> crates = new List<CrateDefinition>();
         public bool closedAtStart;
         public bool isExtra;
+        [Tooltip("Khay đôi (sáng tạo, màn sau 366): ghép với cột ngay trước, chung điểm giao; tầng nào cũng phải đầy cả hai khay mới xong.")]
+        public bool pairedWithPrevious;
     }
 
     [Serializable]

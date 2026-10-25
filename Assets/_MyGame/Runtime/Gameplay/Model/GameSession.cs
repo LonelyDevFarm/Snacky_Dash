@@ -238,6 +238,7 @@ namespace SnackDash.Gameplay
             var columns = new List<CrateColumn>();
             foreach (var column in level.columns) columns.Add(new CrateColumn(column.crates, column.isExtra));
             Columns = columns;
+            BuildPairs(level);
             ExtraColumn = columns.FindIndex(c => c.IsExtra);
             ExtraLocked = ExtraColumn >= 0;
 
@@ -396,6 +397,7 @@ namespace SnackDash.Gameplay
         public bool CanDeliverTo(int column)
         {
             if (column < 0 || column >= Columns.Count || Columns[column].IsComplete || IsCrateClosed(column)) return false;
+            if (PartnerOf(column) >= 0) return CanDeliverToPair(column);
             return _segments.Contains(Columns[column].Current.kind);
         }
 
@@ -449,6 +451,7 @@ namespace SnackDash.Gameplay
             var plan = new List<(int segment, int crate)>();
             if (IsWon || IsStuck || IsMoving || IsDelivering) return plan;
             if (columnIndex < 0 || columnIndex >= Columns.Count || IsCrateClosed(columnIndex)) return plan; // khay đóng không nhận
+            if (PartnerOf(columnIndex) >= 0) return PlanPairBoomerang(PairLead(columnIndex)); // khay đôi: cả tầng như một khay
             var column = Columns[columnIndex];
             var taken = new HashSet<int>();
             for (int crate = column.CurrentIndex; crate < column.Crates.Count; crate++)
@@ -474,6 +477,7 @@ namespace SnackDash.Gameplay
         /// </summary>
         public bool UseBoomerang(int columnIndex)
         {
+            columnIndex = PairLead(columnIndex); // khay đôi: ném vào cặp qua cột đầu
             var plan = PlanBoomerang(columnIndex);
             if (plan.Count == 0) return false;
             var segments = new List<int>();
@@ -516,7 +520,10 @@ namespace SnackDash.Gameplay
             for (int column = 0; column < Columns.Count; column++)
             {
                 var stack = Columns[column];
-                if (stack.IsComplete || !stack.IsFull(stack.CurrentIndex) || IsCrateClosed(column)) continue; // khay đóng chờ mở mới xong
+                bool settles = PartnerOf(column) >= 0
+                    ? PairLead(column) == column && PairFull(column) // khay đôi: chờ đầy cả hai
+                    : !stack.IsComplete && stack.IsFull(stack.CurrentIndex) && !IsCrateClosed(column); // khay đóng chờ mở mới xong
+                if (!settles) continue;
                 _deliveryColumn = column;
                 _deliverFromTail = false;
                 _deliveryTimer = -delay; // chờ trái đã cắt bay vào xong
@@ -950,6 +957,7 @@ namespace SnackDash.Gameplay
 
         private bool DeliverOne(int columnIndex)
         {
+            if (PartnerOf(columnIndex) >= 0) return DeliverPair(PairLead(columnIndex));
             var column = Columns[columnIndex];
             if (column.IsComplete) return false;
 

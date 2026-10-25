@@ -36,6 +36,8 @@ namespace SnackDash.Editor.LevelTools
             public int triesPerLevel = 12;
             [Tooltip("Đặt cơ chế (cầu, cổng, tường, khối nâng...) lên bàn đường; tắt để chỉ xem hình đường.")]
             public bool mechanics = true;
+            [Tooltip("Khay đôi (sáng tạo, màn sau 366): mỗi màn có một cặp khay chung điểm giao trên mép trên.")]
+            public bool pairedCrates;
         }
 
         /// <summary>Sinh <see cref="Options.count"/> màn; trả về các màn đã lưu. <paramref name="progress"/> trả true để dừng.</summary>
@@ -52,7 +54,7 @@ namespace SnackDash.Editor.LevelTools
                     if (progress != null && progress($"Màn {n + 1}/{options.count}, lần thử {attempt + 1}", (n + attempt / (float)options.triesPerLevel) / options.count))
                         return saved;
                     int seed = random.Next(1, int.MaxValue);
-                    var candidate = LevelDesigner.Design(Mathf.Max(0, options.difficulty), database, new System.Random(seed), 12, out string json, out string why);
+                    var candidate = LevelDesigner.Design(Mathf.Max(0, options.difficulty), database, new System.Random(seed), 12, out string json, out string why, options.pairedCrates);
                     if (candidate == null || !LevelBuilder.Check(json, candidate, database, out why))
                     {
                         if (candidate != null) UnityEngine.Object.DestroyImmediate(candidate);
@@ -73,7 +75,7 @@ namespace SnackDash.Editor.LevelTools
                         continue;
                     }
                     var size = TiledMap.Parse(json);
-                    candidate.origin = $"tự thiết kế {size.Width}x{size.Height}, {candidate.columns.Count} cột khay; ý đồ: {theme ?? "không"}; cơ chế: {(placed.Count > 0 ? string.Join(", ", placed) : "không")}; hạt {seed}; thắng không booster: {moves} lượt vuốt, tìm {nodes} thế cờ";
+                    candidate.origin = $"tự thiết kế {size.Width}x{size.Height}, {candidate.columns.Count} cột khay{(options.pairedCrates ? " (có khay đôi)" : "")}; ý đồ: {theme ?? "không"}; cơ chế: {(placed.Count > 0 ? string.Join(", ", placed) : "không")}; hạt {seed}; thắng không booster: {moves} lượt vuốt, tìm {nodes} thế cờ";
                     saved.Add(Save(candidate, json, "Design"));
                     made++;
                     break;

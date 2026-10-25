@@ -20,6 +20,18 @@ namespace SnackDash.Presentation
         /// <summary>Khung một crate trên màn (rộng 2.8 ô, đo video), dùng để canh camera.</summary>
         public static readonly Vector3 CrateSize = new Vector3(2.8f, 2f, 0f);
 
+        /// <summary>Khay đôi (sáng tạo): khe giữa hai chồng đứng hai bên điểm giao, ô; rộng cho xích các tầng không dồn đè nhau [user 25/10].</summary>
+        public const float PairGap = 2f;
+
+        /// <summary>Khay đôi lùi lên khỏi đường chừng này ô (không có đoạn đường nối, sát đường trông chật) [user 25/10].</summary>
+        public const float PairBack = 0.5f;
+
+        /// <summary>Tâm cụm khay của một điểm giao (khay đôi lùi lên <see cref="PairBack"/>), dùng để canh camera.</summary>
+        public static Vector3 StopCratesCenter(Vector2Int endPoint, bool paired) => CratePosition(endPoint) + new Vector3(0f, paired ? PairBack : 0f, 0f);
+
+        /// <summary>Khung khay trên một điểm giao: khay đôi rộng hai khay cộng khe.</summary>
+        public static Vector3 StopCratesSize(bool paired) => paired ? new Vector3(CrateSize.x * 2f + PairGap, CrateSize.y, 0f) : CrateSize;
+
         [SerializeField] private GameObject crate9Prefab;
         [Tooltip("Hole_VO: hố chồng khay đứng trong; lộ sàn gỗ khi cột hết khay.")]
         [SerializeField] private GameObject holePrefab;
@@ -36,6 +48,16 @@ namespace SnackDash.Presentation
         [SerializeField] private Vector3 rejectPunch = new Vector3(0.12f, 0.12f, 0f);
         [SerializeField] private float rejectDuration = 0.25f;
         private readonly Dictionary<int, ShutterCrateView> _shutters = new Dictionary<int, ShutterCrateView>();
+
+        [Header("Khay đôi (sáng tạo, màn sau 366)")]
+        [Tooltip("PairRope: xích căng nối hai khay trên cùng (dài sẵn đúng khe PairGap, hai đầu chui dưới thành khay); mắt xích trong Left / Right tô theo màu dây của trái hai khay (FruitGraphicSet.ropeColor).")]
+        [SerializeField] private GameObject pairRopePrefab;
+        [Tooltip("Hole_Pair_VO: biến thể Hole_VO kín miệng cho mỗi chồng khay đôi (không đoạn đường nối, cỏ bao quanh): bỏ phần đường của Mesh_Path_CrateDelivery, tắt bóng miệng (Mesh_Path_Shadow_CrateHole, _1, _2).")]
+        [SerializeField] private GameObject pairHolePrefab;
+        [Tooltip("Xích + khoen đưa ra trước mặt thùng chừng này (đơn vị thế giới) để khoen đè lên mép thùng, che viền thùng ở chỗ nối.")]
+        [SerializeField] private float pairRopeLift = 0.6f;
+        [Tooltip("Xích + khoen nâng lên chừng này (đơn vị khay) cho nằm giữa thành khay trên màn.")]
+        [SerializeField] private float pairRopeRaise = 0.4f;
 
         [Header("Feel")]
         [Tooltip("Giây bay vào khay (chốt khi chơi thử so với bản gốc).")]
@@ -95,6 +117,7 @@ namespace SnackDash.Presentation
         private bool _boomerang; // trái SegmentSnipped hiện tại là do boomerang ném
         private int _magicLeft, _magicOrder; // Khay thần kỳ: số trái còn chờ xếp lượt bay, lượt kế
         private readonly Dictionary<Transform, Coroutine> _shakes = new Dictionary<Transform, Coroutine>();
+        private readonly List<(PairChainView chain, int partner, int tier)> _chains = new List<(PairChainView, int, int)>(); // xích khay đôi đang hiện
 
         /// <summary>Tâm khay trên cùng của cột.</summary>
         public static Vector3 CratePosition(Vector2Int endPoint) =>
@@ -105,12 +128,14 @@ namespace SnackDash.Presentation
             _session = session;
             // Mọi cột, kể cả chỗ khay thêm (gốc mua bằng xu, ở đây để trống).
             if (holePrefab != null)
-                foreach (var anchor in session.Board.CrateAnchors)
+                for (int column = 0; column < session.Columns.Count; column++)
                 {
-                    var hole = Instantiate(holePrefab, transform);
-                    hole.name = $"Hole c{anchor.Key}";
-                    hole.transform.localPosition = BoardView.CellToWorld(anchor.Value) + new Vector3(0f, CrateHeightAboveEndPoint, 0f);
-                    _holes[anchor.Key] = hole;
+                    // Khay đôi: mỗi chồng một hố như khay thường, đứng hai bên điểm giao của cột đầu [user 23/10].
+                    if (!session.Board.CrateAnchors.TryGetValue(session.PairLead(column), out var anchor)) continue;
+                    var hole = Instantiate(session.PartnerOf(column) >= 0 && pairHolePrefab != null ? pairHolePrefab : holePrefab, transform);
+                    hole.name = $"Hole c{column}";
+                    hole.transform.localPosition = BoardView.CellToWorld(anchor) + new Vector3(PairOffset(column), CrateHeightAboveEndPoint + (session.PartnerOf(column) >= 0 ? PairBack : 0f), 0f);
+                    _holes[column] = hole;
                 }
             for (int column = 0; column < session.Columns.Count; column++) Rebuild(column, false);
             session.SegmentDelivered += OnDelivered;
@@ -194,7 +219,73 @@ namespace SnackDash.Presentation
 
         /// <summary>Vị trí khay của cột (world), vd cho bong bóng TAP TO UNLOCK.</summary>
         public Vector3 ColumnWorldPosition(int column) =>
-            _session.Board.CrateAnchors.TryGetValue(column, out var anchor) ? transform.TransformPoint(CratePosition(anchor)) : transform.position;
+            TryBasePosition(column, out var top) ? transform.TransformPoint(top) : transform.position;
+
+        /// <summary>Tâm khay trên cùng của cột; khay đôi đứng hai bên điểm giao của cột đầu (cột đầu bên trái).</summary>
+        private bool TryBasePosition(int column, out Vector3 position)
+        {
+            int lead = _session.PairLead(column);
+            if (!_session.Board.CrateAnchors.TryGetValue(lead, out var anchor)) { position = default; return false; }
+            position = StopCratesCenter(anchor, _session.PartnerOf(column) >= 0) + new Vector3(PairOffset(column), 0f, 0f);
+            return true;
+        }
+
+        /// <summary>Khay đôi: cột đầu lệch trái, cột sau lệch phải khỏi điểm giao; cột thường 0.</summary>
+        private float PairOffset(int column) =>
+            _session.PartnerOf(column) < 0 ? 0f : (column == _session.PairLead(column) ? -0.5f : 0.5f) * (CrateSize.x + PairGap);
+
+        /// <summary>
+        /// Khay đôi: mỗi tầng đang hiện một xích căng từ khay cột đầu sang khay cùng tầng cột sau, nửa trái màu trái khay trái, nửa phải
+        /// màu khay phải [user 23/10; tầng dưới cũng có xích, cùng chỗ như tầng trên: user 25/10]. Dây là con của khay cột đầu nên dâng /
+        /// biến mất cùng tầng; dựng lại kèm chồng.
+        /// </summary>
+        private void AttachRopes(int columnIndex, List<GameObject> crates, int top)
+        {
+            int partner = _session.PartnerOf(columnIndex);
+            if (pairRopePrefab == null || partner < 0 || _session.PairLead(columnIndex) != columnIndex) return;
+            var partnerCrates = _session.Columns[partner].Crates;
+            var view = Camera.main;
+            for (int k = 0; k < crates.Count && top + k < partnerCrates.Count; k++)
+            {
+                var rope = Instantiate(pairRopePrefab, crates[k].transform);
+                rope.name = "PairRope";
+                rope.transform.localPosition = new Vector3((CrateSize.x + PairGap) * 0.5f, pairRopeRaise, 0f);
+                // Ra trước mặt thùng theo hướng nhìn của camera (camera nghiêng): đứng yên trên màn mà vẽ đè lên mép thùng.
+                if (view != null) rope.transform.position -= view.transform.forward * pairRopeLift;
+                Tint(rope.transform.Find("Left"), _session.Columns[columnIndex].Crates[top + k].kind);
+                Tint(rope.transform.Find("Right"), partnerCrates[top + k].kind);
+                // Khoen đi theo thân thùng khi thùng rung (Shake), xích đung đưa theo.
+                var chain = rope.GetComponent<PairChainView>();
+                if (chain == null) continue;
+                int tier = k;
+                chain.Bind(crates[k].transform.Find("BoxVisual_VO"), () => PartnerCrate(partner, tier) is GameObject other ? other.transform.Find("BoxVisual_VO") : null);
+                _chains.RemoveAll(entry => entry.chain == null);
+                _chains.Add((chain, partner, tier));
+            }
+        }
+
+        // Cột sau dựng lại sau cột đầu, nên khay của nó tra lúc cần chứ không giữ từ lúc gắn xích.
+        private GameObject PartnerCrate(int partner, int tier) =>
+            _columns.TryGetValue(partner, out var crates) && tier < crates.Count && crates[tier] != null ? crates[tier] : null;
+
+        /// <summary>Thùng có xích khay đôi nhận trái: xích bị hất theo phía thùng đó.</summary>
+        private void KickChain(Transform crate)
+        {
+            foreach (var (chain, partner, tier) in _chains)
+            {
+                if (chain == null) continue;
+                if (chain.transform.parent == crate) chain.Kick(false);
+                else if (PartnerCrate(partner, tier) is GameObject other && other.transform == crate) chain.Kick(true);
+            }
+        }
+
+        private void Tint(Transform half, PillKind kind)
+        {
+            var entry = fruits != null ? fruits.Get(kind) : null;
+            if (half == null || entry == null) return;
+            // Khoen màu thành thùng (liền với thùng), mắt xích màu dây.
+            foreach (var part in half.GetComponentsInChildren<SpriteRenderer>()) part.color = part.name == "Anchor" ? entry.crateRimColor : entry.ropeColor;
+        }
 
         /// <summary>Vệt FX bay từ dưới giữa màn tới khay thêm, to dần rồi nhỏ lại (gốc ExtraCrateVfxConfig).</summary>
         public IEnumerator PlayExtraTrail(int column)
@@ -325,6 +416,7 @@ namespace SnackDash.Presentation
             if (visual == null || receiveShakeDuration <= 0f) return;
             if (_shakes.TryGetValue(visual, out var running) && running != null) StopCoroutine(running);
             _shakes[visual] = StartCoroutine(ShakeRoutine(visual));
+            KickChain(crate);
         }
 
         private IEnumerator ShakeRoutine(Transform visual)
@@ -365,6 +457,9 @@ namespace SnackDash.Presentation
                 crates.RemoveAt(0);
             }
             _pendingSwaps[columnIndex]--; // cùng lúc gỡ khay để trái đang bay nhắm khay kế
+            // Khay đôi: xích đứt, mắt xích văng ra khi cặp khay bay đi (xích là con của khay cột đầu).
+            var chain = finished != null ? finished.GetComponentInChildren<PairChainView>() : null;
+            if (chain != null) chain.Break(transform);
             // Khay đầy đi trước rồi chồng mới dâng; làm cùng lúc thì khay sau đè lên khay đầy [user].
             if (finished != null) yield return Exit(finished);
             Rebuild(columnIndex, true);
@@ -392,9 +487,8 @@ namespace SnackDash.Presentation
             var crates = new List<GameObject>();
             _columns[columnIndex] = crates;
 
-            if (!_session.Board.CrateAnchors.TryGetValue(columnIndex, out var anchor)) return;
+            if (!TryBasePosition(columnIndex, out var basePosition)) return;
             var column = _session.Columns[columnIndex];
-            var basePosition = CratePosition(anchor);
             // Tính từ khay đang hiện, không phải của session: khay đầy chờ đi vẫn nằm trên, bỏ qua thì mất khay [user].
             int top = column.CurrentIndex - (_pendingSwaps.TryGetValue(columnIndex, out int pending) ? pending : 0);
             // Chồng đứng trên đất: hết khay mới thì chỗ trống ở trên, khay còn lại đứng yên chứ không dâng lơ lửng [mentor].
@@ -430,6 +524,7 @@ namespace SnackDash.Presentation
                 }));
             }
             if (crates.Count > 0) AttachShutter(columnIndex, crates[0], column.Crates[top].kind);
+            AttachRopes(columnIndex, crates, top);
             // Khay dưới rèm ẩn tới khi rèm mở (gốc CrateManager.IsColumnCurtainCovered).
             bool covered = _session.IsColumnCovered(columnIndex);
             foreach (var crate in crates) crate.SetActive(!covered);

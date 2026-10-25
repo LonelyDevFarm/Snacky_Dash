@@ -365,6 +365,9 @@ namespace SnackDash.Gameplay
             foreach (var stop in _crateStops)
             foreach (var end in endPoints)
                 if ((end - stop.Value).sqrMagnitude == 1) _crateAnchors[stop.Key] = end;
+            // Khay đôi (sáng tạo): bản đồ không có ô end point (đoạn đường cụt lộ giữa hai chồng), khay đứng ngay trên ô giao.
+            foreach (var stop in _crateStops)
+                if (!_crateAnchors.ContainsKey(stop.Key)) _crateAnchors[stop.Key] = stop.Value + Vector2Int.up;
 
             PillSlotGroups = BuildPillSlotGroups(map, database);
         }

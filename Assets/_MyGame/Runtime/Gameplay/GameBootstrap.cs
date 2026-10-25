@@ -92,8 +92,11 @@ namespace SnackDash.Bootstrap
 
             // Bản gốc đóng khung camera gồm cả bàn lẫn các khay.
             var bounds = board.BoardBounds;
-            foreach (var anchor in graph.CrateAnchors.Values)
-                bounds.Encapsulate(new Bounds(CratesView.CratePosition(anchor), CratesView.CrateSize));
+            foreach (var anchor in graph.CrateAnchors) // khay đôi: hai chồng hai bên điểm giao
+            {
+                bool paired = Session.PartnerOf(anchor.Key) >= 0;
+                bounds.Encapsulate(new Bounds(CratesView.StopCratesCenter(anchor.Value, paired), CratesView.StopCratesSize(paired)));
+            }
             cameraFitter.Fit(bounds);
 
             Session.Begin();

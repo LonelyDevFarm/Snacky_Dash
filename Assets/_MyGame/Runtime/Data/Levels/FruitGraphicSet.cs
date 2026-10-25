@@ -25,6 +25,10 @@ namespace SnackDash.LevelSystem
             public Color outlineColor = Color.black;
             [Tooltip("Cửa khay đóng (TOGGLE CRATE) và tấm phẳng dưới cửa theo màu trái (gốc GraphicSet_VO 1.15 MaterialShutterCrate / Plane).")]
             public Material shutterMaterial, shutterPlaneMaterial;
+            [Tooltip("Nửa dây khay đôi phía khay màu này (sáng tạo): màu chính của khay (màu tại 0.45 trên gradient vật liệu khay).")]
+            public Color ropeColor = Color.white;
+            [Tooltip("Màu thành khay khi hiện trên màn (đo trên ảnh chụp, đã có ánh sáng): khoen xích khay đôi tô màu này cho liền với thùng.")]
+            public Color crateRimColor = Color.white;
         }
 
         [SerializeField] private List<Entry> entries = new List<Entry>();

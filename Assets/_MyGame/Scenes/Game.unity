@@ -816,6 +816,16 @@ MonoBehaviour:
   lift: 0.02
   breakLifetime: 2
   textOutline: 0.3
+  crackCreep: 2.5
+  crackBurst: 40
+  maxCrackTime: 0.18
+  vanishTime: 0.3
+  vanishDelay: 0.08
+  breakRipple: 0.025
+  refreezeTime: 0.35
+  touchGlint: {x: 1.1, y: 0.7}
+  slideGlint: {x: 0.55, y: 0.9}
+  glintFade: 3
 --- !u!1 &1357079899
 GameObject:
   m_ObjectHideFlags: 0
@@ -1026,6 +1036,10 @@ MonoBehaviour:
   shutterPrefab: {fileID: 2866130001070916268, guid: fab6ea39eb40cc245925ca31049221a9, type: 3}
   rejectPunch: {x: 0.12, y: 0.12, z: 0}
   rejectDuration: 0.25
+  pairRopePrefab: {fileID: 6635097930932851326, guid: 51aad5af874e3e440869001b2069f819, type: 3}
+  pairHolePrefab: {fileID: 8820040257406032614, guid: 924197bff2d685240ac1601edd86214d, type: 3}
+  pairRopeLift: 0.6
+  pairRopeRaise: 0.4
   flightDuration: 0.475
   flightArcHeight: 3
   boomerangFlightDuration: 0.55

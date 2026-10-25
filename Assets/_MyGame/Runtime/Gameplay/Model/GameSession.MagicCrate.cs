@@ -37,6 +37,7 @@ namespace SnackDash.Gameplay
         /// <summary>Trái sẽ lấy cho cột này (rỗng: không dùng được).</summary>
         public List<MagicCratePlanner.Pick> PlanMagicCrate(int column)
         {
+            if (PartnerOf(column) >= 0) return PlanMagicPair(PairLead(column)).ConvertAll(p => p.pick); // khay đôi: cả tầng như một khay
             if (!IsIdle || !MagicColumn(column)) return new List<MagicCratePlanner.Pick>();
             var stack = Columns[column];
             var kind = stack.Current.kind;
@@ -49,6 +50,7 @@ namespace SnackDash.Gameplay
 
         public bool UseMagicCrate(int column)
         {
+            if (PartnerOf(column) >= 0) return UseMagicPair(PairLead(column));
             var plan = PlanMagicCrate(column);
             if (plan.Count == 0) return false;
             var stack = Columns[column];
