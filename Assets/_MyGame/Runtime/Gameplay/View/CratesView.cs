@@ -249,9 +249,10 @@ namespace SnackDash.Presentation
             {
                 var rope = Instantiate(pairRopePrefab, crates[k].transform);
                 rope.name = "PairRope";
-                rope.transform.localPosition = new Vector3((CrateSize.x + PairGap) * 0.5f, pairRopeRaise, 0f);
-                // Ra trước mặt thùng theo hướng nhìn của camera (camera nghiêng): đứng yên trên màn mà vẽ đè lên mép thùng.
-                if (view != null) rope.transform.position -= view.transform.forward * pairRopeLift;
+                // Ra trước mặt thùng theo hướng nhìn của camera (camera nghiêng): đứng yên trên màn mà vẽ đè lên mép thùng. Tính theo hướng
+                // quay của khay, không qua cỡ khay: khay mới dưới cùng đang phóng to từ 0 thì xích lọt vào giữa thùng.
+                var lift = view != null ? Quaternion.Inverse(crates[k].transform.rotation) * (-view.transform.forward * pairRopeLift) : Vector3.zero;
+                rope.transform.localPosition = new Vector3((CrateSize.x + PairGap) * 0.5f, pairRopeRaise, 0f) + lift;
                 Tint(rope.transform.Find("Left"), _session.Columns[columnIndex].Crates[top + k].kind);
                 Tint(rope.transform.Find("Right"), partnerCrates[top + k].kind);
                 // Khoen đi theo thân thùng khi thùng rung (Shake), xích đung đưa theo.
